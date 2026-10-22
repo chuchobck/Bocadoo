@@ -26,6 +26,7 @@ import {
   ShieldAlert,
   Sparkles,
   Store,
+  TrendingUp,
   UserCheck,
   UserPlus,
   UserRound,
@@ -640,6 +641,10 @@ export function OwnerHomeScreen({
     confirmPlanRequest,
     claims,
     refundRedemption,
+    dismissClaim,
+    expiringSoonSubscriptions,
+    extendSubscription,
+    planTemplates,
   } = useBocadoo();
 
   const [addOpen, setAddOpen] = useState(initialAddClientOpen);
@@ -776,6 +781,16 @@ export function OwnerHomeScreen({
               <button
                 type="button"
                 onClick={() => {
+                  dismissClaim(pendingClaims[0].id);
+                  toast.info("Reclamo cerrado: consumo verificado");
+                }}
+                className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-black text-foreground hover:bg-muted active:scale-95"
+              >
+                Está bien
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   refundRedemption(pendingClaims[0].id);
                   toast.success("Almuerzo restituido al cliente (+1 almuerzo)");
                 }}
@@ -875,6 +890,112 @@ export function OwnerHomeScreen({
               Es la comida que tus {activeClients} clientes ya pagaron y vendrán a consumir durante
               este mes.
             </p>
+          </div>
+        )}
+
+        {/* Lista: Por renovar esta semana (P8) */}
+        {expiringSoonSubscriptions.length > 0 && (
+          <div className="mt-5">
+            <SectionTitle
+              action={
+                <span className="text-xs font-bold text-primary">
+                  {expiringSoonSubscriptions.length}
+                </span>
+              }
+            >
+              Por renovar esta semana
+            </SectionTitle>
+            <div className="mt-2 space-y-2.5">
+              {expiringSoonSubscriptions.map((sub) => {
+                const client = clients.find((c) => c.id === sub.clientId);
+                const template = planTemplates.find((t) => t.id === sub.templateId);
+                const phone = client?.phone || "0991234567";
+                const message = `Hola ${client?.name || "amigo/a"}, te quedan ${sub.almuerzosRestantes} almuerzos de tu ${template?.nombre || "plan"} en La Cuchara de San Blas. ¿Deseas renovar para no quedarte sin almuerzo?`;
+                const waUrl = `https://wa.me/593${phone.replace(/^0/, "")}?text=${encodeURIComponent(message)}`;
+
+                return (
+                  <div
+                    key={sub.id}
+                    className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5"
+                  >
+                    <div>
+                      <p className="text-xs font-black text-foreground">
+                        {client?.name || "Cliente Bocadoo"}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Le quedan{" "}
+                        <span className="font-extrabold text-amber-600 dark:text-amber-400">
+                          {sub.almuerzosRestantes} almuerzos
+                        </span>{" "}
+                        · Vence {sub.venceEn}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          extendSubscription(sub.id, 5);
+                          toast.success(`Plan de ${client?.name || "cliente"} extendido 5 días`);
+                        }}
+                        className="rounded-xl bg-card border border-border px-2.5 py-1.5 text-xs font-black text-foreground hover:bg-muted active:scale-95"
+                        title="Extender 5 días de vigencia"
+                      >
+                        +5 días
+                      </button>
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 rounded-xl bg-success px-2.5 py-1.5 text-xs font-black text-success-foreground shadow-xs active:scale-95"
+                        title="Recordar por WhatsApp"
+                      >
+                        <Phone size={13} /> Avisar
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Reporte semanal simple (P10 - solo OWNER) */}
+        {activeRole === "OWNER" && (
+          <div className="mt-5 rounded-2xl border border-border bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-black uppercase tracking-wide text-foreground flex items-center gap-1.5">
+                <TrendingUp size={16} className="text-primary" /> Reporte semanal de operaciones
+              </h3>
+              <span className="text-[11px] font-bold text-muted-foreground">Últimos 7 días</span>
+            </div>
+            <div className="space-y-3 text-xs">
+              <div>
+                <p className="font-bold text-muted-foreground">Platos más vendidos:</p>
+                <p className="mt-0.5 font-extrabold text-foreground">
+                  1. Seco de pollo (48 servidos) · 2. Guatita (36) · 3. Locro de papa (29)
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-muted-foreground">Días con más movimiento:</p>
+                <p className="mt-0.5 font-extrabold text-foreground">
+                  Miércoles y Jueves (pico de 42 almuerzos / día)
+                </p>
+              </div>
+              <div>
+                <p className="font-bold text-muted-foreground">Clientes que no vienen hace 7 días:</p>
+                <div className="mt-1 flex items-center justify-between rounded-xl bg-muted p-2.5">
+                  <span className="font-medium">Valeria Gómez · Le quedan 14 almuerzos</span>
+                  <a
+                    href="https://wa.me/593988776655?text=Hola%20Valeria,%20te%20extrañamos%20en%20La%20Cuchara!%20Aún%20tienes%2014%20almuerzos%20disponibles."
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 rounded-lg bg-success/20 px-2.5 py-1 text-xs font-black text-success hover:bg-success/30 active:scale-95"
+                  >
+                    <Phone size={12} /> Saludar
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

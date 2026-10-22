@@ -1740,6 +1740,21 @@ function useBocadooState() {
     [state.claims, undoRedemption, simulatedTodayISO],
   );
 
+  const dismissClaim = useCallback(
+    (claimId: string, respuesta = "Consumo confirmado en caja") => {
+      setState((s) => ({
+        ...s,
+        claims: s.claims.map((c) =>
+          c.id === claimId
+            ? { ...c, estado: "RECHAZADO", respuesta, resueltoEn: simulatedTodayISO }
+            : c,
+        ),
+      }));
+      return true;
+    },
+    [simulatedTodayISO],
+  );
+
   // P10: Cierre de caja
   const closeCash = useCallback(
     (contadoCents: number, staffId = "st1") => {
@@ -1942,6 +1957,7 @@ function useBocadooState() {
     extendSubscription,
     fileClaim,
     refundRedemption,
+    dismissClaim,
     closeCash,
     setDinerZone,
     // Compatibilidad

@@ -1,32 +1,53 @@
 import { useNavigate } from "@tanstack/react-router";
 import { QRCodeSVG } from "qrcode.react";
 import {
+  AlertTriangle,
+  ArrowRight,
   Bell,
   Check,
+  CheckCircle2,
+  CircleAlert,
   CircleHelp,
+  Clock,
   CreditCard,
   Eye,
+  HelpCircle,
   LocateFixed,
   LockKeyhole,
   LogOut,
   Mail,
   MapPin,
   Pencil,
+  Phone,
   QrCode,
+  RotateCcw,
   Search,
+  Send,
   ShoppingBag,
   SlidersHorizontal,
   Sparkles,
   Star,
+  Store,
   UserRound,
   Utensils,
+  Wifi,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import lunchImage from "@/assets/bocadoo-lunch.jpg";
 import veggieImage from "@/assets/bocadoo-veggie.jpg";
 
-import { APP_USERS, DINER_USER_ID, DINER_ZONES, money, useBocadoo } from "./store";
+import {
+  APP_USERS,
+  DINER_USER_ID,
+  DINER_ZONES,
+  money,
+  useBocadoo,
+  type Claim,
+  type PlanTemplate,
+} from "./store";
 import {
   Avatar,
   BottomSheet,
@@ -40,549 +61,579 @@ import {
   Transaction,
 } from "./ui";
 
-export function LoginScreen() {
-  const navigate = useNavigate();
-  const [role, setRole] = useState<"diner" | "owner">("diner");
-  const enter = () => navigate({ to: role === "diner" ? "/app/comensal" : "/app/dueno" });
-  const tab = (value: "diner" | "owner", label: string) => (
-    <button
-      type="button"
-      onClick={() => setRole(value)}
-      className={
-        role === value
-          ? "rounded-[10px] bg-primary px-2 py-2.5 text-center text-primary-foreground shadow-soft"
-          : "px-2 py-2.5 text-center text-muted-foreground"
-      }
-    >
-      {label}
-    </button>
-  );
-  return (
-    <div className="relative flex flex-1 flex-col overflow-hidden px-6 pb-8">
-      <div className="absolute -right-16 -top-24 h-52 w-52 rounded-full bg-lavender" />
-      <div className="absolute -left-24 top-24 h-44 w-44 rounded-full border-[28px] border-accent/70" />
-      <div className="relative mt-12 flex justify-center">
-        <Logo />
-      </div>
-      <div className="relative mt-8 text-center">
-        <h1 className="text-[30px] font-black leading-tight text-foreground">
-          Tu almuerzo,
-          <br />
-          <span className="text-primary">sin cartulinas.</span>
-        </h1>
-        <p className="mt-2 text-xs font-medium text-muted-foreground">
-          Planes simples. Almuerzos sin complicaciones.
-        </p>
-      </div>
-      <div className="relative mt-7 rounded-[26px] bg-card p-4 shadow-card">
-        <div className="grid grid-cols-2 rounded-xl bg-muted p-1 text-[11px] font-bold">
-          {tab("diner", "Soy comensal")}
-          {tab("owner", "Tengo un restaurante")}
-        </div>
-        <label className="mt-5 block text-[10px] font-bold text-muted-foreground">
-          CORREO ELECTRÓNICO
-        </label>
-        <div className="mt-2 flex h-12 items-center gap-3 rounded-xl bg-muted px-4 text-xs text-foreground">
-          <Mail size={16} className="text-primary" />{" "}
-          {role === "diner" ? "carlos@email.com" : "maria@lacuchara.ec"}
-        </div>
-        <label className="mt-4 block text-[10px] font-bold text-muted-foreground">CONTRASEÑA</label>
-        <div className="mt-2 flex h-12 items-center gap-3 rounded-xl bg-muted px-4 text-xs text-foreground">
-          <LockKeyhole size={16} className="text-primary" />
-          <span className="tracking-[4px]">••••••••</span>
-          <Eye size={15} className="ml-auto text-muted-foreground" />
-        </div>
-        <div className="mt-3 text-right text-[10px] font-bold text-primary">
-          ¿Olvidaste tu contraseña?
-        </div>
-        <button
-          type="button"
-          onClick={enter}
-          className="mt-5 flex h-12 w-full items-center justify-center rounded-xl bg-foreground text-sm font-bold text-background shadow-soft"
-        >
-          Iniciar sesión
-        </button>
-        <div className="my-4 flex items-center gap-3 text-[9px] text-muted-foreground">
-          <i className="h-px flex-1 bg-border" />o continúa con
-          <i className="h-px flex-1 bg-border" />
-        </div>
-        <button
-          type="button"
-          onClick={enter}
-          className="flex h-11 w-full items-center justify-center gap-3 rounded-xl border border-border bg-background text-xs font-bold text-foreground"
-        >
-          <span className="text-base font-black text-google">G</span>Continuar con Google
-        </button>
-      </div>
-      <div className="mt-auto text-center text-xs text-muted-foreground">
-        ¿Primera vez? <span className="font-extrabold text-primary">Crear cuenta</span>
-      </div>
-    </div>
-  );
-}
+export { LoginScreen } from "./auth";
 
-const DINER_PLAN_TOTAL = 20;
-const DINER_LUNCH_PRICE = 2.8;
-
-function QrModal({ lunchesLeft, onClose }: { lunchesLeft: number; onClose: () => void }) {
+// ----------------------------------------------------------------------------
+// P5 — CÓDIGO QR DINÁMICO DEL COMENSAL (SIMULACIÓN TOTP CADA 30 SEGUNDOS)
+// ----------------------------------------------------------------------------
+function QrModal({
+  lunchesLeft,
+  planName = "Plan mensual",
+  onClose,
+}: {
+  lunchesLeft: number;
+  planName?: string;
+  onClose: () => void;
+}) {
   const user = APP_USERS.find((u) => u.id === DINER_USER_ID)!;
+
+  // Rotación simulated TOTP cada 30 segundos
+  const [secondsLeft, setSecondsLeft] = useState(30 - (Math.floor(Date.now() / 1000) % 30));
+  const [timeStep, setTimeStep] = useState(Math.floor(Date.now() / 30000));
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const rem = 30 - (nowSec % 30);
+      setSecondsLeft(rem);
+      setTimeStep(Math.floor(Date.now() / 30000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Payload: BCD1.<idComensal>.<paso>.<firma_simulada>
+  // En producción, la firma es un HMAC-SHA256 con llave privada del backend.
+  // Aquí usamos un hash derivado del id y el paso temporal de 30s para simular la rotación y evitar capturas de pantalla.
+  const simulatedHash = useMemo(() => {
+    const seed = (timeStep * 31 + user.id.charCodeAt(0)) % 10000;
+    return String(seed).padStart(4, "0");
+  }, [timeStep, user.id]);
+
+  const qrPayload = `BCD1.${user.id}.${timeStep}.${simulatedHash}`;
+
+  const pct = (secondsLeft / 30) * 100;
+
   return (
     <Overlay onClose={onClose}>
-      <div className="m-auto w-[336px] max-w-[calc(100%-32px)] rounded-[28px] bg-background p-5 shadow-card animate-in zoom-in-95 duration-200">
+      <div className="m-auto w-[360px] max-w-[calc(100%-32px)] rounded-[32px] bg-background p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <ModalHeader
           icon={QrCode}
-          eyebrow="MI CÓDIGO QR"
+          eyebrow="MI CÓDIGO DINÁMICO"
           title="La Cuchara de San Blas"
           onClose={onClose}
         />
-        <div className="mt-5 grid place-items-center rounded-[24px] bg-accent/60 p-5">
-          <div className="relative rounded-2xl bg-background p-4 text-card-dark shadow-soft">
+
+        {/* Tarjeta de alto contraste y brillo para escaneo en caja */}
+        <div className="mt-4 grid place-items-center rounded-[28px] bg-accent/70 p-5 border border-primary/20">
+          <div className="relative rounded-2xl bg-white p-4 text-black shadow-card">
             <QRCodeSVG
-              value={`bocadoo://validar?usuario=${user.username}&restaurante=la-cuchara-de-san-blas&plan=mensual`}
-              size={176}
+              value={qrPayload}
+              size={190}
               level="H"
-              bgColor="transparent"
-              fgColor="currentColor"
+              bgColor="#FFFFFF"
+              fgColor="#1A072E"
             />
-            <div className="absolute left-1/2 top-1/2 grid h-10 w-10 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-xl border-4 border-background bg-primary text-primary-foreground">
-              <Utensils size={16} strokeWidth={2.8} />
+            <div className="absolute left-1/2 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-xl border-4 border-white bg-primary text-primary-foreground shadow-xs">
+              <Utensils size={18} strokeWidth={2.8} />
             </div>
           </div>
-          <p className="mt-4 text-sm font-black">@{user.username}</p>
-          <p className="mt-1 text-[10px] text-muted-foreground">
-            Plan mensual · {lunchesLeft} almuerzos disponibles
+
+          <p className="mt-3 text-base font-black text-foreground">@{user.username}</p>
+          <p className="mt-0.5 text-xs font-bold text-primary">
+            {planName} · {lunchesLeft} almuerzos disponibles
           </p>
+
+          {/* Barra de progreso de rotación anti-capturas */}
+          <div className="mt-4 w-full max-w-[220px]">
+            <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground">
+              <span>Se renueva en</span>
+              <span className="font-mono text-primary font-black">{secondsLeft}s</span>
+            </div>
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-border">
+              <div
+                className="h-full bg-primary transition-all duration-1000 ease-linear"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
         </div>
-        <p className="mt-4 text-center text-[10px] text-muted-foreground">
-          Muestra este código en caja para descontar tu almuerzo.
+
+        <p className="mt-4 text-center text-xs text-muted-foreground leading-relaxed">
+          Muestra este código al cajero. Se renueva cada 30 segundos para tu seguridad.
         </p>
+
         <PrimaryButton onClick={onClose}>
-          <Check size={16} /> Listo
+          <Check size={18} /> Listo
         </PrimaryButton>
       </div>
     </Overlay>
   );
 }
 
-export function DinerHomeScreen({
-  initialQrOpen = false,
-}: {
-  initialQrOpen?: boolean | undefined;
-}) {
-  const { clientForUser } = useBocadoo();
-  const [qrOpen, setQrOpen] = useState(initialQrOpen);
-  const lunchesLeft = clientForUser(DINER_USER_ID)?.lunchesLeft ?? 14;
-  const used = Math.max(DINER_PLAN_TOTAL - lunchesLeft, 0);
-  const usedPct = Math.min(Math.round((used / DINER_PLAN_TOTAL) * 100), 100);
-  return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5">
-        <header className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold text-muted-foreground">
-              MIÉRCOLES, 30 DE SEPTIEMBRE
-            </p>
-            <h2 className="mt-1 truncate text-[23px] font-black">¡Hola, Carlos!</h2>
-          </div>
-          <Avatar initials="CM" />
-        </header>
-        <div className="mt-6">
-          <SectionTitle>Mis planes</SectionTitle>
-        </div>
-        <div className="relative mt-3 pb-5">
-          <div className="absolute inset-x-3 bottom-0 top-7 rounded-[23px] bg-lavender opacity-70" />
-          <div className="relative overflow-hidden rounded-[23px] bg-card-dark p-5 text-card-dark-foreground shadow-card">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-                  <Utensils size={16} />
-                </div>
-                <div>
-                  <p className="text-[12px] font-bold">La Cuchara de San Blas</p>
-                  <p className="text-[8px] text-card-dark-muted">Plan mensual</p>
-                </div>
-              </div>
-              <Sparkles size={18} className="text-lavender" />
-            </div>
-            <div className="mt-5 flex items-end justify-between">
-              <div>
-                <p className="text-[29px] font-black leading-none">
-                  {lunchesLeft} <span className="text-[15px]">almuerzos</span>
-                </p>
-                <p className="mt-1.5 text-[9px] text-card-dark-muted">Vence el 30/10</p>
-              </div>
-              <p className="text-sm font-bold text-lavender">
-                ≈ {money(lunchesLeft * DINER_LUNCH_PRICE)}
-              </p>
-            </div>
-            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-background/20">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${usedPct}%` }}
-              />
-            </div>
-            <div className="mt-2 flex items-center justify-between text-[8px] text-card-dark-muted">
-              <span>
-                {used} usados de {DINER_PLAN_TOTAL}
-              </span>
-              <span>{100 - usedPct}% disponible</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setQrOpen(true)}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-background px-3 py-2.5 text-[11px] font-extrabold text-foreground"
-            >
-              <QrCode size={16} /> Mostrar QR
-            </button>
-          </div>
-        </div>
-        <div className="mt-5">
-          <SectionTitle
-            action={<span className="text-[9px] font-bold text-primary">Ver todo</span>}
-          >
-            Historial de transacciones
-          </SectionTitle>
-        </div>
-        <div className="mt-1 divide-y divide-border pb-4">
-          <Transaction
-            icon={Utensils}
-            name="La Cuchara de San Blas"
-            detail="Almuerzo consumido · Hoy, 13:12"
-            value="− 1"
-          />
-          <Transaction
-            icon={ShoppingBag}
-            name="Rincón Manabita"
-            detail="Compra plan quincenal · Ayer"
-            value="$36,00"
-          />
-          <Transaction
-            icon={Utensils}
-            name="La Cuchara de San Blas"
-            detail="Almuerzo consumido · Lun, 12:48"
-            value="− 1"
-          />
-        </div>
-      </div>
-      <NavBar active="Home" />
-      {qrOpen && <QrModal lunchesLeft={lunchesLeft} onClose={() => setQrOpen(false)} />}
-    </div>
-  );
-}
-
-const RestaurantCard = ({
-  image,
-  name,
-  zone,
-  price,
-  plans,
-}: {
-  image: string;
-  name: string;
-  zone: string;
-  price: string;
-  plans: string;
-}) => (
-  <div className="grid grid-cols-[86px_minmax(0,1fr)] gap-3 rounded-2xl bg-card p-2.5 shadow-soft">
-    <img
-      src={image}
-      alt="Almuerzo del restaurante"
-      loading="lazy"
-      width={896}
-      height={752}
-      className="h-[82px] w-[86px] rounded-xl object-cover"
-    />
-    <div className="min-w-0 py-1">
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="truncate text-xs font-extrabold">{name}</h4>
-        <span className="flex shrink-0 items-center gap-1 text-[9px] font-bold">
-          <Star size={10} className="fill-primary text-primary" />
-          4,8
-        </span>
-      </div>
-      <p className="mt-1 flex items-center gap-1 text-[9px] text-muted-foreground">
-        <MapPin size={10} />
-        {zone}
-      </p>
-      <p className="mt-2 text-[10px] font-bold text-primary">{price} / almuerzo</p>
-      <p className="mt-1 text-[8px] text-muted-foreground">{plans}</p>
-    </div>
-  </div>
-);
-
-/** Posición de cada zona en el mapa simulado (porcentajes). */
-const ZONE_PINS: Record<string, { x: number; y: number; count: number }> = {
-  "Frente a la PUCE": { x: 46, y: 44, count: 12 },
-  "La Floresta": { x: 66, y: 58, count: 8 },
-  "La Mariscal": { x: 34, y: 62, count: 15 },
-  "Centro Histórico": { x: 18, y: 82, count: 10 },
-  Cumbayá: { x: 86, y: 24, count: 6 },
-};
-
-function LocationModal({
-  current,
+// ----------------------------------------------------------------------------
+// P9 — RECLAMO DE ALMUERZO NO RECONOCIDO
+// ----------------------------------------------------------------------------
+function ClaimModal({
+  redemptionId,
   onClose,
-  onConfirm,
 }: {
-  current: string | null;
+  redemptionId: string;
   onClose: () => void;
-  onConfirm: (zone: string) => void;
 }) {
-  const [zone, setZone] = useState(current ?? DINER_ZONES[0]!);
+  const { fileClaim } = useBocadoo();
+  const [mensaje, setMensaje] = useState("No consumí este almuerzo en el restaurante");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    fileClaim({ redemptionId, mensaje });
+    toast.success("Reclamo enviado a La Cuchara", {
+      description: "El restaurante revisará y te devolverá el almuerzo.",
+    });
+    onClose();
+  };
+
   return (
     <Overlay onClose={onClose}>
       <BottomSheet>
         <ModalHeader
-          icon={MapPin}
-          eyebrow="TU UBICACIÓN"
-          title="¿Dónde almuerzas hoy?"
+          icon={AlertTriangle}
+          eyebrow="CORRECCIÓN"
+          title="No reconozco este almuerzo"
           onClose={onClose}
         />
-        <div
-          className="relative mt-4 h-[170px] overflow-hidden rounded-2xl bg-muted"
-          style={{
-            backgroundImage:
-              "linear-gradient(var(--background) 3px, transparent 3px), linear-gradient(90deg, var(--background) 3px, transparent 3px)",
-            backgroundSize: "34px 34px",
-          }}
-        >
-          <div className="absolute left-[58%] top-[8%] h-14 w-20 rounded-xl bg-success/20" />
-          <div className="absolute -left-6 top-[48%] h-3 w-[130%] -rotate-12 bg-background" />
-          {DINER_ZONES.map((name) => {
-            const pin = ZONE_PINS[name]!;
-            const on = name === zone;
-            return (
-              <button
-                type="button"
-                key={name}
-                aria-label={name}
-                onClick={() => setZone(name)}
-                className="absolute -translate-x-1/2 -translate-y-full"
-                style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
-              >
-                {on && (
-                  <span className="absolute left-1/2 top-full h-5 w-5 -translate-x-1/2 -translate-y-1/2 animate-ping rounded-full bg-primary/40" />
-                )}
-                <MapPin
-                  size={on ? 30 : 22}
-                  strokeWidth={2.4}
-                  className={
-                    on ? "fill-primary text-background drop-shadow" : "fill-lavender text-primary"
-                  }
-                />
-              </button>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          onClick={() => setZone(DINER_ZONES[0]!)}
-          className="mt-3 flex w-full items-center gap-3 rounded-xl bg-accent/60 px-3 py-2.5 text-left"
-        >
-          <LocateFixed size={16} className="text-primary" />
+        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Si hubo un error en caja o no comiste a esa hora, envíanos este reporte. La dueña
+            recibirá la alerta y podrá restituir tu almuerzo de inmediato.
+          </p>
           <div>
-            <p className="text-[11px] font-extrabold">Usar mi ubicación actual</p>
-            <p className="text-[9px] text-muted-foreground">Detectada cerca de la PUCE</p>
+            <label className="text-xs font-black uppercase tracking-wide text-muted-foreground">
+              Motivo o detalle
+            </label>
+            <textarea
+              value={mensaje}
+              onChange={(e) => setMensaje(e.target.value)}
+              rows={3}
+              className="mt-1.5 w-full rounded-2xl bg-muted p-3.5 text-sm font-bold text-foreground outline-none ring-primary focus:ring-2 resize-none"
+            />
           </div>
-        </button>
-        <div className="mt-3 space-y-2">
-          {DINER_ZONES.map((name) => {
-            const on = name === zone;
-            return (
-              <button
-                type="button"
-                key={name}
-                onClick={() => setZone(name)}
-                className={`grid w-full grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-3 rounded-xl border px-3 py-2.5 text-left ${on ? "border-primary bg-accent/50" : "border-border"}`}
-              >
-                <span
-                  className={`grid h-5 w-5 place-items-center rounded-full border-2 ${on ? "border-primary" : "border-muted-foreground/40"}`}
-                >
-                  {on && <i className="h-2.5 w-2.5 rounded-full bg-primary" />}
-                </span>
-                <span className="text-[11px] font-extrabold">{name}</span>
-                <span className="text-[9px] text-muted-foreground">
-                  {ZONE_PINS[name]!.count} restaurantes
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <PrimaryButton onClick={() => onConfirm(zone)}>
-          <Check size={16} /> Confirmar ubicación
-        </PrimaryButton>
+          <PrimaryButton type="submit">
+            <Send size={16} /> Enviar reclamo a la dueña
+          </PrimaryButton>
+        </form>
       </BottomSheet>
     </Overlay>
   );
 }
 
-export function MarketplaceScreen({
-  initialLocationOpen = false,
+// ----------------------------------------------------------------------------
+// COMENSAL HOME SCREEN (P4 + P5 + P8)
+// ----------------------------------------------------------------------------
+export function DinerHomeScreen({
+  initialQrOpen = false,
+  initialHasPlan = true,
 }: {
-  initialLocationOpen?: boolean | undefined;
+  initialQrOpen?: boolean | undefined;
+  initialHasPlan?: boolean | undefined;
 }) {
-  const { dinerZone, setDinerZone } = useBocadoo();
-  const [locationOpen, setLocationOpen] = useState(initialLocationOpen);
+  const navigate = useNavigate();
+  const {
+    clientForUser,
+    dinerTransactions,
+    requestPlan,
+    planTemplates,
+    simulatedToday,
+  } = useBocadoo();
+
+  const [qrOpen, setQrOpen] = useState(initialQrOpen);
+  const [hasPlanOverride, setHasPlanOverride] = useState<boolean | null>(null);
+  const [claimingRedemptionId, setClaimingRedemptionId] = useState<string | null>(null);
+
+  const client = clientForUser(DINER_USER_ID);
+  const activeSubs = client?.activeSubscriptions || [];
+  const primarySub = activeSubs[0];
+
+  const lunchesLeft = client?.lunchesLeft ?? 14;
+  const totalLunches = primarySub?.almuerzosTotales || 20;
+  const planName = client?.planName || "Plan mensual ejecutivo";
+
+  const hasPlan = hasPlanOverride !== null ? hasPlanOverride : (client?.lunchesLeft ?? 0) > 0 || initialHasPlan;
+
+  const used = Math.max(totalLunches - lunchesLeft, 0);
+  const usedPct = Math.min(Math.round((used / totalLunches) * 100), 100);
+
+  // Formateo de vencimiento
+  const venceText = useMemo(() => {
+    if (!primarySub) return "Vence a fin de mes";
+    const d = new Date(primarySub.venceEn);
+    return `Vence el ${d.getDate()}/${d.getMonth() + 1}`;
+  }, [primarySub]);
+
+  // Alerta de renovación P8 (3 almuerzos o 3 días)
+  const isExpiringSoon = lunchesLeft <= 3 && lunchesLeft > 0;
+
+  const handleRenew = () => {
+    const template = planTemplates.find((t) => t.tipo === "Mensual") || planTemplates[0];
+    requestPlan(template.id, DINER_USER_ID);
+    toast.success("Solicitud enviada a caja", {
+      description: "Paga en efectivo o transferencia en tu próxima visita.",
+    });
+  };
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5">
-        <div className="mt-3 flex items-center justify-between">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+        {/* Encabezado */}
+        <header className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
           <div className="min-w-0">
-            <p className="truncate text-[10px] font-semibold text-muted-foreground">
-              {dinerZone ? `CERCA DE ${dinerZone.toUpperCase()}` : "DESCUBRE CERCA DE TI"}
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              COMENSAL · QUITO
             </p>
-            <h2 className="mt-1 text-[23px] font-black">Restaurantes</h2>
+            <h2 className="mt-1 truncate text-2xl font-black text-foreground">¡Hola, Carlos!</h2>
           </div>
+          <Avatar initials="CM" />
+        </header>
+
+        {/* Aviso de renovación anticipada P8 */}
+        {hasPlan && isExpiringSoon && (
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border-2 border-warning bg-warning/15 p-3.5 animate-in slide-in-from-top-2">
+            <div>
+              <p className="text-xs font-black text-foreground">
+                ¡Te quedan solo {lunchesLeft} {lunchesLeft === 1 ? "almuerzo" : "almuerzos"}!
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Renueva ahora para no quedarte sin saldo mañana.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleRenew}
+              className="shrink-0 rounded-xl bg-primary px-3 py-2 text-xs font-black text-primary-foreground shadow-xs active:scale-95"
+            >
+              Renovar plan
+            </button>
+          </div>
+        )}
+
+        <div className="mt-5 flex items-center justify-between">
+          <SectionTitle>Mi tarjeta digital</SectionTitle>
           <button
             type="button"
-            aria-label="Elegir ubicación"
-            onClick={() => setLocationOpen(true)}
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-primary"
+            onClick={() => setHasPlanOverride(!hasPlan)}
+            className="text-xs font-bold text-primary hover:underline"
+            title="Alternar entre comensal con tarjeta y nuevo sin saldo"
           >
-            <MapPin size={18} />
+            {hasPlan ? "Ver como nuevo" : "Ver con plan activo"}
           </button>
         </div>
-        <div className="mt-4 flex h-11 items-center gap-3 rounded-xl bg-card px-4 shadow-soft">
-          <Search size={16} className="text-muted-foreground" />
-          <span className="text-[11px] text-muted-foreground">Busca por restaurante o zona</span>
-          <SlidersHorizontal size={15} className="ml-auto text-primary" />
-        </div>
+
+        {hasPlan ? (
+          /* Tarjeta de Crédito Real Bocadoo */
+          <div className="relative mt-2 pb-4">
+            <div className="absolute inset-x-3 bottom-0 top-7 rounded-[26px] bg-lavender opacity-60" />
+
+            <div className="relative rounded-[26px] bg-card-dark p-5 text-card-dark-foreground shadow-card border border-white/10">
+              {/* Encabezado de la tarjeta: Restaurante + Plan + Contactless */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
+                    <Utensils size={20} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-white">
+                      La Cuchara de San Blas
+                    </p>
+                    <p className="text-xs font-extrabold text-card-dark-muted">{planName}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-lavender">
+                  <Wifi size={16} className="rotate-90 text-lavender/60" />
+                  <Sparkles size={20} className="text-lavender" />
+                </div>
+              </div>
+
+              {/* Saldo de almuerzos con animación y contravalor */}
+              <div className="mt-5 flex items-end justify-between">
+                <div>
+                  <p className="text-3xl font-black text-white tracking-tight">
+                    {lunchesLeft} <span className="text-base font-bold text-white/80">almuerzos</span>
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-card-dark-muted">{venceText}</p>
+                </div>
+                <p className="text-base font-black text-lavender tracking-tight">
+                  ≈ {money(lunchesLeft * 275)}
+                </p>
+              </div>
+
+              {/* Barra de progreso de consumo */}
+              <div className="mt-5 h-2 w-full overflow-hidden rounded-full bg-white/15">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
+                  style={{ width: `${100 - usedPct}%` }}
+                />
+              </div>
+              <div className="mt-2 flex items-center justify-between text-xs font-bold text-card-dark-muted">
+                <span>{used} consumidos de {totalLunches}</span>
+                <span>{100 - usedPct}% disponible</span>
+              </div>
+
+              {/* Pie de tarjeta física */}
+              <div className="mt-4 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10px] font-mono tracking-widest text-card-dark-muted/70 uppercase">
+                <span>•••• 9412</span>
+                <span>CARLOS MEJÍA</span>
+              </div>
+
+              {/* Botón blanco para mostrar QR de 1 toque */}
+              <button
+                type="button"
+                onClick={() => setQrOpen(true)}
+                className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-white text-sm font-black text-card-dark shadow-sm hover:bg-white/95 active:scale-[0.99] transition-all"
+              >
+                <QrCode size={20} className="text-card-dark" />
+                <span>Mostrar QR para almorzar</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Estado sin plan */
+          <div className="relative mt-3 rounded-[24px] border-2 border-dashed border-border bg-card p-6 text-center shadow-soft">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-lavender/60 text-primary">
+              <Utensils size={26} />
+            </div>
+            <span className="mt-3 inline-block rounded-full bg-accent px-3 py-1 text-xs font-black text-primary uppercase">
+              Nuevo comensal · Sin plan activo
+            </span>
+            <h3 className="mt-2 text-base font-black text-foreground">
+              Aún no tienes almuerzos prepagados
+            </h3>
+            <p className="mt-1 text-xs text-muted-foreground leading-relaxed px-2">
+              Explora los menús de hoy en Quito y adquiere tu primer plan para tener tu tarjeta
+              digital lista para escanear.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/app/comensal/restaurantes" })}
+              className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-black text-primary-foreground shadow-brand active:scale-[0.98]"
+            >
+              <Store size={16} />
+              <span>Explorar restaurantes en Quito</span>
+            </button>
+          </div>
+        )}
+
+        {/* Historial de transacciones real (P9 con reclamo de almuerzo) */}
         <div className="mt-5">
-          <SectionTitle
-            action={<span className="text-[9px] font-bold text-primary">Ver todas</span>}
-          >
-            Ofertas para ti
-          </SectionTitle>
+          <SectionTitle>Mi actividad reciente</SectionTitle>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-3">
-          <div className="relative h-[116px] overflow-hidden rounded-2xl">
-            <img
-              src={lunchImage}
-              alt="Oferta de almuerzos"
-              loading="lazy"
-              width={896}
-              height={752}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-image-overlay" />
-            <div className="absolute inset-x-3 bottom-3 text-image-foreground">
-              <p className="text-[9px] font-bold">La Cuchara</p>
-              <p className="text-sm font-black">20 por $50</p>
-            </div>
-            <span className="absolute right-2 top-2 rounded-lg bg-primary px-2 py-1 text-[8px] font-black text-primary-foreground">
-              −15%
-            </span>
-          </div>
-          <div className="relative h-[116px] overflow-hidden rounded-2xl">
-            <img
-              src={veggieImage}
-              alt="Oferta vegetariana"
-              loading="lazy"
-              width={896}
-              height={752}
-              className="h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-image-overlay" />
-            <div className="absolute inset-x-3 bottom-3 text-image-foreground">
-              <p className="text-[9px] font-bold">Verde Limón</p>
-              <p className="text-sm font-black">10 por $28</p>
-            </div>
-            <span className="absolute right-2 top-2 rounded-lg bg-lavender px-2 py-1 text-[8px] font-black text-foreground">
-              VEGGIE
-            </span>
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2 overflow-hidden">
-          <span className="shrink-0 rounded-full bg-primary px-3 py-2 text-[9px] font-bold text-primary-foreground">
-            Cerca de mí
-          </span>
-          <span className="shrink-0 rounded-full bg-muted px-3 py-2 text-[9px] font-bold">
-            Precio
-          </span>
-          <span className="shrink-0 rounded-full bg-muted px-3 py-2 text-[9px] font-bold">
-            Mejor calificados
-          </span>
-        </div>
-        <div className="mt-4 rounded-2xl bg-accent p-3.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[9px] font-black text-primary">OFERTA FLASH</p>
-              <p className="mt-1 text-xs font-extrabold">Plan mensual · El Patio</p>
-            </div>
-            <div className="rounded-lg bg-foreground px-2.5 py-1.5 text-[10px] font-black text-background">
-              02:14:36
-            </div>
-          </div>
-          <div className="mt-3 flex items-center justify-between">
-            <span className="text-[9px] font-semibold text-muted-foreground">
-              ¡Quedan 5 planes!
-            </span>
-            <span className="rounded-lg bg-primary px-3 py-2 text-[9px] font-extrabold text-primary-foreground">
-              Comprar ahora
-            </span>
-          </div>
-        </div>
-        <div className="mt-5">
-          <SectionTitle>Todos los restaurantes</SectionTitle>
-        </div>
-        <div className="mt-3 space-y-3 pb-4">
-          <RestaurantCard
-            image={lunchImage}
-            name="La Cuchara de San Blas"
-            zone="Frente a la PUCE"
-            price="$2,80"
-            plans="Semanal · Quincenal · Mensual"
-          />
-          <RestaurantCard
-            image={veggieImage}
-            name="Verde Limón"
-            zone="La Floresta"
-            price="$3,25"
-            plans="Semanal · Mensual"
-          />
+        <div className="mt-2 divide-y divide-border">
+          {dinerTransactions.length === 0 ? (
+            <p className="py-6 text-center text-xs text-muted-foreground">
+              No tienes consumos recientes registrados.
+            </p>
+          ) : (
+            dinerTransactions.slice(0, 6).map((t) => (
+              <div key={t.id} className="py-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-foreground shrink-0">
+                      <Utensils size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-black text-foreground">{t.name}</p>
+                      <p className="truncate text-xs text-muted-foreground mt-0.5">{t.detail}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs font-black text-foreground">{t.value}</span>
+                  </div>
+                </div>
+
+                {/* Botón P9: Reclamar consumo no reconocido */}
+                {t.icon === "utensils" && !t.positive && (
+                  <div className="mt-1.5 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setClaimingRedemptionId(t.id)}
+                      className="text-[11px] font-bold text-muted-foreground hover:text-danger hover:underline"
+                    >
+                      ¿No fuiste tú? Reclamar almuerzo
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
-      <NavBar active="Restaurantes" />
-      {locationOpen && (
-        <LocationModal
-          current={dinerZone}
-          onClose={() => setLocationOpen(false)}
-          onConfirm={(zone) => {
-            setDinerZone(zone);
-            setLocationOpen(false);
-          }}
+
+      <NavBar active="Home" />
+      {qrOpen && (
+        <QrModal
+          lunchesLeft={lunchesLeft}
+          planName={planName}
+          onClose={() => setQrOpen(false)}
+        />
+      )}
+      {claimingRedemptionId && (
+        <ClaimModal
+          redemptionId={claimingRedemptionId}
+          onClose={() => setClaimingRedemptionId(null)}
         />
       )}
     </div>
   );
 }
 
+// ----------------------------------------------------------------------------
+// MARKETPLACE CON MENÚ DEL DÍA EN TIEMPO REAL (P4 + P7 + P11)
+// ----------------------------------------------------------------------------
+export function MarketplaceScreen({
+  initialLocationOpen = false,
+}: {
+  initialLocationOpen?: boolean | undefined;
+}) {
+  const {
+    dinerZone,
+    setDinerZone,
+    menuDays,
+    simulatedTodayKey,
+    planTemplates,
+    requestPlan,
+    planRequests,
+  } = useBocadoo();
+
+  const [locationOpen, setLocationOpen] = useState(initialLocationOpen);
+  const [requestedId, setRequestedId] = useState<string | null>(null);
+
+  const currentMenu = menuDays[simulatedTodayKey];
+  const activePlans = planTemplates.filter((t) => t.activo && t.visibleEnMarketplace);
+
+  const handleRequestPlan = (template: PlanTemplate) => {
+    requestPlan(template.id);
+    setRequestedId(template.id);
+    toast.success(`Solicitud enviada para ${template.nombre}`, {
+      description: `Paga ${money(template.precioCents)} en la caja de La Cuchara.`,
+    });
+  };
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+        <div className="mt-3 flex items-center justify-between">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold text-muted-foreground">
+              {dinerZone ? `CERCA DE ${dinerZone.toUpperCase()}` : "DESCUBRE CERCA DE TI"}
+            </p>
+            <h2 className="mt-1 text-2xl font-black">Restaurantes</h2>
+          </div>
+          <button
+            type="button"
+            aria-label="Elegir ubicación"
+            onClick={() => setLocationOpen(true)}
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-primary active:scale-95"
+          >
+            <MapPin size={20} />
+          </button>
+        </div>
+
+        {/* Ficha en vivo de La Cuchara de San Blas con el menú publicado de hoy (P7) */}
+        <div className="mt-4 rounded-[26px] border border-border bg-card p-4 shadow-soft">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="rounded-lg bg-success/15 px-2.5 py-1 text-[11px] font-black text-success uppercase">
+                ● Abierto ahora · Almuerzos en vivo
+              </span>
+              <h3 className="mt-2 text-base font-black text-foreground">La Cuchara de San Blas</h3>
+              <p className="text-xs text-muted-foreground">Frente a la PUCE · Quito</p>
+            </div>
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
+              <Utensils size={22} />
+            </div>
+          </div>
+
+          {/* Platos del menú publicado de hoy */}
+          <div className="mt-3.5 space-y-2 rounded-2xl bg-muted p-3.5 text-xs">
+            <p className="font-black text-foreground uppercase tracking-wide">
+              Menú de hoy:
+            </p>
+            {currentMenu ? (
+              <div className="space-y-1.5 font-bold">
+                {currentMenu.secciones.sopa.map((d) => (
+                  <p key={d.id} className={d.agotado ? "line-through text-muted-foreground" : "text-foreground"}>
+                    🥣 {d.nombre} {d.agotado ? "(Agotado)" : ""}
+                  </p>
+                ))}
+                {currentMenu.secciones.fuerte.map((d) => (
+                  <p key={d.id} className={d.agotado ? "line-through text-muted-foreground" : "text-foreground"}>
+                    🍗 {d.nombre} {d.agotado ? "(Agotado)" : ""}
+                  </p>
+                ))}
+                {currentMenu.secciones.jugo.map((d) => (
+                  <p key={d.id} className={d.agotado ? "line-through text-muted-foreground" : "text-foreground"}>
+                    🥤 {d.nombre}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">El restaurante publicará el menú de hoy a las 11:30.</p>
+            )}
+          </div>
+
+          {/* Planes disponibles para solicitar compra desde la app (P4) */}
+          <p className="mb-2 mt-4 text-xs font-black uppercase text-muted-foreground">
+            PLANES DE ALMUERZO DISPONIBLES
+          </p>
+          <div className="space-y-2">
+            {activePlans.map((template) => {
+              const unitPrice = (template.precioCents / template.almuerzos / 100).toFixed(2).replace(".", ",");
+              const isReq = requestedId === template.id;
+
+              return (
+                <div
+                  key={template.id}
+                  className="flex items-center justify-between rounded-xl border border-border bg-background p-3"
+                >
+                  <div>
+                    <p className="text-xs font-black text-foreground">{template.nombre}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {template.almuerzos} almuerzos · ${unitPrice} c/u · Vigencia {template.vigenciaDias} días
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-black text-primary">{money(template.precioCents)}</p>
+                    <button
+                      type="button"
+                      disabled={isReq}
+                      onClick={() => handleRequestPlan(template)}
+                      className={`mt-1 rounded-lg px-3 py-1.5 text-xs font-black transition-all ${
+                        isReq
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-primary text-primary-foreground shadow-xs active:scale-95"
+                      }`}
+                    >
+                      {isReq ? "✓ Solicitado" : "Quiero este plan"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <NavBar active="Restaurantes" />
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------------------
+// AJUSTES DEL COMENSAL
+// ----------------------------------------------------------------------------
 export function DinerSettingsScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-4">
-        <h2 className="mt-4 text-[23px] font-black">Ajustes</h2>
-        <div className="mt-4 flex flex-col items-center rounded-[24px] bg-accent/70 p-3">
-          <div className="relative">
-            <Avatar initials="CM" large />
-            <div className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full border-2 border-accent bg-primary text-primary-foreground">
-              <Pencil size={12} />
-            </div>
-          </div>
-          <h3 className="mt-2 text-sm font-black">Carlos Mejía</h3>
-          <p className="mt-1 text-[9px] text-muted-foreground">carlos.mejia@email.com</p>
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5 pb-6">
+        <h2 className="mt-4 text-2xl font-black">Ajustes</h2>
+        <div className="mt-4 flex flex-col items-center rounded-2xl bg-accent/70 p-4">
+          <Avatar initials="CM" large />
+          <h3 className="mt-3 text-base font-black">Carlos Mejía</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">carlos.mejia@email.com</p>
         </div>
-        <p className="mb-1 mt-4 text-[9px] font-black text-muted-foreground">MI CUENTA</p>
+        <p className="mb-1 mt-5 text-xs font-black uppercase text-muted-foreground">MI CUENTA</p>
         <SettingsRow icon={UserRound} label="Editar nombre" />
         <SettingsRow icon={Mail} label="Cambiar correo" />
-        <SettingsRow icon={LockKeyhole} label="Cambiar contraseña" />
-        <SettingsRow icon={CreditCard} label="Métodos de pago" />
-        <p className="mb-1 mt-3 text-[9px] font-black text-muted-foreground">
-          PREFERENCIAS Y SOPORTE
-        </p>
-        <SettingsRow icon={Bell} label="Notificaciones" />
-        <SettingsRow icon={CircleHelp} label="Ayuda y soporte" />
-        <SettingsRow icon={LockKeyhole} label="Términos y privacidad" />
+        <SettingsRow icon={LockKeyhole} label="Seguridad y PIN" />
+        <p className="mb-1 mt-4 text-xs font-black uppercase text-muted-foreground">SOPORTE</p>
+        <SettingsRow icon={CircleHelp} label="Preguntas frecuentes" />
         <SettingsRow icon={LogOut} label="Cerrar sesión" danger to="/app" />
       </div>
       <NavBar active="Ajustes" />

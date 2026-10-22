@@ -15,7 +15,7 @@ import {
   type SavedMenu,
   type SpecialDish,
 } from "./menu-service";
-import { money } from "./store";
+import { money, useBocadoo } from "./store";
 import {
   BottomSheet,
   ModalHeader,
@@ -278,6 +278,7 @@ const Empty = ({ children }: { children: ReactNode }) => (
 // Acciones del dueño 6: armar el menú del día y la carta de platos especiales.
 export function AddMenuScreen() {
   const navigate = useNavigate();
+  const { publishMenu } = useBocadoo();
   const [menu, setMenu] = useState<SavedMenu>(emptyMenu);
   const [editing, setEditing] = useState<Editing | null>(null);
 
@@ -327,11 +328,49 @@ export function AddMenuScreen() {
     }
     try {
       await saveMenu(menu);
+      publishMenu({
+        secciones: {
+          sopa: menu.sections.sopa.map((d) => ({
+            id: d.id,
+            nombre: d.name,
+            descripcion: d.description,
+            agotado: false,
+          })),
+          fuerte: menu.sections.fuerte.map((d) => ({
+            id: d.id,
+            nombre: d.name,
+            descripcion: d.description,
+            precioCents: d.price ? Math.round(d.price * 100) : undefined,
+            agotado: false,
+          })),
+          jugo: menu.sections.jugo.map((d) => ({
+            id: d.id,
+            nombre: d.name,
+            descripcion: d.description,
+            agotado: false,
+          })),
+          postre: menu.sections.postre.map((d) => ({
+            id: d.id,
+            nombre: d.name,
+            descripcion: d.description,
+            agotado: false,
+          })),
+          adicional: menu.sections.adicional.map((d) => ({
+            id: d.id,
+            nombre: d.name,
+            descripcion: d.description,
+            precioCents: d.price ? Math.round(d.price * 100) : undefined,
+            agotado: false,
+          })),
+        },
+      });
     } catch {
       toast.error("No se pudo guardar. Prueba con fotos más livianas.");
       return;
     }
-    toast.success("Menú guardado", { description: "Tus clientes ya pueden ver el menú de hoy." });
+    toast.success("Menú guardado y publicado", {
+      description: "Tus clientes ya pueden ver el menú de hoy.",
+    });
     navigate({ to: "/app/dueno/menu" });
   };
 

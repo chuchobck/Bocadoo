@@ -15,6 +15,7 @@ import {
   Flashlight,
   HelpCircle,
   Info,
+  LockKeyhole,
   Minus,
   Phone,
   Plus,
@@ -1212,8 +1213,28 @@ const PLAN_PRESETS: Record<
 };
 
 export function NewPlanScreen({ initialType = "Mensual" }: { initialType?: string }) {
-  const { addPlan } = useBocadoo();
+  const { addPlan, activeRole } = useBocadoo();
   const navigate = useNavigate();
+
+  if (activeRole === "CASHIER") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-6 text-center">
+        <div className="grid h-16 w-16 place-items-center rounded-3xl bg-muted text-muted-foreground">
+          <LockKeyhole size={28} />
+        </div>
+        <h2 className="mt-4 text-xl font-black text-foreground">Acceso restringido a Caja</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          El rol CAJA no puede crear ni editar planes. Solicita acceso a María (Dueña).
+        </p>
+        <Link
+          to="/app/dueno"
+          className="mt-6 flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-black text-primary-foreground shadow-brand"
+        >
+          Volver a Caja
+        </Link>
+      </div>
+    );
+  }
 
   const preset = PLAN_PRESETS[initialType] || PLAN_PRESETS.Mensual;
   const [tipo, setTipo] = useState<any>(initialType);
