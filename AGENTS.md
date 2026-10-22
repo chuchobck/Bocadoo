@@ -11,4 +11,4 @@
 
 ## Project architecture
 
-- Keep Bocadoo as a frontend-only static mobile mockup gallery; no persistence or interaction is needed because the approved scope is visual presentation only.
+- Prototipo interactivo con estado simulado en localStorage; sin backend.
