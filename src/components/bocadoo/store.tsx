@@ -10,11 +10,12 @@ import {
 } from "react";
 
 // ============================================================================
-// BOCADOO V2 STORE — ESTADO INTERACTIVO SINCRONIZADO EN LOCALSTORAGE
+// BOCADOO V3 STORE — ESTADO INTERACTIVO SINCRONIZADO EN LOCALSTORAGE
 // ============================================================================
 
-export const STORAGE_KEY = "bocadoo-demo-v2";
-const BROADCAST_CHANNEL_NAME = "bocadoo-sync-v2";
+export const STORAGE_KEY = "bocadoo-demo-v3";
+const BROADCAST_CHANNEL_NAME = "bocadoo-sync-v3";
+export const COMMISSION_RATE = 0.07; // 7% comisión transparente en ofertas flash / marketplace
 
 // ----------------------------------------------------------------------------
 // MONEDA & FORMATEO (DINERO SIEMPRE EN CENTAVOS ENTEROS)
@@ -77,6 +78,13 @@ export type Restaurant = {
   anotarMesa: boolean;
   precioSueltoCents: number; // Ej: 300 = $3,00
   recargoParaLlevarCents: number; // Ej: 25 = $0,25
+  lat: number;
+  lng: number;
+  horario: string;
+  abierto: boolean;
+  descripcionCorta?: string;
+  tags?: string[];
+  manualBusyUntil?: string; // ISO timestamp: cuando el dueño activa "Local lleno" (dura 20 min)
 };
 
 export type Staff = {
@@ -240,6 +248,135 @@ export type CashClosure = {
 };
 
 // ----------------------------------------------------------------------------
+// P11: OCUPACIÓN & SEMÁFORO
+// ----------------------------------------------------------------------------
+export type OccupancyStatus = "FLUIDO" | "MOVIDO" | "LLENO";
+
+export type OccupancyInfo = {
+  status: OccupancyStatus;
+  label: string; // "Fluido" | "Movido" | "Lleno"
+  detail: string; // "Llegas y te sientas" | "Hora pico: quizá compartas mesa" | "Lleno ahora. Pídelo para llevar"
+  colorClass: string;
+  bgClass: string;
+  badgeClass: string;
+  ratio: number;
+  isManual: boolean;
+  manualMinutesLeft?: number;
+};
+
+export const ZONE_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  "Frente a la PUCE": { lat: -0.2115, lng: -78.4912 },
+  "La Floresta": { lat: -0.2085, lng: -78.487 },
+  "La Mariscal": { lat: -0.203, lng: -78.4925 },
+  "Centro Histórico": { lat: -0.2195, lng: -78.5028 },
+  "Cumbayá": { lat: -0.198, lng: -78.435 },
+  "Villaflora": { lat: -0.245, lng: -78.521 },
+  "UDLA Granados": { lat: -0.165, lng: -78.472 },
+  "EPN / Salesiana": { lat: -0.212, lng: -78.49 },
+};
+
+export function getSimulatedDistanceKm(fromZone: string | null, toLat: number, toLng: number): number {
+  const coords = (fromZone && ZONE_COORDINATES[fromZone]) || ZONE_COORDINATES["Frente a la PUCE"];
+  const dLat = (toLat - coords.lat) * 111;
+  const dLng = (toLng - coords.lng) * 111 * Math.cos((coords.lat * Math.PI) / 180);
+  const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+  return Math.max(0.2, Number(dist.toFixed(1)));
+}
+
+// ----------------------------------------------------------------------------
+// P12: PREÓRDENES INDIVIDUALES Y PARA LLEVAR
+// ----------------------------------------------------------------------------
+export type OrderStatus = "BORRADOR" | "EN_CAMINO" | "CANJEADA" | "SERVIDA" | "EXPIRADA" | "CANCELADA";
+export type OrderType = "AQUI" | "LLEVAR";
+
+export type OrderItem = {
+  platoId: string;
+  nombre: string;
+  seccion: string;
+  precioCents?: number;
+};
+
+export type Order = {
+  id: string;
+  comensalId: string;
+  comensalNombre: string;
+  restaurantId: string;
+  items: OrderItem[];
+  tipo: OrderType;
+  totalCents: number;
+  recargoLlevarCents: number;
+  estado: OrderStatus;
+  creadaEn: string; // ISO
+  venceEn: string; // ISO (30 min desde creada)
+  qrPayload: string;
+  canjeadaEn?: string;
+  subscriptionIdUsed?: string;
+  paymentIdUsed?: string;
+};
+
+// ----------------------------------------------------------------------------
+// P13: TARJETA DE SELLOS
+// ----------------------------------------------------------------------------
+export type StampCardConfig = {
+  restaurantId: string;
+  activa: boolean;
+  meta: number; // Por defecto 10
+  premio: string; // "Almuerzo gratis" | "Postre de la casa"
+};
+
+export type StampRecord = {
+  clientId: string;
+  restaurantId: string;
+  sellos: number;
+  premiosDisponibles: number;
+  historiaCanjes: Array<{ fecha: string; motivo: string }>;
+};
+
+// ----------------------------------------------------------------------------
+// P14: FEEDBACK DE COMENSAL
+// ----------------------------------------------------------------------------
+export type FeedbackItem = {
+  id: string;
+  redemptionId: string;
+  restaurantId: string;
+  clientId: string;
+  clientName: string;
+  tags: string[]; // "Buena sazón" | "Buena porción" | "Atención rápida" | "Algo no estuvo bien"
+  comentarioPrivado?: string;
+  creadoEn: string;
+  respuestaRestaurante?: string;
+  respondidoEn?: string;
+};
+
+// ----------------------------------------------------------------------------
+// P15: OFERTAS FLASH & REGISTRO DE COMISIONES
+// ----------------------------------------------------------------------------
+export type FlashOffer = {
+  id: string;
+  restaurantId: string;
+  titulo: string;
+  descripcion: string;
+  precioCents: number;
+  precioOriginalCents: number;
+  stockTotal: number;
+  stockRestante: number;
+  expiraEn: string;
+  activa: boolean;
+  creadaEn: string;
+};
+
+export type CommissionEntry = {
+  id: string;
+  tipo: "FLASH_OFFER" | "MARKETPLACE_DEAL";
+  referenciaId: string;
+  restaurantId: string;
+  montoVentaCents: number;
+  tasaPorcentaje: number; // 7%
+  comisionCents: number;
+  creadoEn: string;
+};
+
+// ----------------------------------------------------------------------------
 // USUARIOS DE LA APP (COMENSALES REGISTRADOS)
 // ----------------------------------------------------------------------------
 export const APP_USERS: AppUser[] = [
@@ -300,6 +437,7 @@ export const DINER_ZONES = [
 // ----------------------------------------------------------------------------
 export type State = {
   simulatedDaysOffset: number; // Adelantar días para el demo
+  simulatedMinutesOffset: number; // Adelantar minutos (ej. 20 min para ver feedback y cuentas regresivas)
   activeRole: StaffRole; // "OWNER" o "CASHIER" para el ayudante
   restaurants: Restaurant[];
   staff: Staff[];
@@ -309,10 +447,16 @@ export type State = {
   redemptions: Redemption[];
   payments: Payment[];
   sales: Sale[];
-  menuDays: Record<string, MenuDay>; // YYYY-MM-DD -> MenuDay
+  menuDays: Record<string, MenuDay>; // YYYY-MM-DD o YYYY-MM-DD_restId -> MenuDay
   planRequests: PlanRequest[];
   claims: Claim[];
   cashClosures: CashClosure[];
+  orders: Order[];
+  stampConfigs: Record<string, StampCardConfig>;
+  stampRecords: Record<string, StampRecord>;
+  feedbackList: FeedbackItem[];
+  flashOffers: FlashOffer[];
+  commissionLedger: CommissionEntry[];
   dinerZone: string | null;
   soundEnabled: boolean;
 };
@@ -347,15 +491,83 @@ export const addDays = (d: Date, days: number): Date => {
 const baseDate = new Date();
 const dateKeyToday = toDateKey(baseDate);
 
-const initialRestaurant: Restaurant = {
-  id: RESTAURANT_ID,
-  nombre: "La Cuchara de San Blas",
-  zona: "Frente a la PUCE",
-  puestos: 28,
-  anotarMesa: false,
-  precioSueltoCents: 300, // $3,00 suelto
-  recargoParaLlevarCents: 25, // $0,25 tarrina
-};
+const initialRestaurants: Restaurant[] = [
+  {
+    id: RESTAURANT_ID,
+    nombre: "La Cuchara de San Blas",
+    zona: "Frente a la PUCE",
+    puestos: 28,
+    anotarMesa: false,
+    precioSueltoCents: 300, // $3,00 suelto
+    recargoParaLlevarCents: 25, // $0,25 tarrina
+    lat: -0.2115,
+    lng: -78.4912,
+    horario: "11:30 - 15:30",
+    abierto: true,
+    descripcionCorta: "Comida casera tradicional frente a la PUCE",
+    tags: ["Comida casera", "Sazón quiteña", "Opción vegetariana"],
+  },
+  {
+    id: "r2",
+    nombre: "Verde Limón",
+    zona: "La Floresta",
+    puestos: 18,
+    anotarMesa: false,
+    precioSueltoCents: 325,
+    recargoParaLlevarCents: 30,
+    lat: -0.2085,
+    lng: -78.487,
+    horario: "12:00 - 15:30",
+    abierto: true,
+    descripcionCorta: "Almuerzos saludables y ensaladas en La Floresta",
+    tags: ["Saludable", "Ensaladas frescas", "Céntrico"],
+  },
+  {
+    id: "r3",
+    nombre: "El Rincón Manabita",
+    zona: "La Mariscal",
+    puestos: 24,
+    anotarMesa: false,
+    precioSueltoCents: 350,
+    recargoParaLlevarCents: 25,
+    lat: -0.203,
+    lng: -78.4925,
+    horario: "11:30 - 16:00",
+    abierto: true,
+    descripcionCorta: "Especialidad en mariscos y sazón manaba tradicional",
+    tags: ["Mariscos frescos", "Plátano verde", "Porción generosa"],
+  },
+  {
+    id: "r4",
+    nombre: "Sazón Criolla",
+    zona: "Cumbayá",
+    puestos: 32,
+    anotarMesa: false,
+    precioSueltoCents: 375,
+    recargoParaLlevarCents: 35,
+    lat: -0.198,
+    lng: -78.435,
+    horario: "12:00 - 16:00",
+    abierto: true,
+    descripcionCorta: "Almuerzo ejecutivo universitario junto a la USFQ",
+    tags: ["Almuerzos ejecutivos", "Ambiente universitario", "Rápido"],
+  },
+  {
+    id: "r5",
+    nombre: "Don Vicho Almuerzos",
+    zona: "Villaflora",
+    puestos: 16,
+    anotarMesa: false,
+    precioSueltoCents: 275,
+    recargoParaLlevarCents: 20,
+    lat: -0.245,
+    lng: -78.521,
+    horario: "11:00 - 14:30",
+    abierto: false,
+    descripcionCorta: "El almuerzo rendidor y económico del sur de Quito",
+    tags: ["Económico", "Sopa criolla"],
+  },
+];
 
 const initialStaff: Staff[] = [
   {
@@ -377,6 +589,7 @@ const initialStaff: Staff[] = [
 ];
 
 const initialPlanTemplates: PlanTemplate[] = [
+  // La Cuchara de San Blas (r1)
   {
     id: "p-semanal",
     restaurantId: RESTAURANT_ID,
@@ -407,9 +620,72 @@ const initialPlanTemplates: PlanTemplate[] = [
     tipo: "Mensual",
     nombre: "Plan mensual ejecutivo",
     almuerzos: 20,
-    precioCents: 5500, // $55,00 ($2,75 c/u, coherente con landing, ahorra $5 frente a $3)
+    precioCents: 5500, // $55,00 ($2,75 c/u, ahorra $5 al mes)
     vigenciaDias: 35,
     cupos: 40,
+    visibleEnMarketplace: true,
+    activo: true,
+  },
+  // Verde Limón (r2)
+  {
+    id: "p-r2-semanal",
+    restaurantId: "r2",
+    tipo: "Semanal",
+    nombre: "Semanal Verde",
+    almuerzos: 5,
+    precioCents: 1600,
+    vigenciaDias: 7,
+    cupos: 15,
+    visibleEnMarketplace: true,
+    activo: true,
+  },
+  {
+    id: "p-r2-mensual",
+    restaurantId: "r2",
+    tipo: "Mensual",
+    nombre: "Mensual Saludable",
+    almuerzos: 20,
+    precioCents: 6000,
+    vigenciaDias: 35,
+    cupos: 25,
+    visibleEnMarketplace: true,
+    activo: true,
+  },
+  // El Rincón Manabita (r3)
+  {
+    id: "p-r3-quincenal",
+    restaurantId: "r3",
+    tipo: "Quincenal",
+    nombre: "Quincenal Manaba",
+    almuerzos: 10,
+    precioCents: 3300,
+    vigenciaDias: 18,
+    cupos: 20,
+    visibleEnMarketplace: true,
+    activo: true,
+  },
+  {
+    id: "p-r3-mensual",
+    restaurantId: "r3",
+    tipo: "Mensual",
+    nombre: "Mensual Costeño",
+    almuerzos: 20,
+    precioCents: 6500,
+    vigenciaDias: 35,
+    cupos: 30,
+    visibleEnMarketplace: true,
+    activo: true,
+  },
+  // Sazón Criolla (r4)
+  {
+    id: "p-r4-mensual",
+    restaurantId: "r4",
+    tipo: "Mensual",
+    nombre: "Mensual USFQ",
+    almuerzos: 20,
+    precioCents: 6800,
+    vigenciaDias: 35,
+    cupos: 35,
     visibleEnMarketplace: true,
     activo: true,
   },
@@ -522,6 +798,14 @@ const initialPayments: Payment[] = [
     cobradoPor: "st1",
     creadoEn: addDays(baseDate, -3).toISOString(),
   },
+  {
+    id: "pay-4",
+    montoCents: 600,
+    metodo: "EFECTIVO",
+    saleId: "sale-init-1",
+    cobradoPor: "st1",
+    creadoEn: new Date(baseDate.getTime() - 15 * 60000).toISOString(),
+  },
 ];
 
 const initialRedemptions: Redemption[] = [
@@ -530,7 +814,7 @@ const initialRedemptions: Redemption[] = [
     subscriptionId: "sub-1",
     restaurantId: RESTAURANT_ID,
     staffId: "st1",
-    creadoEn: new Date(baseDate.setHours(13, 12, 0, 0)).toISOString(),
+    creadoEn: new Date(baseDate.getTime() - 10 * 60000).toISOString(),
     paraLlevar: false,
     idempotencyKey: `init-red-1`,
   },
@@ -539,13 +823,27 @@ const initialRedemptions: Redemption[] = [
     subscriptionId: "sub-3",
     restaurantId: RESTAURANT_ID,
     staffId: "st1",
-    creadoEn: new Date(baseDate.setHours(12, 45, 0, 0)).toISOString(),
+    creadoEn: new Date(baseDate.getTime() - 55 * 60000).toISOString(),
     paraLlevar: true,
     idempotencyKey: `init-red-2`,
   },
 ];
 
+const initialSales: Sale[] = [
+  {
+    id: "sale-init-1",
+    items: [
+      { platoId: "d-fuerte-1", nombre: "Seco de pollo tierno", cant: 2, precioCents: 300 },
+    ],
+    totalCents: 600,
+    paraLlevar: false,
+    mesa: "Mesa 4",
+    creadoEn: new Date(baseDate.getTime() - 15 * 60000).toISOString(),
+  },
+];
+
 const initialMenuToday: MenuDay = {
+  restaurantId: RESTAURANT_ID,
   fecha: dateKeyToday,
   publicadoEn: new Date(baseDate.setHours(9, 30, 0, 0)).toISOString(),
   secciones: {
@@ -619,19 +917,280 @@ const initialMenuToday: MenuDay = {
   },
 };
 
+const initialMenuR2: MenuDay = {
+  restaurantId: "r2",
+  fecha: dateKeyToday,
+  publicadoEn: new Date(baseDate.setHours(10, 15, 0, 0)).toISOString(),
+  secciones: {
+    sopa: [
+      {
+        id: "d-r2-sopa-1",
+        nombre: "Crema de zapallo con semillas tostadas",
+        descripcion: "Suave crema de calabaza criolla",
+        agotado: false,
+      },
+    ],
+    fuerte: [
+      {
+        id: "d-r2-fuerte-1",
+        nombre: "Pechuga al romero con quinoa y ensalada",
+        descripcion: "Pollo a la plancha con vinagreta de la casa",
+        precioCents: 325,
+        agotado: false,
+      },
+      {
+        id: "d-r2-fuerte-2",
+        nombre: "Salteado de vegetales crocantes y champiñones",
+        descripcion: "Opción 100% vegetariana",
+        precioCents: 325,
+        agotado: false,
+      },
+    ],
+    jugo: [
+      {
+        id: "d-r2-jugo-1",
+        nombre: "Limonada de hierbabuena",
+        descripcion: "Bebida refrescante sin azúcar refinada",
+        agotado: false,
+      },
+    ],
+    postre: [],
+    adicional: [],
+  },
+};
+
+const initialMenuR3: MenuDay = {
+  restaurantId: "r3",
+  fecha: dateKeyToday,
+  publicadoEn: new Date(baseDate.setHours(9, 45, 0, 0)).toISOString(),
+  secciones: {
+    sopa: [
+      {
+        id: "d-r3-sopa-1",
+        nombre: "Viche de pescado manabita tradicional",
+        descripcion: "Con maní tostado, choclo y plátano verde",
+        agotado: false,
+      },
+    ],
+    fuerte: [
+      {
+        id: "d-r3-fuerte-1",
+        nombre: "Pescado frito apanado con patacones",
+        descripcion: "Corvina fresca con arroz y ensalada",
+        precioCents: 350,
+        agotado: false,
+      },
+      {
+        id: "d-r3-fuerte-2",
+        nombre: "Cazuela de mariscos al horno de leña",
+        descripcion: "Cremosa masa de verde con camarón y calamar",
+        precioCents: 375,
+        agotado: false,
+      },
+    ],
+    jugo: [
+      {
+        id: "d-r3-jugo-1",
+        nombre: "Jugo natural de maracuyá",
+        descripcion: "Fruta fresca de la costa",
+        agotado: false,
+      },
+    ],
+    postre: [],
+    adicional: [],
+  },
+};
+
+const initialMenuR4: MenuDay = {
+  restaurantId: "r4",
+  fecha: dateKeyToday,
+  publicadoEn: new Date(baseDate.setHours(10, 0, 0, 0)).toISOString(),
+  secciones: {
+    sopa: [
+      {
+        id: "d-r4-sopa-1",
+        nombre: "Caldo de gallina de campo",
+        descripcion: "Con yuca suave y cilantro",
+        agotado: false,
+      },
+    ],
+    fuerte: [
+      {
+        id: "d-r4-fuerte-1",
+        nombre: "Seco de carne con arroz y aguacate",
+        descripcion: "Carne suave guisada a fuego lento",
+        precioCents: 375,
+        agotado: false,
+      },
+    ],
+    jugo: [
+      {
+        id: "d-r4-jugo-1",
+        nombre: "Jugo de mora silvestre",
+        descripcion: "Hecho al instante",
+        agotado: false,
+      },
+    ],
+    postre: [],
+    adicional: [],
+  },
+};
+
+const initialOrders: Order[] = [
+  {
+    id: "ord-1",
+    comensalId: "u1", // Carlos Mejía
+    comensalNombre: "Carlos Mejía",
+    restaurantId: RESTAURANT_ID,
+    items: [
+      { platoId: "d-sopa-1", nombre: "Locro de papa con queso y aguacate", seccion: "sopa" },
+      { platoId: "d-fuerte-1", nombre: "Seco de pollo tierno con maduro frito", seccion: "fuerte" },
+    ],
+    tipo: "LLEVAR",
+    totalCents: 325,
+    recargoLlevarCents: 25,
+    estado: "EN_CAMINO",
+    creadaEn: new Date(baseDate.getTime() - 8 * 60000).toISOString(),
+    venceEn: new Date(baseDate.getTime() + 22 * 60000).toISOString(),
+    qrPayload: `BCD-ORD.ord-1.u1.${Date.now()}`,
+  },
+  {
+    id: "ord-2",
+    comensalId: "u2", // Valentina Ortiz
+    comensalNombre: "Valentina Ortiz",
+    restaurantId: RESTAURANT_ID,
+    items: [
+      { platoId: "d-sopa-1", nombre: "Locro de papa con queso y aguacate", seccion: "sopa" },
+      { platoId: "d-fuerte-2", nombre: "Chuleta ahumada al grill con menestra", seccion: "fuerte" },
+    ],
+    tipo: "AQUI",
+    totalCents: 300,
+    recargoLlevarCents: 0,
+    estado: "EN_CAMINO",
+    creadaEn: new Date(baseDate.getTime() - 14 * 60000).toISOString(),
+    venceEn: new Date(baseDate.getTime() + 16 * 60000).toISOString(),
+    qrPayload: `BCD-ORD.ord-2.u2.${Date.now()}`,
+  },
+];
+
+const initialStampConfigs: Record<string, StampCardConfig> = {
+  [RESTAURANT_ID]: {
+    restaurantId: RESTAURANT_ID,
+    activa: true,
+    meta: 10,
+    premio: "Almuerzo gratis o postre de la casa",
+  },
+  r2: {
+    restaurantId: "r2",
+    activa: true,
+    meta: 10,
+    premio: "Postre especial de la casa",
+  },
+  r3: {
+    restaurantId: "r3",
+    activa: true,
+    meta: 10,
+    premio: "Porción de empanadas de verde",
+  },
+  r4: {
+    restaurantId: "r4",
+    activa: true,
+    meta: 10,
+    premio: "Almuerzo ejecutivo gratis",
+  },
+};
+
+const initialStampRecords: Record<string, StampRecord> = {
+  [`${RESTAURANT_ID}_c1`]: {
+    clientId: "c1", // Carlos Mejía
+    restaurantId: RESTAURANT_ID,
+    sellos: 7, // 7 de 10 sellos acumulados
+    premiosDisponibles: 0,
+    historiaCanjes: [],
+  },
+};
+
+const initialFeedbackList: FeedbackItem[] = [
+  {
+    id: "fb-1",
+    redemptionId: "red-prev-1",
+    restaurantId: RESTAURANT_ID,
+    clientId: "c1",
+    clientName: "Carlos Mejía",
+    tags: ["Buena sazón", "Buena porción", "Atención rápida"],
+    comentarioPrivado: "El locro de papa estaba insuperable hoy. Muy rápido el despacho.",
+    creadoEn: addDays(baseDate, -1).toISOString(),
+    respuestaRestaurante: "¡Muchas gracias Carlos! Mañana tendremos seco de carne especial.",
+    respondidoEn: addDays(baseDate, -1).toISOString(),
+  },
+  {
+    id: "fb-2",
+    redemptionId: "red-prev-2",
+    restaurantId: RESTAURANT_ID,
+    clientId: "c3",
+    clientName: "Sofía Almeida",
+    tags: ["Buena sazón", "Atención rápida"],
+    creadoEn: addDays(baseDate, -2).toISOString(),
+  },
+];
+
+const initialFlashOffers: FlashOffer[] = [
+  {
+    id: "flash-1",
+    restaurantId: RESTAURANT_ID,
+    titulo: "Almuerzo completo + dulce de higos",
+    descripcion: "Seco de pollo o chuleta + locro + dulce de higos con queso",
+    precioCents: 275, // $2,75 vs regular $3,50
+    precioOriginalCents: 350,
+    stockTotal: 8,
+    stockRestante: 5,
+    expiraEn: new Date(baseDate.getTime() + 90 * 60000).toISOString(),
+    activa: true,
+    creadaEn: baseDate.toISOString(),
+  },
+];
+
+const initialCommissionLedger: CommissionEntry[] = [
+  {
+    id: "com-1",
+    tipo: "FLASH_OFFER",
+    referenciaId: "flash-prev-1",
+    restaurantId: RESTAURANT_ID,
+    montoVentaCents: 275,
+    tasaPorcentaje: 7,
+    comisionCents: 19, // $0,19
+    creadoEn: addDays(baseDate, -2).toISOString(),
+  },
+  {
+    id: "com-2",
+    tipo: "FLASH_OFFER",
+    referenciaId: "flash-prev-2",
+    restaurantId: RESTAURANT_ID,
+    montoVentaCents: 275,
+    tasaPorcentaje: 7,
+    comisionCents: 19, // $0,19
+    creadoEn: addDays(baseDate, -1).toISOString(),
+  },
+];
+
 export const initialState: State = {
   simulatedDaysOffset: 0,
+  simulatedMinutesOffset: 0,
   activeRole: "OWNER",
-  restaurants: [initialRestaurant],
+  restaurants: initialRestaurants,
   staff: initialStaff,
   clients: initialClients,
   planTemplates: initialPlanTemplates,
   subscriptions: initialSubscriptions,
   redemptions: initialRedemptions,
   payments: initialPayments,
-  sales: [],
+  sales: initialSales,
   menuDays: {
     [dateKeyToday]: initialMenuToday,
+    [`${dateKeyToday}_${RESTAURANT_ID}`]: initialMenuToday,
+    [`${dateKeyToday}_r2`]: initialMenuR2,
+    [`${dateKeyToday}_r3`]: initialMenuR3,
+    [`${dateKeyToday}_r4`]: initialMenuR4,
   },
   planRequests: [
     {
@@ -644,6 +1203,12 @@ export const initialState: State = {
   ],
   claims: [],
   cashClosures: [],
+  orders: initialOrders,
+  stampConfigs: initialStampConfigs,
+  stampRecords: initialStampRecords,
+  feedbackList: initialFeedbackList,
+  flashOffers: initialFlashOffers,
+  commissionLedger: initialCommissionLedger,
   dinerZone: "Frente a la PUCE",
   soundEnabled: true,
 };
@@ -703,6 +1268,13 @@ function useBocadooState() {
           planTemplates: parsed.planTemplates?.length ? parsed.planTemplates : prev.planTemplates,
           clients: parsed.clients?.length ? parsed.clients : prev.clients,
           menuDays: parsed.menuDays || prev.menuDays,
+          orders: parsed.orders || prev.orders,
+          stampConfigs: parsed.stampConfigs || prev.stampConfigs,
+          stampRecords: parsed.stampRecords || prev.stampRecords,
+          feedbackList: parsed.feedbackList || prev.feedbackList,
+          flashOffers: parsed.flashOffers || prev.flashOffers,
+          commissionLedger: parsed.commissionLedger || prev.commissionLedger,
+          simulatedMinutesOffset: parsed.simulatedMinutesOffset ?? prev.simulatedMinutesOffset,
         }));
       }
     } catch (e) {
@@ -765,15 +1337,22 @@ function useBocadooState() {
   // --------------------------------------------------------------------------
   // RELOJ & FECHAS SIMULADAS
   // --------------------------------------------------------------------------
-  const simulatedToday = useMemo(
-    () => getSimulatedDate(state.simulatedDaysOffset),
-    [state.simulatedDaysOffset],
-  );
+  const simulatedToday = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + state.simulatedDaysOffset);
+    d.setMinutes(d.getMinutes() + state.simulatedMinutesOffset);
+    return d;
+  }, [state.simulatedDaysOffset, state.simulatedMinutesOffset]);
+
   const simulatedTodayKey = useMemo(() => toDateKey(simulatedToday), [simulatedToday]);
   const simulatedTodayISO = useMemo(() => simulatedToday.toISOString(), [simulatedToday]);
 
   const advanceDemoDays = useCallback((days: number) => {
     setState((s) => ({ ...s, simulatedDaysOffset: s.simulatedDaysOffset + days }));
+  }, []);
+
+  const advanceSimulatedMinutes = useCallback((mins: number) => {
+    setState((s) => ({ ...s, simulatedMinutesOffset: s.simulatedMinutesOffset + mins }));
   }, []);
 
   const resetDemoData = useCallback(() => {
@@ -1385,10 +1964,42 @@ function useBocadooState() {
           : s,
       );
 
+      // P13: Actualizar sellos si la tarjeta de sellos está activa
+      const targetRestId = chosenSub.templateId ? (state.planTemplates.find((t) => t.id === chosenSub.templateId)?.restaurantId || RESTAURANT_ID) : RESTAURANT_ID;
+      const stampCfg = state.stampConfigs[targetRestId];
+      let updatedStampRecords = state.stampRecords;
+      if (stampCfg && stampCfg.activa) {
+        const stampKey = `${client.id}_${targetRestId}`;
+        const currentStamp = updatedStampRecords[stampKey] || {
+          clientId: client.id,
+          restaurantId: targetRestId,
+          sellos: 0,
+          premiosDisponibles: 0,
+          historiaCanjes: [],
+        };
+        const nextSellos = currentStamp.sellos + 1;
+        const reachedReward = nextSellos >= stampCfg.meta;
+        updatedStampRecords = {
+          ...updatedStampRecords,
+          [stampKey]: {
+            ...currentStamp,
+            sellos: reachedReward ? nextSellos - stampCfg.meta : nextSellos,
+            premiosDisponibles: reachedReward
+              ? currentStamp.premiosDisponibles + 1
+              : currentStamp.premiosDisponibles,
+            historiaCanjes: [
+              { fecha: simulatedTodayISO, motivo: "Almuerzo validado con plan" },
+              ...currentStamp.historiaCanjes,
+            ],
+          },
+        };
+      }
+
       setState((s) => ({
         ...s,
         subscriptions: updatedSubs,
         redemptions: [newRedemption, ...s.redemptions],
+        stampRecords: updatedStampRecords,
       }));
 
       // Comprobar si vence pronto (en <= 3 días)
@@ -1406,7 +2017,7 @@ function useBocadooState() {
         isExpiringSoon,
       };
     },
-    [state.redemptions, state.clients, state.subscriptions, clientForUser, activeSubsForClient, evaluatedSubscriptions, simulatedToday, simulatedTodayISO],
+    [state.redemptions, state.clients, state.subscriptions, state.planTemplates, state.stampConfigs, state.stampRecords, clientForUser, activeSubsForClient, evaluatedSubscriptions, simulatedToday, simulatedTodayISO],
   );
 
   // Deshacer validación de almuerzo (búfer 10s)
@@ -1438,15 +2049,33 @@ function useBocadooState() {
           : s,
       );
 
+      // Revertir sello si corresponde
+      let updatedStampRecords = state.stampRecords;
+      const sub = state.subscriptions.find((s) => s.id === red.subscriptionId);
+      if (sub) {
+        const stampKey = `${sub.clientId}_${red.restaurantId}`;
+        const currentStamp = updatedStampRecords[stampKey];
+        if (currentStamp && currentStamp.sellos > 0) {
+          updatedStampRecords = {
+            ...updatedStampRecords,
+            [stampKey]: {
+              ...currentStamp,
+              sellos: currentStamp.sellos - 1,
+            },
+          };
+        }
+      }
+
       setState((s) => ({
         ...s,
         redemptions: [reversal, ...s.redemptions],
         subscriptions: updatedSubs,
+        stampRecords: updatedStampRecords,
       }));
 
       return true;
     },
-    [state.redemptions, state.subscriptions, simulatedTodayISO],
+    [state.redemptions, state.subscriptions, state.stampRecords, simulatedTodayISO],
   );
 
   // P6: POS / Venta rápida de caja
@@ -1820,6 +2449,694 @@ function useBocadooState() {
   }, []);
 
   // --------------------------------------------------------------------------
+  // P11: SEMÁFORO DE OCUPACIÓN Y HORA PICO
+  // --------------------------------------------------------------------------
+  const getRestaurantOccupancy = useCallback(
+    (restaurantId: string): OccupancyInfo | null => {
+      const restaurant = state.restaurants.find((r) => r.id === restaurantId);
+      if (!restaurant) return null;
+
+      // Regla P11: "Si el restaurante no registró ventas sin app hoy, el semáforo no se muestra."
+      const salesToday = state.sales.filter(
+        (s) =>
+          s.restaurantId === restaurantId &&
+          !s.revierteA &&
+          toDateKey(new Date(s.creadoEn)) === simulatedTodayKey,
+      );
+      if (salesToday.length === 0) {
+        return null;
+      }
+
+      // Interruptor manual de dueño [Local lleno] (dura 20 min)
+      if (restaurant.manualBusyUntil) {
+        const busyUntilDate = new Date(restaurant.manualBusyUntil);
+        if (busyUntilDate > simulatedToday) {
+          const minutesLeft = Math.max(
+            1,
+            Math.ceil((busyUntilDate.getTime() - simulatedToday.getTime()) / 60000),
+          );
+          return {
+            status: "LLENO",
+            label: "Lleno",
+            detail: "Lleno ahora. Pídelo para llevar",
+            colorClass: "text-rose-600 dark:text-rose-400",
+            bgClass: "bg-rose-500/10 border-rose-500/30",
+            badgeClass: "bg-rose-600 text-white",
+            ratio: 0.95,
+            isManual: true,
+            manualMinutesLeft: minutesLeft,
+          };
+        }
+      }
+
+      // Semáforo calculado: (ventas + canjes "para comer aquí" de los últimos 25 min) ÷ puestos
+      const windowStart = new Date(simulatedToday.getTime() - 25 * 60 * 1000);
+      const recentRedemptions = state.redemptions.filter(
+        (r) =>
+          r.restaurantId === restaurantId &&
+          !r.revierteA &&
+          !r.paraLlevar &&
+          new Date(r.creadoEn) >= windowStart &&
+          new Date(r.creadoEn) <= simulatedToday,
+      ).length;
+
+      const recentSales = state.sales.filter(
+        (s) =>
+          s.restaurantId === restaurantId &&
+          !s.revierteA &&
+          !s.paraLlevar &&
+          new Date(s.creadoEn) >= windowStart &&
+          new Date(s.creadoEn) <= simulatedToday,
+      ).length;
+
+      const occupants = recentRedemptions + recentSales;
+      const puestos = Math.max(1, restaurant.puestos);
+      const ratio = occupants / puestos;
+
+      if (ratio < 0.6) {
+        return {
+          status: "FLUIDO",
+          label: "Fluido",
+          detail: "Llegas y te sientas",
+          colorClass: "text-emerald-600 dark:text-emerald-400",
+          bgClass: "bg-emerald-500/10 border-emerald-500/30",
+          badgeClass: "bg-emerald-600 text-white",
+          ratio,
+          isManual: false,
+        };
+      }
+      if (ratio <= 0.85) {
+        return {
+          status: "MOVIDO",
+          label: "Movido",
+          detail: "Hora pico: quizá compartas mesa",
+          colorClass: "text-amber-600 dark:text-amber-400",
+          bgClass: "bg-amber-500/10 border-amber-500/30",
+          badgeClass: "bg-amber-600 text-slate-900",
+          ratio,
+          isManual: false,
+        };
+      }
+      return {
+        status: "LLENO",
+        label: "Lleno",
+        detail: "Lleno ahora. Pídelo para llevar",
+        colorClass: "text-rose-600 dark:text-rose-400",
+        bgClass: "bg-rose-500/10 border-rose-500/30",
+        badgeClass: "bg-rose-600 text-white",
+        ratio,
+        isManual: false,
+      };
+    },
+    [state.restaurants, state.sales, state.redemptions, simulatedToday, simulatedTodayKey],
+  );
+
+  const setManualBusy = useCallback(
+    (restaurantId: string, minutes = 20) => {
+      const until = new Date(simulatedToday.getTime() + minutes * 60 * 1000).toISOString();
+      setState((s) => ({
+        ...s,
+        restaurants: s.restaurants.map((r) =>
+          r.id === restaurantId ? { ...r, manualBusyUntil: until } : r,
+        ),
+      }));
+    },
+    [simulatedToday],
+  );
+
+  const clearManualBusy = useCallback((restaurantId: string) => {
+    setState((s) => ({
+      ...s,
+      restaurants: s.restaurants.map((r) =>
+        r.id === restaurantId ? { ...r, manualBusyUntil: undefined } : r,
+      ),
+    }));
+  }, []);
+
+  const simulatePeakHour = useCallback(
+    (restaurantId: string) => {
+      const generatedSales: Sale[] = Array.from({ length: 18 }).map((_, idx) => ({
+        id: newId(`sale-peak-${idx}`),
+        restaurantId,
+        ticket: state.sales.length + 150 + idx,
+        items: [
+          {
+            platoId: "p_almuerzo",
+            nombre: "Almuerzo Completo",
+            cant: 1,
+            precioCents: 300,
+            isLunch: true,
+          },
+        ],
+        totalCents: 300,
+        paraLlevar: false,
+        mesa: `Mesa ${idx + 1}`,
+        creadoEn: new Date(simulatedToday.getTime() - (idx + 1) * 45 * 1000).toISOString(),
+      }));
+      setState((s) => ({
+        ...s,
+        sales: [...generatedSales, ...s.sales],
+      }));
+    },
+    [state.sales.length, simulatedToday],
+  );
+
+  // --------------------------------------------------------------------------
+  // P12: PREÓRDENES INDIVIDUALES Y PARA LLEVAR
+  // --------------------------------------------------------------------------
+  const evaluatedOrders = useMemo(() => {
+    return state.orders.map((o): Order => {
+      if (o.estado === "EN_CAMINO" && new Date(o.venceEn) < simulatedToday) {
+        return { ...o, estado: "EXPIRADA" };
+      }
+      return o;
+    });
+  }, [state.orders, simulatedToday]);
+
+  const canDinerCreateOrder = useCallback(
+    (userId: string) => {
+      const sevenDaysAgo = new Date(simulatedToday.getTime() - 7 * 86400 * 1000);
+      const expiredCount = evaluatedOrders.filter(
+        (o) =>
+          o.comensalId === userId &&
+          o.estado === "EXPIRADA" &&
+          new Date(o.creadaEn) >= sevenDaysAgo,
+      ).length;
+
+      if (expiredCount >= 3) {
+        const activeCount = evaluatedOrders.filter(
+          (o) => o.comensalId === userId && o.estado === "EN_CAMINO",
+        ).length;
+        if (activeCount >= 1) {
+          return {
+            allowed: false,
+            reason:
+              "Como tuviste 3 pedidos que expiraron esta semana, por respeto al turno de la cocina solo puedes tener 1 pedido activo en camino.",
+          };
+        }
+      }
+      return { allowed: true };
+    },
+    [evaluatedOrders, simulatedToday],
+  );
+
+  const createPreOrder = useCallback(
+    (params: {
+      userId: string;
+      restaurantId: string;
+      items: OrderItem[];
+      tipo: OrderType;
+    }) => {
+      const check = canDinerCreateOrder(params.userId);
+      if (!check.allowed) {
+        return { ok: false, error: check.reason };
+      }
+      const user = APP_USERS.find((u) => u.id === params.userId) || {
+        id: params.userId,
+        name: "Comensal Bocadoo",
+      };
+      const rest = state.restaurants.find((r) => r.id === params.restaurantId);
+      const recargo = params.tipo === "LLEVAR" ? (rest?.recargoParaLlevarCents ?? 25) : 0;
+      const baseTotal = rest?.precioSueltoCents ?? 300;
+      const totalCents = baseTotal + recargo;
+
+      const orderId = newId("ord");
+      const order: Order = {
+        id: orderId,
+        comensalId: params.userId,
+        comensalNombre: user.name,
+        restaurantId: params.restaurantId,
+        items: params.items,
+        tipo: params.tipo,
+        totalCents,
+        recargoLlevarCents: recargo,
+        estado: "EN_CAMINO",
+        creadaEn: simulatedTodayISO,
+        venceEn: new Date(simulatedToday.getTime() + 30 * 60 * 1000).toISOString(),
+        qrPayload: `BCD-ORD-${orderId}`,
+      };
+
+      setState((s) => ({ ...s, orders: [order, ...s.orders] }));
+      return { ok: true, order };
+    },
+    [canDinerCreateOrder, state.restaurants, simulatedToday, simulatedTodayISO],
+  );
+
+  const cancelPreOrder = useCallback((orderId: string) => {
+    setState((s) => ({
+      ...s,
+      orders: s.orders.map((o) => (o.id === orderId ? { ...o, estado: "CANCELADA" } : o)),
+    }));
+    return true;
+  }, []);
+
+  const scanOrder = useCallback(
+    (orderId: string, params: { metodo?: PaymentMethod; staffId?: string } = {}) => {
+      const { metodo = "EFECTIVO", staffId = "st1" } = params;
+      const order = evaluatedOrders.find((o) => o.id === orderId);
+      if (!order) return { ok: false, message: "Orden no encontrada." };
+      if (order.estado === "EXPIRADA")
+        return { ok: false, message: "Esta orden ya expiró (más de 30 min sin canjear)." };
+      if (order.estado !== "EN_CAMINO")
+        return { ok: false, message: `La orden ya fue ${order.estado.toLowerCase()}.` };
+
+      // Buscar comensal y planes activos
+      const client =
+        state.clients.find(
+          (c) => c.userId === order.comensalId && c.restaurantId === order.restaurantId,
+        ) || state.clients.find((c) => c.userId === order.comensalId);
+
+      const activeSubs = client ? activeSubsForClient(client.id) : [];
+
+      let subscriptionIdUsed: string | undefined;
+      let paymentIdUsed: string | undefined;
+      let redemptionResult: Redemption | undefined;
+      let paymentResult: Payment | undefined;
+
+      if (activeSubs.length > 0 && client) {
+        // Descontar del plan activo
+        const res = redeemLunch({
+          clientId: client.id,
+          paraLlevar: order.tipo === "LLEVAR",
+          staffId,
+        });
+        if (res.status === "SUCCESS" && res.redemption) {
+          subscriptionIdUsed = res.subscription?.id;
+          redemptionResult = res.redemption;
+        }
+      } else {
+        // Cobrar venta suelta en caja
+        const payId = newId("pay");
+        paymentResult = {
+          id: payId,
+          montoCents: order.totalCents,
+          metodo,
+          cobradoPor: staffId,
+          creadoEn: simulatedTodayISO,
+        };
+        paymentIdUsed = payId;
+
+        const saleId = newId("sale");
+        const newSale: Sale = {
+          id: saleId,
+          restaurantId: order.restaurantId,
+          ticket: state.sales.length + 148,
+          items: order.items.map((it) => ({
+            platoId: it.platoId,
+            nombre: it.nombre,
+            cant: 1,
+            precioCents: order.totalCents,
+            isLunch: true,
+          })),
+          totalCents: order.totalCents,
+          paraLlevar: order.tipo === "LLEVAR",
+          creadoEn: simulatedTodayISO,
+        };
+
+        // Si el cliente existe y la tarjeta de sellos está activa, sumar 1 sello
+        const stampCfg = state.stampConfigs[order.restaurantId];
+        let updatedStampRecords = state.stampRecords;
+        if (stampCfg && stampCfg.activa && client) {
+          const stampKey = `${client.id}_${order.restaurantId}`;
+          const currentStamp = updatedStampRecords[stampKey] || {
+            clientId: client.id,
+            restaurantId: order.restaurantId,
+            sellos: 0,
+            premiosDisponibles: 0,
+            historiaCanjes: [],
+          };
+          const nextSellos = currentStamp.sellos + 1;
+          const reachedReward = nextSellos >= stampCfg.meta;
+          updatedStampRecords = {
+            ...updatedStampRecords,
+            [stampKey]: {
+              ...currentStamp,
+              sellos: reachedReward ? nextSellos - stampCfg.meta : nextSellos,
+              premiosDisponibles: reachedReward
+                ? currentStamp.premiosDisponibles + 1
+                : currentStamp.premiosDisponibles,
+              historiaCanjes: [
+                { fecha: simulatedTodayISO, motivo: "Orden validada por QR" },
+                ...currentStamp.historiaCanjes,
+              ],
+            },
+          };
+        }
+
+        setState((s) => ({
+          ...s,
+          payments: [paymentResult!, ...s.payments],
+          sales: [newSale, ...s.sales],
+          stampRecords: updatedStampRecords,
+        }));
+      }
+
+      const updatedOrder: Order = {
+        ...order,
+        estado: "CANJEADA",
+        canjeadaEn: simulatedTodayISO,
+        subscriptionIdUsed,
+        paymentIdUsed,
+      };
+
+      setState((s) => ({
+        ...s,
+        orders: s.orders.map((o) => (o.id === orderId ? updatedOrder : o)),
+      }));
+
+      return {
+        ok: true,
+        order: updatedOrder,
+        redemption: redemptionResult,
+        payment: paymentResult,
+        message: subscriptionIdUsed
+          ? "¡Listo! Descontado de su plan activo."
+          : `Cobrado ${money(order.totalCents)} con ${metodo.toLowerCase()}.`,
+      };
+    },
+    [evaluatedOrders, state.clients, state.sales.length, state.stampConfigs, state.stampRecords, activeSubsForClient, redeemLunch, simulatedTodayISO],
+  );
+
+  const serveOrder = useCallback((orderId: string) => {
+    setState((s) => ({
+      ...s,
+      orders: s.orders.map((o) => (o.id === orderId ? { ...o, estado: "SERVIDA" } : o)),
+    }));
+    return true;
+  }, []);
+
+  // --------------------------------------------------------------------------
+  // P13: TARJETA DE SELLOS
+  // --------------------------------------------------------------------------
+  const configureStampCard = useCallback(
+    (restaurantId: string, config: Partial<StampCardConfig>) => {
+      setState((s) => ({
+        ...s,
+        stampConfigs: {
+          ...s.stampConfigs,
+          [restaurantId]: {
+            restaurantId,
+            activa: config.activa ?? s.stampConfigs[restaurantId]?.activa ?? true,
+            meta: config.meta ?? s.stampConfigs[restaurantId]?.meta ?? 10,
+            premio: config.premio ?? s.stampConfigs[restaurantId]?.premio ?? "Almuerzo gratis",
+          },
+        },
+      }));
+    },
+    [],
+  );
+
+  const getClientStampRecord = useCallback(
+    (clientId: string, restaurantId: string): StampRecord => {
+      const key = `${clientId}_${restaurantId}`;
+      return (
+        state.stampRecords[key] || {
+          clientId,
+          restaurantId,
+          sellos: 0,
+          premiosDisponibles: 0,
+          historiaCanjes: [],
+        }
+      );
+    },
+    [state.stampRecords],
+  );
+
+  const claimStampReward = useCallback(
+    (clientId: string, restaurantId: string) => {
+      const key = `${clientId}_${restaurantId}`;
+      const record = state.stampRecords[key];
+      if (!record || record.premiosDisponibles <= 0) {
+        return { ok: false, message: "No tienes premios disponibles para canjear todavía." };
+      }
+
+      const cfg = state.stampConfigs[restaurantId];
+      const premioDesc = cfg?.premio || "Almuerzo gratis";
+
+      // P13: Canjear el premio crea una venta de $0 con motivo "Premio"
+      const saleId = newId("sale");
+      const nextTicket = state.sales.length + 148;
+      const newSale: Sale = {
+        id: saleId,
+        restaurantId,
+        ticket: nextTicket,
+        items: [
+          {
+            platoId: "p_premio",
+            nombre: `Premio: ${premioDesc}`,
+            cant: 1,
+            precioCents: 0,
+            isLunch: true,
+          },
+        ],
+        totalCents: 0,
+        paraLlevar: false,
+        mesa: "Premio",
+        creadoEn: simulatedTodayISO,
+      };
+
+      const updatedRecord: StampRecord = {
+        ...record,
+        premiosDisponibles: record.premiosDisponibles - 1,
+        historiaCanjes: [
+          { fecha: simulatedTodayISO, motivo: `Premio canjeado: ${premioDesc}` },
+          ...record.historiaCanjes,
+        ],
+      };
+
+      setState((s) => ({
+        ...s,
+        sales: [newSale, ...s.sales],
+        stampRecords: {
+          ...s.stampRecords,
+          [key]: updatedRecord,
+        },
+      }));
+
+      return {
+        ok: true,
+        sale: newSale,
+        message: `¡Premio entregado! Se registró venta de $0 para el cuadre de caja.`,
+      };
+    },
+    [state.stampRecords, state.stampConfigs, state.sales.length, simulatedTodayISO],
+  );
+
+  // --------------------------------------------------------------------------
+  // P14: FEEDBACK DE COMENSALES
+  // --------------------------------------------------------------------------
+  const pendingFeedbackRedemptions = useCallback(
+    (clientId: string) => {
+      return state.redemptions.filter((r) => {
+        if (r.revierteA) return false;
+        const sub = state.subscriptions.find((s) => s.id === r.subscriptionId);
+        if (sub?.clientId !== clientId) return false;
+        const redTime = new Date(r.creadoEn).getTime();
+        const diffMins = (simulatedToday.getTime() - redTime) / 60000;
+        if (diffMins < 20) return false;
+        return !state.feedbackList.some((f) => f.redemptionId === r.id);
+      });
+    },
+    [state.redemptions, state.subscriptions, state.feedbackList, simulatedToday],
+  );
+
+  const submitFeedback = useCallback(
+    (params: {
+      redemptionId: string;
+      restaurantId: string;
+      clientId: string;
+      tags: string[];
+      comentarioPrivado?: string;
+    }) => {
+      const client = state.clients.find((c) => c.id === params.clientId);
+      const feedback: FeedbackItem = {
+        id: newId("fb"),
+        redemptionId: params.redemptionId,
+        restaurantId: params.restaurantId,
+        clientId: params.clientId,
+        clientName: client?.nombre || "Comensal Bocadoo",
+        tags: params.tags,
+        comentarioPrivado: params.comentarioPrivado,
+        creadoEn: simulatedTodayISO,
+      };
+
+      setState((s) => ({ ...s, feedbackList: [feedback, ...s.feedbackList] }));
+      return feedback;
+    },
+    [state.clients, simulatedTodayISO],
+  );
+
+  const replyFeedback = useCallback(
+    (feedbackId: string, respuesta: string) => {
+      setState((s) => ({
+        ...s,
+        feedbackList: s.feedbackList.map((f) =>
+          f.id === feedbackId
+            ? { ...f, respuestaRestaurante: respuesta, respondidoEn: simulatedTodayISO }
+            : f,
+        ),
+      }));
+      return true;
+    },
+    [simulatedTodayISO],
+  );
+
+  const getRestaurantFeedbackTags = useCallback(
+    (restaurantId: string): Record<string, number> => {
+      const baseCounts: Record<string, number> = {
+        "Buena sazón": 128,
+        "Buena porción": 94,
+        "Atención rápida": 76,
+      };
+      state.feedbackList
+        .filter((f) => f.restaurantId === restaurantId)
+        .forEach((f) => {
+          f.tags.forEach((tag) => {
+            baseCounts[tag] = (baseCounts[tag] || 0) + 1;
+          });
+        });
+      return baseCounts;
+    },
+    [state.feedbackList],
+  );
+
+  // --------------------------------------------------------------------------
+  // P15: OFERTAS FLASH & REGISTRO DE COMISIONES (7%)
+  // --------------------------------------------------------------------------
+  const evaluatedFlashOffers = useMemo(() => {
+    return state.flashOffers.map((f): FlashOffer => {
+      if (f.activa && new Date(f.expiraEn) < simulatedToday) {
+        return { ...f, activa: false };
+      }
+      return f;
+    });
+  }, [state.flashOffers, simulatedToday]);
+
+  const launchFlashOffer = useCallback(
+    (params: {
+      restaurantId: string;
+      titulo: string;
+      descripcion: string;
+      precioCents: number;
+      precioOriginalCents: number;
+      stockTotal: number;
+      minutosDuracion: number;
+    }) => {
+      const offerId = newId("flash");
+      const expiraEn = new Date(
+        simulatedToday.getTime() + params.minutosDuracion * 60000,
+      ).toISOString();
+
+      const offer: FlashOffer = {
+        id: offerId,
+        restaurantId: params.restaurantId,
+        titulo: params.titulo,
+        descripcion: params.descripcion,
+        precioCents: params.precioCents,
+        precioOriginalCents: params.precioOriginalCents,
+        stockTotal: params.stockTotal,
+        stockRestante: params.stockTotal,
+        expiraEn,
+        activa: true,
+        creadaEn: simulatedTodayISO,
+      };
+
+      setState((s) => ({ ...s, flashOffers: [offer, ...s.flashOffers] }));
+      return offer;
+    },
+    [simulatedToday, simulatedTodayISO],
+  );
+
+  const redeemFlashOffer = useCallback(
+    (offerId: string, params: { metodo: PaymentMethod; staffId?: string } = { metodo: "EFECTIVO" }) => {
+      const { metodo = "EFECTIVO", staffId = "st1" } = params;
+      const offer = evaluatedFlashOffers.find((f) => f.id === offerId);
+      if (!offer) return { ok: false, message: "Oferta flash no encontrada." };
+      if (!offer.activa) return { ok: false, message: "Esta oferta flash ya finalizó o expiró." };
+      if (offer.stockRestante <= 0)
+        return { ok: false, message: "Se agotó el stock disponible de esta oferta." };
+
+      const saleId = newId("sale");
+      const newSale: Sale = {
+        id: saleId,
+        restaurantId: offer.restaurantId,
+        ticket: state.sales.length + 148,
+        items: [
+          {
+            platoId: offer.id,
+            nombre: `Oferta Flash: ${offer.titulo}`,
+            cant: 1,
+            precioCents: offer.precioCents,
+            isLunch: true,
+          },
+        ],
+        totalCents: offer.precioCents,
+        paraLlevar: false,
+        mesa: "Oferta Flash",
+        creadoEn: simulatedTodayISO,
+      };
+
+      const payId = newId("pay");
+      const newPay: Payment = {
+        id: payId,
+        montoCents: offer.precioCents,
+        metodo,
+        saleId,
+        cobradoPor: staffId,
+        creadoEn: simulatedTodayISO,
+      };
+
+      const comisionCents = Math.round(offer.precioCents * COMMISSION_RATE);
+      const commEntry: CommissionEntry = {
+        id: newId("comm"),
+        tipo: "FLASH_OFFER",
+        referenciaId: offer.id,
+        restaurantId: offer.restaurantId,
+        montoVentaCents: offer.precioCents,
+        tasaPorcentaje: COMMISSION_RATE,
+        comisionCents,
+        creadoEn: simulatedTodayISO,
+      };
+
+      const nextStock = offer.stockRestante - 1;
+      const updatedOffers = state.flashOffers.map((f) =>
+        f.id === offer.id ? { ...f, stockRestante: nextStock, activa: nextStock > 0 } : f,
+      );
+
+      setState((s) => ({
+        ...s,
+        sales: [newSale, ...s.sales],
+        payments: [newPay, ...s.payments],
+        commissionLedger: [commEntry, ...s.commissionLedger],
+        flashOffers: updatedOffers,
+      }));
+
+      return {
+        ok: true,
+        sale: newSale,
+        commission: commEntry,
+        message: `¡Oferta canjeada! Venta: ${money(offer.precioCents)} | Comisión (7%): ${money(comisionCents)}`,
+      };
+    },
+    [evaluatedFlashOffers, state.sales.length, state.flashOffers, simulatedTodayISO],
+  );
+
+  const getRestaurantCommissions = useCallback(
+    (restaurantId: string) => {
+      const entries = state.commissionLedger.filter((c) => c.restaurantId === restaurantId);
+      const totalVendidoCents = entries.reduce((sum, e) => sum + e.montoVentaCents, 0);
+      const totalComisionesCents = entries.reduce((sum, e) => sum + e.comisionCents, 0);
+      return {
+        totalVendidoCents,
+        totalComisionesCents,
+        totalCanjes: entries.length,
+        entries,
+      };
+    },
+    [state.commissionLedger],
+  );
+
+  // --------------------------------------------------------------------------
   // ALIAS DE RETROCOMPATIBILIDAD (PARA QUE LAS VISTAS EXISTENTES SIGAN OPERANDO)
   // --------------------------------------------------------------------------
   const legacyPlans: Plan[] = useMemo(() => {
@@ -1917,6 +3234,7 @@ function useBocadooState() {
     simulatedTodayKey,
     simulatedTodayISO,
     advanceDemoDays,
+    advanceSimulatedMinutes,
     resetDemoData,
     // Permisos y roles
     activeRole: state.activeRole,
@@ -1960,6 +3278,33 @@ function useBocadooState() {
     dismissClaim,
     closeCash,
     setDinerZone,
+    // P11 Semáforo
+    getRestaurantOccupancy,
+    setManualBusy,
+    clearManualBusy,
+    simulatePeakHour,
+    // P12 Preórdenes
+    orders: evaluatedOrders,
+    canDinerCreateOrder,
+    createPreOrder,
+    cancelPreOrder,
+    scanOrder,
+    serveOrder,
+    // P13 Sellos
+    configureStampCard,
+    getClientStampRecord,
+    claimStampReward,
+    // P14 Feedback
+    pendingFeedbackRedemptions,
+    submitFeedback,
+    replyFeedback,
+    getRestaurantFeedbackTags,
+    // P15 Ofertas Flash & Comisiones
+    flashOffers: evaluatedFlashOffers,
+    launchFlashOffer,
+    redeemFlashOffer,
+    getRestaurantCommissions,
+    COMMISSION_RATE,
     // Compatibilidad
     plans: legacyPlans,
     clients: legacyClients,
