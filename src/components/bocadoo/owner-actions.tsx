@@ -74,7 +74,9 @@ function playSoundFeedback(type: "success" | "warning" | "error", enabled = true
   if (!enabled || typeof window === "undefined") return;
 
   try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
     const osc = ctx.createOscillator();
@@ -1212,9 +1214,20 @@ const PLAN_PRESETS: Record<
   Libre: { name: "Plan personalizado", lunches: 12, days: 21, priceCents: 3200 },
 };
 
+type PlanPresetKey = "Semanal" | "Quincenal" | "Mensual" | "Libre";
+
 export function NewPlanScreen({ initialType = "Mensual" }: { initialType?: string }) {
   const { addPlan, activeRole } = useBocadoo();
   const navigate = useNavigate();
+
+  const preset = PLAN_PRESETS[initialType] || PLAN_PRESETS.Mensual;
+  const [tipo, setTipo] = useState<PlanPresetKey>((initialType as PlanPresetKey) || "Mensual");
+  const [nombre, setNombre] = useState(preset.name);
+  const [almuerzos, setAlmuerzos] = useState(preset.lunches);
+  const [dias, setDias] = useState(preset.days);
+  const [precioCents, setPrecioCents] = useState(preset.priceCents);
+  const [cupos, setCupos] = useState(40);
+  const [visible, setVisible] = useState(true);
 
   if (activeRole === "CASHIER") {
     return (
@@ -1235,15 +1248,6 @@ export function NewPlanScreen({ initialType = "Mensual" }: { initialType?: strin
       </div>
     );
   }
-
-  const preset = PLAN_PRESETS[initialType] || PLAN_PRESETS.Mensual;
-  const [tipo, setTipo] = useState<any>(initialType);
-  const [nombre, setNombre] = useState(preset.name);
-  const [almuerzos, setAlmuerzos] = useState(preset.lunches);
-  const [dias, setDias] = useState(preset.days);
-  const [precioCents, setPrecioCents] = useState(preset.priceCents);
-  const [cupos, setCupos] = useState(40);
-  const [visible, setVisible] = useState(true);
 
   const selectPreset = (t: string) => {
     const p = PLAN_PRESETS[t];

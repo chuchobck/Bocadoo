@@ -22,6 +22,7 @@ import {
   Menu as MenuIcon,
   Minus,
   Pencil,
+  PhoneCall,
   Plus,
   QrCode,
   Receipt,
@@ -38,6 +39,7 @@ import {
   UsersRound,
   Utensils,
   WalletCards,
+  Wifi,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -195,58 +197,424 @@ const SectionTitle = ({
 );
 
 const LoginScreen = () => (
-  <Phone title="Login compartido">
+  <Phone title="Login · Tarjeta Física">
     <div className="relative flex flex-1 flex-col overflow-hidden px-6 pb-8">
       <div className="absolute -right-16 -top-24 h-52 w-52 rounded-full bg-lavender" />
       <div className="absolute -left-24 top-24 h-44 w-44 rounded-full border-[28px] border-accent/70" />
-      <div className="relative mt-12 flex justify-center">
+      <div className="relative mt-8 flex justify-center">
         <Logo />
       </div>
-      <div className="relative mt-8 text-center">
-        <h1 className="text-[30px] font-black leading-tight text-foreground">
+      <div className="relative mt-5 text-center">
+        <h1 className="text-[26px] font-black leading-tight text-foreground">
           Tu almuerzo,
           <br />
           <span className="text-primary">sin cartulinas.</span>
         </h1>
-        <p className="mt-2 text-xs font-medium text-muted-foreground">
-          Planes simples. Almuerzos sin complicaciones.
+        <p className="mt-1 text-xs font-medium text-muted-foreground">
+          Planes simples. Valida tu almuerzo con QR en Quito.
         </p>
       </div>
-      <div className="relative mt-7 rounded-[26px] bg-card p-4 shadow-card">
-        <div className="grid grid-cols-2 rounded-xl bg-muted p-1 text-[11px] font-bold">
-          <div className="rounded-[10px] bg-primary px-2 py-2.5 text-center text-primary-foreground shadow-soft">
-            Soy comensal
-          </div>
-          <div className="px-2 py-2.5 text-center text-muted-foreground">Tengo un restaurante</div>
+
+      {/* Pestañas salientes tipo carpeta física / Real Card Tabs */}
+      <div className="relative mt-5 -mb-px flex items-end px-3 gap-1 z-10">
+        <div className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-[0_-5px_12px_rgba(0,0,0,0.06)] relative z-20 pb-2.5">
+          <UserRound size={13} className="text-primary" />
+          <span>Comensal</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" />
         </div>
-        <label className="mt-5 block text-[10px] font-bold text-muted-foreground">
+        <div className="flex items-center gap-1.5 px-3.5 py-1.5 text-[11px] font-bold rounded-t-xl bg-muted/80 text-muted-foreground border border-b-0 border-border/50">
+          <Store size={13} />
+          <span>Dueño</span>
+        </div>
+      </div>
+
+      {/* Tarjeta inteligente Bocadoo Pass */}
+      <div className="relative rounded-b-[28px] rounded-tr-[28px] rounded-tl-[4px] bg-gradient-to-b from-card via-card to-card/95 p-4 shadow-[0_22px_45px_-12px_rgba(75,15,80,0.18),0_6px_20px_-4px_rgba(0,0,0,0.07)] border border-border/80 ring-1 ring-white/90 ring-inset">
+        {/* Chip EMV dorado + Ondas NFC Contactless */}
+        <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="relative h-6 w-8 rounded bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 p-0.5 shadow-xs border border-amber-500/50 flex items-center justify-center shrink-0">
+              <div className="h-full w-full rounded-[2px] border border-amber-700/30 grid grid-cols-2 grid-rows-2 gap-[1px]">
+                <div className="border-r border-b border-amber-700/40" />
+                <div className="border-b border-amber-700/40" />
+                <div className="border-r border-amber-700/40" />
+                <div />
+              </div>
+            </div>
+            <div className="flex items-center text-muted-foreground/70">
+              <Wifi size={14} className="rotate-90" />
+            </div>
+          </div>
+          <span className="rounded-md bg-accent/60 px-2 py-0.5 text-[9px] font-black tracking-wider text-primary uppercase">
+            Pase Comensal
+          </span>
+        </div>
+
+        <label className="mt-3.5 block text-[10px] font-bold text-muted-foreground">
           CORREO ELECTRÓNICO
         </label>
-        <div className="mt-2 flex h-12 items-center gap-3 rounded-xl bg-muted px-4 text-xs text-foreground">
+        <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] border border-border/40">
           <Mail size={16} className="text-primary" /> carlos@email.com
         </div>
-        <label className="mt-4 block text-[10px] font-bold text-muted-foreground">CONTRASEÑA</label>
-        <div className="mt-2 flex h-12 items-center gap-3 rounded-xl bg-muted px-4 text-xs text-foreground">
+
+        <label className="mt-3 block text-[10px] font-bold text-muted-foreground">CONTRASEÑA</label>
+        <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] border border-border/40">
           <LockKeyhole size={16} className="text-primary" />
           <span className="tracking-[4px]">••••••••</span>
           <Eye size={15} className="ml-auto text-muted-foreground" />
         </div>
-        <div className="mt-3 text-right text-[10px] font-bold text-primary">
+
+        <div className="mt-2 text-right text-[10px] font-bold text-primary">
           ¿Olvidaste tu contraseña?
         </div>
-        <div className="mt-5 flex h-12 items-center justify-center rounded-xl bg-foreground text-sm font-bold text-background shadow-soft">
+        <div className="mt-3.5 flex h-11 items-center justify-center rounded-xl bg-foreground text-xs font-bold text-background shadow-soft">
           Iniciar sesión
         </div>
-        <div className="my-4 flex items-center gap-3 text-[9px] text-muted-foreground">
-          <i className="h-px flex-1 bg-border" />o continúa con
+        <div className="my-3 flex items-center gap-3 text-[9px] text-muted-foreground">
+          <i className="h-px flex-1 bg-border" />ó
           <i className="h-px flex-1 bg-border" />
         </div>
-        <div className="flex h-11 items-center justify-center gap-3 rounded-xl border border-border bg-background text-xs font-bold text-foreground">
+        <div className="flex h-11 items-center justify-center gap-2.5 rounded-xl border border-border bg-background text-xs font-bold text-foreground">
           <span className="text-base font-black text-google">G</span>Continuar con Google
+        </div>
+        <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between text-[8px] font-mono font-bold text-muted-foreground/60">
+          <span>BCD-PASS •••• 9412</span>
+          <span>QUITO · 2026</span>
         </div>
       </div>
       <div className="mt-auto text-center text-xs text-muted-foreground">
         ¿Primera vez? <span className="font-extrabold text-primary">Crear cuenta</span>
+      </div>
+    </div>
+  </Phone>
+);
+
+const RegisterDinerMockup = () => (
+  <Phone title="Registro · Comensal">
+    <div className="relative flex flex-1 flex-col overflow-hidden px-6 pb-6 pt-3">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
+          <ArrowLeft size={14} /> Volver
+        </span>
+        <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-primary">
+          Paso 1 de 2 · Comensal
+        </span>
+      </div>
+      <div className="mt-4">
+        <div className="inline-flex items-center gap-1.5 rounded-xl bg-lavender/50 px-2.5 py-1 text-[11px] font-bold text-primary">
+          <Utensils size={13} /> Tu cuenta para almorzar con QR
+        </div>
+        <h2 className="mt-2 text-xl font-black text-foreground">Crea tu cuenta de comensal</h2>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Dile adiós a las cartulinas. Compra planes de almuerzo y valida con QR.
+        </p>
+      </div>
+      <div className="mt-3 space-y-2.5">
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Nombre Completo
+          </label>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <UserRound size={15} className="text-primary" /> Carlos Mejía
+          </div>
+        </div>
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Correo Electrónico
+          </label>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <Mail size={15} className="text-primary" /> carlos.mejia@email.com
+          </div>
+        </div>
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Teléfono Móvil (Ecuador)
+          </label>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <PhoneCall size={15} className="text-primary" /> 099 123 4567
+          </div>
+        </div>
+        {/* Sector preferido */}
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Sector preferido de almuerzo en Quito
+          </label>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <span className="rounded-md bg-primary px-2 py-0.5 text-[9px] font-bold text-primary-foreground">
+              📍 La Floresta
+            </span>
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
+              La Mariscal
+            </span>
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
+              PUCE
+            </span>
+            <span className="rounded-md bg-muted px-2 py-0.5 text-[9px] font-bold text-muted-foreground">
+              Centro Histórico
+            </span>
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <label className="text-[9px] font-bold text-muted-foreground uppercase">Contraseña</label>
+            <span className="text-[9px] font-bold text-emerald-600">Segura</span>
+          </div>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <LockKeyhole size={15} className="text-primary" />
+            <span className="tracking-[3px]">••••••••••</span>
+            <Eye size={14} className="ml-auto text-muted-foreground" />
+          </div>
+          <div className="mt-1 flex gap-1 h-1">
+            <div className="flex-1 rounded-full bg-emerald-500" />
+            <div className="flex-1 rounded-full bg-emerald-500" />
+            <div className="flex-1 rounded-full bg-emerald-500" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground">
+          <Check size={14} className="text-primary" /> Acepto los Términos de Bocadoo Ecuador
+        </div>
+        <div className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-brand">
+          <span>Crear cuenta y elegir restaurante</span>
+          <Store size={14} />
+        </div>
+      </div>
+    </div>
+  </Phone>
+);
+
+const RegisterOwnerMockup = () => (
+  <Phone title="Registro · Restaurante">
+    <div className="relative flex flex-1 flex-col overflow-hidden px-6 pb-6 pt-3">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-foreground">
+          <ArrowLeft size={14} /> Volver
+        </span>
+        <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-extrabold text-primary">
+          Paso 1 de 2 · Restaurante
+        </span>
+      </div>
+      <div className="mt-4">
+        <div className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-2.5 py-1 text-[11px] font-bold text-primary">
+          <Store size={13} /> Registro de negocio afiliado
+        </div>
+        <h2 className="mt-2 text-xl font-black text-foreground">Registra tu Restaurante</h2>
+        <p className="mt-1 text-[11px] text-muted-foreground">
+          Cobra por adelantado, fideliza comensales y valida con QR.
+        </p>
+      </div>
+      <div className="mt-3 space-y-2.5">
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Nombre del Restaurante
+          </label>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <Store size={15} className="text-primary" /> La Cuchara de San Blas
+          </div>
+        </div>
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Dueño o Administrador
+          </label>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <UserRound size={15} className="text-primary" /> María Toapanta
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+              RUC / Cédula
+            </label>
+            <div className="mt-1 flex h-10 items-center rounded-xl bg-muted px-3 text-[11px]">
+              1792345678001
+            </div>
+          </div>
+          <div>
+            <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+              WhatsApp Local
+            </label>
+            <div className="mt-1 flex h-10 items-center rounded-xl bg-muted px-3 text-[11px]">
+              098 765 4321
+            </div>
+          </div>
+        </div>
+        {/* Google Maps Restaurant Locator Widget */}
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+              Ubicación en Quito (Google Maps)
+            </label>
+            <span className="text-[9px] font-extrabold text-primary flex items-center gap-1">
+              <MapPin size={10} /> Centro Histórico
+            </span>
+          </div>
+          <div className="relative h-22 w-full overflow-hidden rounded-xl border border-border bg-[#f1f3f0]">
+            <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
+              <rect width="100%" height="100%" fill="#f1f3f0" />
+              <rect x="25%" y="15%" width="25%" height="20%" rx="6" fill="#d1ebd1" />
+              <rect x="36%" y="58%" width="20%" height="15%" rx="6" fill="#d1ebd1" />
+              <path d="M 42% 0 L 42% 100%" stroke="#ffffff" strokeWidth="5" />
+              <path d="M 42% 0 L 42% 100%" stroke="#f7c852" strokeWidth="2" />
+              <path d="M 54% 0 L 54% 100%" stroke="#ffffff" strokeWidth="4" />
+            </svg>
+            <div className="absolute left-[38%] top-[65%] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
+              <div className="rounded bg-card px-1.5 py-0.5 text-[8px] font-black text-foreground shadow border border-border">
+                📍 San Blas
+              </div>
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                <Store size={10} />
+              </div>
+            </div>
+            <div className="absolute bottom-1 left-1.5 z-10 text-[8px] font-bold text-foreground/80">
+              Google Maps · Quito
+            </div>
+          </div>
+        </div>
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Precio Promedio Almuerzo
+          </label>
+          <div className="mt-1 flex h-9 items-center rounded-xl bg-muted px-3 text-[11px] font-black text-primary">
+            $3.50
+          </div>
+        </div>
+        <div>
+          <label className="block text-[9px] font-bold text-muted-foreground uppercase">
+            Contraseña Administrador
+          </label>
+          <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
+            <LockKeyhole size={15} className="text-primary" />
+            <span className="tracking-[3px]">••••••••••</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground">
+          <Check size={14} className="text-primary" /> Acepto el acuerdo comercial Bocadoo
+        </div>
+        <div className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-brand">
+          <span>Dar de alta y ver Onboarding</span>
+          <Sparkles size={14} />
+        </div>
+      </div>
+    </div>
+  </Phone>
+);
+
+const OnboardingDinerMockup = () => (
+  <Phone title="Onboarding · Comensal (Paso 0)">
+    <div className="relative flex flex-1 flex-col overflow-hidden px-6 pb-6 pt-5 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-brand">
+        <Sparkles size={28} />
+      </div>
+      <span className="mt-3 text-[10px] font-extrabold uppercase tracking-widest text-primary">
+        ¡Bienvenido a Bocadoo!
+      </span>
+      <h2 className="mt-1 text-xl font-black text-foreground">¡Hola, Carlos! 🎉</h2>
+      <p className="mt-1 text-[11px] text-muted-foreground px-1">
+        Tu cuenta comensal en <b>La Floresta</b> está configurada.
+      </p>
+      <div className="mt-4 space-y-2 text-left">
+        <div className="flex items-start gap-2.5 rounded-2xl bg-card p-3 shadow-soft border border-border/70">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-primary font-black text-xs">
+            1
+          </div>
+          <div>
+            <h4 className="text-[11px] font-black text-foreground">Elige tu restaurante preferido</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Explora locales y compra planes de 5, 10 o 20 almuerzos.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5 rounded-2xl bg-card p-3 shadow-soft border border-border/70">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-primary font-black text-xs">
+            2
+          </div>
+          <div>
+            <h4 className="text-[11px] font-black text-foreground">Tu código QR personal listo</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Muestra tu QR al pagar. El cajero lo valida en 2 segundos.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5 rounded-2xl bg-card p-3 shadow-soft border border-border/70">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-primary font-black text-xs">
+            3
+          </div>
+          <div>
+            <h4 className="text-[11px] font-black text-foreground">Control de tus almuerzos</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Revisa tus almuerzos restantes en tiempo real sin papel.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-lavender/60 p-2 text-[11px] font-bold text-primary">
+        <QrCode size={14} /> ¡Tu código QR personal ya está listo!
+      </div>
+      <div className="mt-auto pt-4">
+        <div className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-brand">
+          <span>Explorar restaurantes en Quito</span>
+          <Store size={14} />
+        </div>
+      </div>
+    </div>
+  </Phone>
+);
+
+const OnboardingOwnerMockup = () => (
+  <Phone title="Onboarding · Restaurante (Paso 0)">
+    <div className="relative flex flex-1 flex-col overflow-hidden px-6 pb-6 pt-5 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-brand">
+        <Store size={28} />
+      </div>
+      <span className="mt-3 text-[10px] font-extrabold uppercase tracking-widest text-primary">
+        Restaurante Activo en Bocadoo
+      </span>
+      <h2 className="mt-1 text-xl font-black text-foreground">¡Bienvenida, María! 🍽️</h2>
+      <p className="mt-1 text-[11px] text-muted-foreground px-1">
+        <b>La Cuchara de San Blas</b> ya puede validar almuerzos con QR en Quito.
+      </p>
+      <div className="mt-4 space-y-2 text-left">
+        <div className="flex items-start gap-2.5 rounded-2xl bg-card p-3 shadow-soft border border-border/70">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-primary font-black text-xs">
+            1
+          </div>
+          <div>
+            <h4 className="text-[11px] font-black text-foreground">Escaneo QR ultrarrápido</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Escanea el QR de tus clientes para descontar almuerzos al instante.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5 rounded-2xl bg-card p-3 shadow-soft border border-border/70">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-primary font-black text-xs">
+            2
+          </div>
+          <div>
+            <h4 className="text-[11px] font-black text-foreground">Cobro anticipado garantizado</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Vende planes semanales o mensuales en efectivo o transferencia.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2.5 rounded-2xl bg-card p-3 shadow-soft border border-border/70">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent text-primary font-black text-xs">
+            3
+          </div>
+          <div>
+            <h4 className="text-[11px] font-black text-foreground">Métricas y cero pérdidas</h4>
+            <p className="text-[10px] text-muted-foreground">
+              Reportes diarios de almuerzos servidos y saldo de cada cliente.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center justify-center gap-1.5 rounded-xl bg-accent/60 p-2 text-[11px] font-bold text-primary">
+        <Check size={14} /> Terminal lista para tus primeros comensales
+      </div>
+      <div className="mt-auto pt-4">
+        <div className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-bold text-primary-foreground shadow-brand">
+          <span>Abrir mi panel de restaurante</span>
+          <Store size={14} />
+        </div>
       </div>
     </div>
   </Phone>
@@ -296,38 +664,69 @@ const DinerHome = () => (
           <SectionTitle>Mis planes</SectionTitle>
         </div>
         <div className="relative mt-3 pb-5">
+          {/* Tarjeta lavanda offset que sobresale sutilmente debajo */}
           <div className="absolute inset-x-3 bottom-0 top-7 rounded-[23px] bg-lavender opacity-70" />
-          <div className="relative overflow-hidden rounded-[23px] bg-card-dark p-5 text-card-dark-foreground shadow-card">
+
+          {/* Tarjeta principal negra/dark obsidian, minimalista y con proporciones de tarjeta real */}
+          <div className="relative rounded-[23px] bg-card-dark p-5 text-card-dark-foreground shadow-card border border-white/5 ring-1 ring-white/10">
+            {/* Fila superior: Logo restaurante + Nombre/Plan + Contactless + Sparkles */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
-                  <Utensils size={16} />
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-xs">
+                  <Utensils size={18} />
                 </div>
-                <div>
-                  <p className="text-[12px] font-bold">La Cuchara de San Blas</p>
-                  <p className="text-[8px] text-card-dark-muted">Plan mensual</p>
+                <div className="min-w-0">
+                  <p className="truncate text-[13px] font-black text-white">
+                    La Cuchara de San Blas
+                  </p>
+                  <p className="text-[9px] font-bold text-card-dark-muted">Plan mensual</p>
                 </div>
               </div>
-              <Sparkles size={18} className="text-lavender" />
+              <div className="flex items-center gap-2 text-lavender">
+                <span title="Validación sin contacto QR">
+                  <Wifi size={14} className="rotate-90 text-lavender/60" />
+                </span>
+                <Sparkles size={19} className="text-lavender" />
+              </div>
             </div>
+
+            {/* Saldo de almuerzos y contravalor */}
             <div className="mt-5 flex items-end justify-between">
               <div>
-                <p className="text-[29px] font-black leading-none">
-                  14 <span className="text-[15px]">almuerzos</span>
+                <p className="text-[32px] font-black leading-none text-white tracking-tight">
+                  14 <span className="text-[16px] font-bold text-white/85">almuerzos</span>
                 </p>
-                <p className="mt-1.5 text-[9px] text-card-dark-muted">Vence el 30/10</p>
+                <p className="mt-1.5 text-[10px] font-semibold text-card-dark-muted">
+                  Vence el 30/10
+                </p>
               </div>
-              <p className="text-sm font-bold text-lavender">≈ $39,20</p>
+              <p className="text-base font-black text-lavender tracking-tight">
+                ≈ $39,20
+              </p>
             </div>
-            <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-background/20">
-              <div className="h-full w-[30%] rounded-full bg-primary" />
+
+            {/* Barra de progreso de consumo */}
+            <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: "70%" }}
+              />
             </div>
-            <div className="mt-2 flex items-center justify-between text-[8px] text-card-dark-muted">
+            <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-card-dark-muted">
               <span>6 usados de 20</span>
               <span>70% disponible</span>
             </div>
-            <div className="mt-4 flex items-center justify-center gap-2 rounded-xl bg-background px-3 py-2.5 text-[11px] font-extrabold text-foreground">
-              <QrCode size={16} /> Mostrar QR
+
+            {/* Detalle relieve sutil de tarjeta de crédito real */}
+            <div className="mt-3.5 pt-2 border-t border-white/10 flex items-center justify-between text-[8px] font-mono tracking-widest text-card-dark-muted/70 uppercase">
+              <span>•••• 9412</span>
+              <span>CARLOS MEJÍA</span>
+            </div>
+
+            {/* Botón blanco Mostrar QR */}
+            <div className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-xs font-black text-card-dark shadow-sm">
+              <QrCode size={17} className="text-card-dark" />
+              <span>Mostrar QR</span>
             </div>
           </div>
         </div>
@@ -1537,8 +1936,12 @@ function BocadooShowcase() {
         </div>
       </header>
       <div className="flex min-w-max items-start gap-24 pb-16">
-        <ScreenGroup eyebrow="Acceso" title="Pantalla compartida" count={1}>
+        <ScreenGroup eyebrow="Acceso y Onboarding" title="Autenticación, Registro y Paso 0" count={5}>
           <LoginScreen />
+          <RegisterDinerMockup />
+          <RegisterOwnerMockup />
+          <OnboardingDinerMockup />
+          <OnboardingOwnerMockup />
         </ScreenGroup>
         <ScreenGroup eyebrow="Experiencia 01" title="Comensal" count={3}>
           <DinerHome />

@@ -345,7 +345,7 @@ function MigrateCardModal({ onClose }: { onClose: () => void }) {
 function CashClosureModal({ onClose }: { onClose: () => void }) {
   const { closeCash, simulatedTodayKey, salesThisMonthCents, servedToday } = useBocadoo();
   const [contadoDollars, setContadoDollars] = useState("");
-  const [closedData, setClosedData] = useState<any>(null);
+  const [closedData, setClosedData] = useState<ReturnType<typeof closeCash> | null>(null);
 
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();

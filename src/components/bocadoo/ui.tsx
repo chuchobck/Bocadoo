@@ -45,7 +45,7 @@ export const Logo = ({ compact = false }: { compact?: boolean }) => (
         bocadoo
       </div>
       {!compact && (
-        <div className="mt-1 text-[10px] font-semibold text-muted-foreground">
+        <div className="mt-1 text-xs font-semibold text-muted-foreground">
           tu almuerzo, más fácil
         </div>
       )}
@@ -192,7 +192,7 @@ export const NavBar = ({ active, owner = false }: { active: string; owner?: bool
             <div className={selected ? "rounded-xl bg-accent px-4 py-1" : "px-4 py-1"}>
               <Icon size={19} strokeWidth={selected ? 2.7 : 2} />
             </div>
-            <span className="text-[9px] font-bold">{label}</span>
+            <span className="text-xs font-bold">{label}</span>
           </Link>
         );
       })}
@@ -239,10 +239,10 @@ export const Transaction = ({
       <Icon size={16} />
     </div>
     <div className="min-w-0">
-      <div className="truncate text-[11px] font-extrabold text-foreground">{name}</div>
-      <div className="mt-0.5 truncate text-[9px] text-muted-foreground">{detail}</div>
+      <div className="truncate text-xs font-extrabold text-foreground">{name}</div>
+      <div className="mt-0.5 truncate text-xs text-muted-foreground">{detail}</div>
     </div>
-    <div className={`text-[10px] font-extrabold ${positive ? "text-success" : "text-foreground"}`}>
+    <div className={`text-xs font-extrabold ${positive ? "text-success" : "text-foreground"}`}>
       {value}
     </div>
   </div>
@@ -259,16 +259,16 @@ export const SettingsRow = ({
   danger?: boolean;
   to?: AppPath;
 }) => {
-  const className = `grid w-full grid-cols-[32px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-1.5 text-left ${danger ? "text-danger" : "text-foreground"}`;
+  const className = `grid w-full grid-cols-[36px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-2.5 text-left ${danger ? "text-danger" : "text-foreground"}`;
   const content = (
     <>
       <div
-        className={`grid h-8 w-8 place-items-center rounded-[10px] ${danger ? "bg-danger-soft" : "bg-accent text-primary"}`}
+        className={`grid h-9 w-9 place-items-center rounded-xl ${danger ? "bg-danger-soft" : "bg-accent text-primary"}`}
       >
-        <Icon size={14} />
+        <Icon size={16} />
       </div>
-      <span className="text-[10px] font-bold">{label}</span>
-      {!danger && <ChevronRight size={14} className="text-muted-foreground" />}
+      <span className="text-xs font-bold">{label}</span>
+      {!danger && <ChevronRight size={16} className="text-muted-foreground" />}
     </>
   );
   return to ? (
@@ -291,12 +291,12 @@ export const QuickAction = ({
 }) => (
   <Link
     to={to}
-    className="flex min-w-0 flex-col items-center gap-2 rounded-2xl bg-card px-2 py-3 shadow-soft transition-transform active:scale-95"
+    className="flex min-w-0 min-h-[72px] flex-col items-center justify-center gap-2 rounded-2xl bg-card px-2 py-3 shadow-soft transition-transform active:scale-95"
   >
-    <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-primary">
-      <Icon size={18} />
+    <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-primary">
+      <Icon size={19} />
     </div>
-    <span className="text-center text-[9px] font-extrabold leading-tight">{label}</span>
+    <span className="text-center text-xs font-extrabold leading-tight">{label}</span>
   </Link>
 );
 
@@ -322,7 +322,7 @@ export const Toggle = ({
 );
 
 export const FieldLabel = ({ children }: { children: ReactNode }) => (
-  <p className="mb-2 mt-4 text-[9px] font-black text-muted-foreground">{children}</p>
+  <p className="mb-2 mt-4 text-xs font-black uppercase text-muted-foreground">{children}</p>
 );
 
 export const ModalHeader = ({
@@ -345,7 +345,7 @@ export const ModalHeader = ({
       <Icon size={19} />
     </div>
     <div className="min-w-0">
-      <p className={`text-[9px] font-black ${dark ? "text-lavender" : "text-primary"}`}>
+      <p className={`text-xs font-black uppercase tracking-wider ${dark ? "text-lavender" : "text-primary"}`}>
         {eyebrow}
       </p>
       <h3 className="mt-0.5 truncate text-lg font-black leading-tight">{title}</h3>
@@ -354,9 +354,9 @@ export const ModalHeader = ({
       type="button"
       aria-label="Cerrar"
       onClick={onClose}
-      className={`grid h-8 w-8 place-items-center rounded-full ${dark ? "bg-background/15" : "bg-muted"}`}
+      className={`grid h-11 w-11 place-items-center rounded-full active:scale-95 ${dark ? "bg-background/15" : "bg-muted"}`}
     >
-      <X size={15} />
+      <X size={18} />
     </button>
   </div>
 );
@@ -433,10 +433,10 @@ export const PaymentMethods = ({
           type="button"
           key={label}
           onClick={() => onSelect?.(label)}
-          className={`flex flex-col items-center gap-1.5 rounded-xl border py-2.5 ${on ? "border-primary bg-primary text-primary-foreground" : idle}`}
+          className={`flex min-h-[56px] flex-col items-center justify-center gap-1.5 rounded-xl border py-2.5 active:scale-95 ${on ? "border-primary bg-primary text-primary-foreground" : idle}`}
         >
-          <Icon size={16} />
-          <span className="text-[9px] font-bold">{label}</span>
+          <Icon size={18} />
+          <span className="text-xs font-bold">{label}</span>
         </button>
       );
     })}
@@ -465,12 +465,12 @@ export const ScreenHeader = ({
         type="button"
         aria-label="Volver"
         onClick={goBack}
-        className="grid h-10 w-10 place-items-center rounded-full bg-muted"
+        className="grid h-11 w-11 place-items-center rounded-full bg-muted active:scale-95"
       >
-        <ArrowLeft size={18} />
+        <ArrowLeft size={19} />
       </button>
       <div className="min-w-0">
-        <p className="truncate text-[9px] font-bold text-muted-foreground">{eyebrow}</p>
+        <p className="truncate text-xs font-bold text-muted-foreground">{eyebrow}</p>
         <h2 className="truncate text-xl font-black leading-tight">{title}</h2>
       </div>
       {action}
@@ -511,11 +511,11 @@ export const PosItem = ({
     )}
     <div className="flex items-center justify-between gap-2 p-2.5">
       <div className="min-w-0">
-        <p className="truncate text-[10px] font-extrabold">{name}</p>
-        <p className="mt-0.5 text-[10px] font-black text-primary">{price}</p>
+        <p className="truncate text-xs font-extrabold">{name}</p>
+        <p className="mt-0.5 text-xs font-black text-primary">{price}</p>
       </div>
-      <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-accent text-primary">
-        <Plus size={14} />
+      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-accent text-primary">
+        <Plus size={16} />
       </div>
     </div>
   </button>
@@ -532,25 +532,25 @@ export const Stepper = ({
   onDec?: () => void;
   onInc?: () => void;
 }) => (
-  <div className="rounded-xl bg-muted p-2.5">
-    <p className="text-[8px] text-muted-foreground">{label}</p>
-    <div className="mt-1.5 flex items-center justify-between">
+  <div className="rounded-2xl bg-muted p-3">
+    <p className="text-xs font-bold text-muted-foreground uppercase">{label}</p>
+    <div className="mt-2 flex items-center justify-between">
       <button
         type="button"
         aria-label={`Menos ${label}`}
         onClick={onDec}
-        className="grid h-6 w-6 place-items-center rounded-md bg-background"
+        className="grid h-11 w-11 place-items-center rounded-xl bg-background shadow-xs active:scale-95"
       >
-        <Minus size={12} />
+        <Minus size={16} />
       </button>
-      <span className="text-sm font-black">{value}</span>
+      <span className="text-base font-black">{value}</span>
       <button
         type="button"
         aria-label={`Más ${label}`}
         onClick={onInc}
-        className="grid h-6 w-6 place-items-center rounded-md bg-primary text-primary-foreground"
+        className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-primary-foreground shadow-brand active:scale-95"
       >
-        <Plus size={12} />
+        <Plus size={16} />
       </button>
     </div>
   </div>
@@ -561,10 +561,10 @@ export const StatusBadge = ({ status }: { status: "Registrado" | "Sin plan" | "P
   const styles = {
     Registrado: "bg-accent text-primary",
     "Sin plan": "bg-muted text-muted-foreground",
-    "Plan activo": "bg-success/10 text-success",
+    "Plan activo": "bg-success/15 text-success",
   }[status];
   return (
-    <span className={`shrink-0 rounded-lg px-2 py-1 text-[8px] font-black ${styles}`}>
+    <span className={`shrink-0 rounded-lg px-2.5 py-1 text-xs font-black ${styles}`}>
       {status.toUpperCase()}
     </span>
   );
