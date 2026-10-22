@@ -1,0 +1,91 @@
+/**
+ * Variables CSS del Design System de Bocadoo
+ * Derivado directamente de src/design-system/tokens.ts
+ */
+
+:root {
+  --boc-primary: #7B2CBF;
+  --boc-primary-hover: #6A22A9;
+  --boc-text-primary: #4A0E78;
+  --boc-text-secondary: #6B5B7B;
+  --boc-lavender: #E0AAFF;
+  --boc-lilac-soft: #F3E8FF;
+  --boc-app-bg: #F5F3FA;
+  --boc-card: #FFFFFF;
+  --boc-border: #E7E1F2;
+
+  --boc-success: #1F9D55;
+  --boc-success-bg: #E6F6EC;
+  --boc-success-text: #157A41;
+
+  --boc-error: #C0392B;
+  --boc-error-bg: #FDEBEB;
+  --boc-error-text: #C0392B;
+
+  --boc-warning: #9D4EDD;
+  --boc-warning-bg: #F3E8FF;
+  --boc-warning-text: #4A0E78;
+
+  --boc-font-sans: "Plus Jakarta Sans", sans-serif;
+
+  --boc-shadow-soft: 0 4px 16px rgba(74, 14, 120, 0.06);
+  --boc-shadow-card: 0 10px 28px rgba(74, 14, 120, 0.08);
+  --boc-shadow-brand: 0 12px 30px rgba(123, 44, 191, 0.22);
+
+  --boc-safe-top: env(safe-area-inset-top, 0px);
+  --boc-safe-bottom: env(safe-area-inset-bottom, 34px);
+}
+
+/* Soporte de aumento de fuente del sistema al 200% sin recortar */
+html {
+  font-family: var(--boc-font-sans);
+  background-color: var(--boc-app-bg);
+  color: var(--boc-text-primary);
+  text-size-adjust: 100%;
+}
+
+/* Indicador de foco accesible WCAG 2.2 AA */
+:focus-visible {
+  outline: 3px solid var(--boc-lavender);
+  outline-offset: 2px;
+}
+
+/* Clases de utilidad para componentes de diseño */
+.boc-card {
+  background-color: var(--boc-card);
+  border-radius: 32px;
+  box-shadow: var(--boc-shadow-card);
+  border: 1px solid var(--boc-border);
+}
+
+.boc-btn-primary {
+  background-color: var(--boc-primary);
+  color: #FFFFFF;
+  min-height: 56px;
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: var(--boc-shadow-brand);
+  transition: all 180ms ease;
+}
+
+.boc-btn-primary:active {
+  background-color: var(--boc-primary-hover);
+  transform: scale(0.98);
+}
+
+.boc-btn-secondary {
+  background-color: #FFFFFF;
+  color: var(--boc-text-primary);
+  border: 1.5px solid var(--boc-border);
+  min-height: 56px;
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 700;
+  transition: all 180ms ease;
+}
+
+.boc-btn-secondary:active {
+  background-color: var(--boc-lilac-soft);
+  transform: scale(0.98);
+}
