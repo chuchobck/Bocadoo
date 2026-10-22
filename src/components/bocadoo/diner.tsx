@@ -1253,32 +1253,44 @@ export function MarketplaceScreen({
 
       {/* Selector de zona simulada */}
       {locationOpen && (
-        <BottomSheet onClose={() => setLocationOpen(false)} title="Elige tu zona en Quito">
-          <p className="text-xs text-muted-foreground">
-            Calculamos la distancia simulada a los restaurantes según tu oficina o universidad.
-          </p>
-          <div className="mt-3 space-y-2">
-            {DINER_ZONES.map((zone) => (
+        <Overlay onClose={() => setLocationOpen(false)}>
+          <BottomSheet>
+            <div className="flex items-center justify-between pb-2 border-b border-border">
+              <h3 className="text-base font-black text-foreground">Elige tu zona en Quito</h3>
               <button
-                key={zone}
                 type="button"
-                onClick={() => {
-                  setDinerZone(zone);
-                  setLocationOpen(false);
-                  toast.success(`Ubicación cambiada a ${zone}`);
-                }}
-                className={`flex h-12 w-full items-center justify-between rounded-xl px-3.5 text-xs font-black transition-all ${
-                  dinerZone === zone
-                    ? "bg-primary text-primary-foreground shadow-xs"
-                    : "bg-card text-foreground border border-border hover:bg-accent"
-                }`}
+                onClick={() => setLocationOpen(false)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-muted text-foreground hover:bg-accent"
               >
-                <span>{zone}</span>
-                {dinerZone === zone && <Check size={16} />}
+                <X size={16} />
               </button>
-            ))}
-          </div>
-        </BottomSheet>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Calculamos la distancia simulada a los restaurantes según tu oficina o universidad.
+            </p>
+            <div className="mt-3 space-y-2">
+              {DINER_ZONES.map((zone) => (
+                <button
+                  key={zone}
+                  type="button"
+                  onClick={() => {
+                    setDinerZone(zone);
+                    setLocationOpen(false);
+                    toast.success(`Ubicación cambiada a ${zone}`);
+                  }}
+                  className={`flex h-12 w-full items-center justify-between rounded-xl px-3.5 text-xs font-black transition-all ${
+                    dinerZone === zone
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-card text-foreground border border-border hover:bg-accent"
+                  }`}
+                >
+                  <span>{zone}</span>
+                  {dinerZone === zone && <Check size={16} />}
+                </button>
+              ))}
+            </div>
+          </BottomSheet>
+        </Overlay>
       )}
 
       {/* Ficha detallada del restaurante */}
@@ -1371,10 +1383,12 @@ export function DinerHomeScreen({
 
   const handleRenew = () => {
     const template = planTemplates.find((t) => t.tipo === "Mensual") || planTemplates[0];
-    requestPlan(template.id, DINER_USER_ID);
-    toast.success("Solicitud enviada a caja", {
-      description: "Paga en efectivo o transferencia en tu próxima visita.",
-    });
+    if (template) {
+      requestPlan(template.id, DINER_USER_ID);
+      toast.success("Solicitud enviada a caja", {
+        description: "Paga en efectivo o transferencia en tu próxima visita.",
+      });
+    }
   };
 
   // P12: Preorden activa

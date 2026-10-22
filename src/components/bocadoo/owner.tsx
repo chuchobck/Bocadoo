@@ -11,21 +11,26 @@ import {
   Clock3,
   CreditCard,
   Eye,
+  Gift,
   HelpCircle,
   History,
   Link2,
   LockKeyhole,
   LogOut,
   Mail,
+  MessageSquare,
   Minus,
   Pencil,
   Phone,
   Plus,
   RefreshCw,
   ScanLine,
+  Send,
   ShieldAlert,
+  ShoppingBag,
   Sparkles,
   Store,
+  ThumbsUp,
   TrendingUp,
   UserCheck,
   UserPlus,
@@ -34,6 +39,7 @@ import {
   Volume2,
   VolumeX,
   X,
+  Zap,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
@@ -45,6 +51,7 @@ import veggieImage from "@/assets/bocadoo-veggie.jpg";
 import { MENU_SECTIONS, useSavedMenu } from "./menu-service";
 import {
   APP_USERS,
+  COMMISSION_RATE,
   DAILY_GOAL,
   initialsOf,
   money,
@@ -465,6 +472,257 @@ function CashClosureModal({ onClose }: { onClose: () => void }) {
 }
 
 // ============================================================================
+// P15 — LANZAR OFERTA FLASH (PAGO POR RESULTADO)
+// ============================================================================
+function LaunchFlashOfferModal({ onClose }: { onClose: () => void }) {
+  const { launchFlashOffer, COMMISSION_RATE } = useBocadoo();
+  const [titulo, setTitulo] = useState("Almuerzo completo + postre de la casa");
+  const [descripcion, setDescripcion] = useState("Sopa de quinua + Seco de pollo + Jugo natural + Dulce de higos");
+  const [precioDollars, setPrecioDollars] = useState("2.50");
+  const [precioOriginalDollars, setPrecioOriginalDollars] = useState("3.50");
+  const [stockTotal, setStockTotal] = useState(10);
+  const [minutosDuracion, setMinutosDuracion] = useState(60);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const pCents = parseMoneyToCents(precioDollars);
+    const pOrigCents = parseMoneyToCents(precioOriginalDollars);
+    if (pCents <= 0 || stockTotal <= 0) {
+      toast.error("Ingresa valores válidos");
+      return;
+    }
+    launchFlashOffer({
+      restaurantId: RESTAURANT_ID,
+      titulo: titulo.trim(),
+      descripcion: descripcion.trim(),
+      precioCents: pCents,
+      precioOriginalCents: pOrigCents,
+      stockTotal,
+      minutosDuracion,
+    });
+    toast.success("¡Oferta flash publicada!", {
+      description: `Visible en el marketplace por los próximos ${minutosDuracion} minutos.`,
+    });
+    onClose();
+  };
+
+  const commPercent = Math.round(COMMISSION_RATE * 100);
+
+  return (
+    <Overlay onClose={onClose}>
+      <BottomSheet>
+        <ModalHeader
+          icon={Zap}
+          eyebrow="OFERTAS FLASH"
+          title="Lanzar oferta del día"
+          onClose={onClose}
+        />
+        <form onSubmit={handleSubmit} className="mt-3 space-y-3.5">
+          <div>
+            <label className="text-xs font-black uppercase text-muted-foreground">Título de la oferta</label>
+            <input
+              type="text"
+              required
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              className="mt-1 h-12 w-full rounded-xl bg-muted px-3 text-xs font-bold text-foreground outline-none ring-primary focus:ring-2"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-black uppercase text-muted-foreground">Qué incluye</label>
+            <input
+              type="text"
+              required
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              className="mt-1 h-12 w-full rounded-xl bg-muted px-3 text-xs font-bold text-foreground outline-none ring-primary focus:ring-2"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="text-xs font-black uppercase text-muted-foreground">Precio oferta ($)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                required
+                value={precioDollars}
+                onChange={(e) => setPrecioDollars(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl bg-muted px-3 text-sm font-black text-primary outline-none ring-primary focus:ring-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-black uppercase text-muted-foreground">Precio normal ($)</label>
+              <input
+                type="text"
+                inputMode="decimal"
+                required
+                value={precioOriginalDollars}
+                onChange={(e) => setPrecioOriginalDollars(e.target.value)}
+                className="mt-1 h-12 w-full rounded-xl bg-muted px-3 text-sm font-bold text-muted-foreground outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="text-xs font-black uppercase text-muted-foreground">Cantidad máxima</label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                required
+                value={stockTotal}
+                onChange={(e) => setStockTotal(Number(e.target.value))}
+                className="mt-1 h-12 w-full rounded-xl bg-muted px-3 text-sm font-black text-foreground outline-none ring-primary focus:ring-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-black uppercase text-muted-foreground">Duración (minutos)</label>
+              <select
+                value={minutosDuracion}
+                onChange={(e) => setMinutosDuracion(Number(e.target.value))}
+                className="mt-1 h-12 w-full rounded-xl bg-muted px-3 text-xs font-black text-foreground outline-none ring-primary focus:ring-2"
+              >
+                <option value={30}>30 minutos</option>
+                <option value={60}>60 minutos (1 hora)</option>
+                <option value={90}>90 minutos (1.5 horas)</option>
+                <option value={120}>120 minutos (2 horas)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Texto claro exigido por IHC y regla P15 */}
+          <div className="rounded-2xl border border-primary/20 bg-accent/60 p-3.5 text-xs text-foreground leading-relaxed">
+            <p className="font-black text-primary flex items-center gap-1.5">
+              <Zap size={14} /> Modelo de pago por resultado
+            </p>
+            <p className="mt-1 font-semibold text-muted-foreground">
+              Publicar es gratis. Pagas el {commPercent} % solo de lo que se canjee en caja (≈ {money(parseMoneyToCents(precioDollars) * COMMISSION_RATE)} por comensal). Tus ventas normales de caja siguen siendo 0% comisión.
+            </p>
+          </div>
+
+          <PrimaryButton type="submit">
+            <Zap size={18} /> Publicar oferta flash
+          </PrimaryButton>
+        </form>
+      </BottomSheet>
+    </Overlay>
+  );
+}
+
+// ============================================================================
+// P13 — CONFIGURACIÓN DE TARJETA DE SELLOS (SOLO OWNER)
+// ============================================================================
+function ConfigureStampCardModal({ onClose }: { onClose: () => void }) {
+  const { stampConfigs, configureStampCard } = useBocadoo();
+  const currentCfg = stampConfigs[RESTAURANT_ID] || {
+    restaurantId: RESTAURANT_ID,
+    activa: true,
+    meta: 10,
+    premio: "Almuerzo gratis",
+  };
+
+  const [activa, setActiva] = useState(currentCfg.activa);
+  const [meta, setMeta] = useState(currentCfg.meta);
+  const [premio, setPremio] = useState(currentCfg.premio);
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    configureStampCard(RESTAURANT_ID, {
+      activa,
+      meta,
+      premio: premio.trim() || "Almuerzo gratis",
+    });
+    toast.success("Tarjeta de sellos actualizada", {
+      description: `Meta de ${meta} sellos con premio: ${premio}`,
+    });
+    onClose();
+  };
+
+  return (
+    <Overlay onClose={onClose}>
+      <BottomSheet>
+        <ModalHeader
+          icon={Gift}
+          eyebrow="PROGRAMA DE FIDELIZACIÓN"
+          title="Tarjeta de sellos"
+          onClose={onClose}
+        />
+        <form onSubmit={handleSave} className="mt-3 space-y-4">
+          <div className="flex items-center justify-between rounded-xl bg-muted p-3">
+            <div>
+              <p className="text-xs font-black text-foreground">Activar tarjeta de sellos</p>
+              <p className="text-[11px] text-muted-foreground">
+                Suma 1 sello automáticamente al validar almuerzo por QR
+              </p>
+            </div>
+            <Toggle on={activa} onToggle={() => setActiva(!activa)} />
+          </div>
+
+          <div>
+            <label className="text-xs font-black uppercase text-muted-foreground">
+              Meta de sellos para el premio
+            </label>
+            <div className="mt-1.5 grid grid-cols-3 gap-2">
+              {[8, 10, 12].map((num) => (
+                <button
+                  type="button"
+                  key={num}
+                  onClick={() => setMeta(num)}
+                  className={`h-11 rounded-xl text-xs font-black transition-all ${
+                    meta === num
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-muted text-foreground border border-border"
+                  }`}
+                >
+                  {num} sellos {num === 10 ? "(por defecto)" : ""}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-black uppercase text-muted-foreground">
+              Premio al completar la tarjeta
+            </label>
+            <div className="mt-1.5 space-y-2">
+              {["Almuerzo gratis", "Postre gratis de la casa", "Bebida especial gratis"].map((opt) => (
+                <button
+                  type="button"
+                  key={opt}
+                  onClick={() => setPremio(opt)}
+                  className={`flex h-11 w-full items-center justify-between rounded-xl px-3 text-xs font-black transition-all ${
+                    premio === opt
+                      ? "bg-primary text-primary-foreground shadow-xs"
+                      : "bg-muted text-foreground border border-border"
+                  }`}
+                >
+                  <span>{opt}</span>
+                  {premio === opt && <Check size={16} />}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-border bg-card p-3 text-xs text-muted-foreground leading-relaxed">
+            <p className="font-bold text-foreground">Regla de caja transparente:</p>
+            <p className="mt-0.5">
+              Canjear el premio crea una venta de $0 con motivo "Premio" para que tu arqueo de cierre de caja cuadre exacto. Las ventas sin app no suman sellos.
+            </p>
+          </div>
+
+          <PrimaryButton type="submit">
+            <Check size={18} /> Guardar configuración
+          </PrimaryButton>
+        </form>
+      </BottomSheet>
+    </Overlay>
+  );
+}
+
+// ============================================================================
 // AGREGAR CLIENTE MANUAL
 // ============================================================================
 function AddClientModal({ onClose }: { onClose: () => void }) {
@@ -645,15 +903,45 @@ export function OwnerHomeScreen({
     expiringSoonSubscriptions,
     extendSubscription,
     planTemplates,
+    getRestaurantOccupancy,
+    setManualBusy,
+    clearManualBusy,
+    simulatePeakHour,
+    orders,
+    stampConfigs,
+    feedbackList,
+    replyFeedback,
+    getRestaurantCommissions,
   } = useBocadoo();
 
   const [addOpen, setAddOpen] = useState(initialAddClientOpen);
   const [migrateOpen, setMigrateOpen] = useState(false);
   const [closeCashOpen, setCloseCashOpen] = useState(false);
+  const [flashModalOpen, setFlashModalOpen] = useState(false);
+  const [stampConfigOpen, setStampConfigOpen] = useState(false);
+  const [replyingFeedbackId, setReplyingFeedbackId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const pendingRequests = planRequests.filter((r) => r.estado === "PENDIENTE");
   const pendingClaims = claims.filter((c) => c.estado === "PENDIENTE");
   const contacts = clients.filter((c) => !c.planId);
+
+  // P11: Semáforo calculado
+  const occupancy = getRestaurantOccupancy(RESTAURANT_ID);
+
+  // P12: Preórdenes en camino
+  const incomingOrders = orders.filter(
+    (o) => o.restaurantId === RESTAURANT_ID && o.estado === "EN_CAMINO",
+  );
+
+  // P13: Configuración de sellos
+  const stampCfg = stampConfigs[RESTAURANT_ID];
+
+  // P14: Buzón privado de feedback
+  const recentFeedback = feedbackList.filter((f) => f.restaurantId === RESTAURANT_ID);
+
+  // P15: Comisiones acumuladas y ofertas
+  const commissions = getRestaurantCommissions(RESTAURANT_ID);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -727,6 +1015,146 @@ export function OwnerHomeScreen({
           </button>
         </header>
 
+        {/* P11: Semáforo de ocupación y control manual [Local lleno] */}
+        <div className="mt-4 rounded-2xl bg-card p-3.5 border border-border shadow-soft">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              {occupancy ? (
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-black border ${occupancy.bgClass} ${occupancy.colorClass}`}
+                >
+                  <span className={`h-2.5 w-2.5 rounded-full ${occupancy.badgeClass}`} />
+                  <span className="truncate">
+                    {occupancy.label}: {occupancy.detail}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-[11px] text-muted-foreground font-bold">
+                  Semáforo oculto (sin ventas POS registradas hoy)
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                simulatePeakHour(RESTAURANT_ID);
+                toast.warning("Hora pico simulada (18 ventas registradas)", {
+                  description: "El semáforo cambió a hora pico / lleno.",
+                });
+              }}
+              className="shrink-0 text-[11px] font-black text-primary hover:underline"
+              title="Genera ventas para ver los 3 colores del semáforo"
+            >
+              Simular hora pico
+            </button>
+          </div>
+
+          {/* Interruptor [Local lleno] con cuenta regresiva visible de 20 min */}
+          <div className="mt-3 flex items-center justify-between pt-2.5 border-t border-border">
+            <div className="min-w-0">
+              <p className="text-xs font-black text-foreground">Interruptor [Local lleno]</p>
+              <p className="text-[11px] text-muted-foreground font-semibold truncate">
+                {occupancy?.isManual
+                  ? `🔴 Activo: quedan ${occupancy.manualMinutesLeft} min para volver a automático`
+                  : "Dura 20 min y vuelve solo a automático"}
+              </p>
+            </div>
+            {occupancy?.isManual ? (
+              <button
+                type="button"
+                onClick={() => {
+                  clearManualBusy(RESTAURANT_ID);
+                  toast.info("Local lleno desactivado", {
+                    description: "Semáforo volvió al cálculo automático.",
+                  });
+                }}
+                className="shrink-0 rounded-xl bg-danger/15 text-danger border border-danger/30 px-3 py-1.5 text-xs font-black active:scale-95"
+              >
+                Volver a automático
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setManualBusy(RESTAURANT_ID, 20);
+                  toast.warning("Local marcado como LLENO por 20 min");
+                }}
+                className="shrink-0 rounded-xl bg-danger text-white px-3.5 py-2 text-xs font-black shadow-xs active:scale-95"
+              >
+                Marcar local lleno
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* P12: Franja 'X en camino' con lista de preórdenes en camino */}
+        {incomingOrders.length > 0 && (
+          <div className="mt-4 rounded-2xl bg-linear-to-r from-primary/20 via-lavender/30 to-primary/10 p-4 border border-primary/30 shadow-card animate-in slide-in-from-top-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5 text-xs font-black uppercase text-primary">
+                <ShoppingBag size={16} />
+                <span>
+                  {incomingOrders.length} pedido{incomingOrders.length > 1 ? "s" : ""} en camino
+                </span>
+              </span>
+              <Link
+                to="/app/dueno/descontar"
+                className="text-xs font-black text-primary hover:underline"
+              >
+                Escanear en caja →
+              </Link>
+            </div>
+
+            <div className="mt-2.5 space-y-2">
+              {incomingOrders.map((ord) => (
+                <div
+                  key={ord.id}
+                  className="flex items-center justify-between rounded-xl bg-background/90 p-3 border border-border"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-black text-foreground truncate">
+                      {ord.comensalNombre} ·{" "}
+                      <span className="text-primary font-bold">
+                        {ord.tipo === "LLEVAR" ? "🥡 Para llevar" : "🍽️ Comer aquí"}
+                      </span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+                      {ord.items.map((i) => i.nombre).join(" · ")}
+                    </p>
+                  </div>
+                  <Link
+                    to="/app/dueno/descontar"
+                    className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-xs font-black text-primary-foreground shadow-xs active:scale-95"
+                  >
+                    Validar
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* P15: Lanzar oferta flash */}
+        <div className="mt-4 flex items-center justify-between rounded-2xl bg-linear-to-r from-amber-500/15 via-primary/15 to-transparent p-4 border border-amber-500/30">
+          <div>
+            <p className="text-xs font-black text-foreground flex items-center gap-1.5">
+              <Zap size={16} className="text-amber-500" />
+              <span>¿Te quedaron platos hoy?</span>
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Lanza una oferta flash a comensales cercanos.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlashModalOpen(true)}
+            className="rounded-xl bg-amber-500 text-slate-900 px-3.5 py-2 text-xs font-black shadow-xs active:scale-95"
+          >
+            Lanzar oferta flash
+          </button>
+        </div>
+
         {/* Notificación de Solicitudes desde la app del comensal (P4) */}
         {pendingRequests.length > 0 && (
           <div className="mt-4 rounded-2xl border-2 border-primary bg-accent p-3.5 shadow-brand animate-in slide-in-from-top-2">
@@ -744,7 +1172,7 @@ export function OwnerHomeScreen({
               <button
                 type="button"
                 onClick={() => {
-                  confirmPlanRequest(pendingRequests[0].id, "EFECTIVO");
+                  confirmPlanRequest(pendingRequests[0]!.id, "EFECTIVO");
                   toast.success("Plan activado en efectivo para Carlos Mejía");
                 }}
                 className="flex-1 rounded-xl bg-primary py-2.5 text-xs font-black text-primary-foreground shadow-xs active:scale-95"
@@ -754,7 +1182,7 @@ export function OwnerHomeScreen({
               <button
                 type="button"
                 onClick={() => {
-                  confirmPlanRequest(pendingRequests[0].id, "TRANSFERENCIA");
+                  confirmPlanRequest(pendingRequests[0]!.id, "TRANSFERENCIA");
                   toast.success("Plan activado por transferencia");
                 }}
                 className="flex-1 rounded-xl bg-card border border-border py-2.5 text-xs font-black text-foreground active:scale-95"
@@ -775,13 +1203,13 @@ export function OwnerHomeScreen({
               <span className="text-[11px] font-bold text-muted-foreground">Hoy</span>
             </div>
             <p className="mt-1 text-xs font-extrabold text-foreground">
-              "{pendingClaims[0].mensaje}"
+              "{pendingClaims[0]!.mensaje}"
             </p>
             <div className="mt-2.5 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  dismissClaim(pendingClaims[0].id);
+                  dismissClaim(pendingClaims[0]!.id);
                   toast.info("Reclamo cerrado: consumo verificado");
                 }}
                 className="rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-black text-foreground hover:bg-muted active:scale-95"
@@ -791,7 +1219,7 @@ export function OwnerHomeScreen({
               <button
                 type="button"
                 onClick={() => {
-                  refundRedemption(pendingClaims[0].id);
+                  refundRedemption(pendingClaims[0]!.id);
                   toast.success("Almuerzo restituido al cliente (+1 almuerzo)");
                 }}
                 className="rounded-xl bg-danger px-3 py-1.5 text-xs font-black text-danger-foreground active:scale-95"
@@ -867,6 +1295,172 @@ export function OwnerHomeScreen({
             label="Venta sin app (POS)"
             to="/app/dueno/registrar-consumo"
           />
+        </div>
+
+        {/* P15: Sección 'Lo que te trajo Bocadoo' (solo OWNER) */}
+        {activeRole === "OWNER" && (
+          <div className="mt-5 rounded-2xl border border-primary/20 bg-card p-4 shadow-soft">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-black uppercase tracking-wide text-primary flex items-center gap-1.5">
+                <Sparkles size={16} /> Lo que te trajo Bocadoo este mes
+              </span>
+              <span className="text-[10px] font-bold text-muted-foreground">Pago por resultado</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-muted p-2.5">
+                <p className="text-[11px] font-bold text-muted-foreground">Canjes</p>
+                <p className="text-lg font-black text-foreground mt-0.5">{commissions.totalCanjes}</p>
+              </div>
+              <div className="rounded-xl bg-muted p-2.5">
+                <p className="text-[11px] font-bold text-muted-foreground">Vendido</p>
+                <p className="text-lg font-black text-primary mt-0.5">{money(commissions.totalVendidoCents)}</p>
+              </div>
+              <div className="rounded-xl bg-muted p-2.5">
+                <p className="text-[11px] font-bold text-muted-foreground">Comisión (7%)</p>
+                <p className="text-lg font-black text-foreground mt-0.5">{money(commissions.totalComisionesCents)}</p>
+              </div>
+            </div>
+
+            <p className="mt-2.5 text-[11px] text-muted-foreground leading-relaxed">
+              Publicar es gratis. Pagas el 7 % solo de ofertas flash canjeadas en tu local. Tus ventas normales de caja y planes pagan 0 % de comisión.
+            </p>
+          </div>
+        )}
+
+        {/* P13: Configuración de Tarjeta de sellos (solo OWNER) */}
+        {activeRole === "OWNER" && (
+          <div className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-soft flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-xl bg-primary/10 text-primary">
+                <Gift size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-black text-foreground">Tarjeta de sellos</p>
+                <p className="text-[11px] text-muted-foreground font-semibold">
+                  {stampCfg?.activa
+                    ? `Activa: ${stampCfg.meta} sellos → ${stampCfg.premio}`
+                    : "Inactiva"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStampConfigOpen(true)}
+              className="rounded-xl bg-secondary px-3 py-2 text-xs font-black text-foreground hover:bg-muted active:scale-95"
+            >
+              Configurar
+            </button>
+          </div>
+        )}
+
+        {/* P14: Buzón privado de opiniones de comensales */}
+        <div className="mt-5">
+          <SectionTitle>Buzón privado de comensales</SectionTitle>
+          <div className="mt-2 space-y-2.5">
+            {recentFeedback.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted-foreground">
+                No hay opiniones nuevas de comensales por ahora.
+              </p>
+            ) : (
+              recentFeedback.map((fb) => (
+                <div
+                  key={fb.id}
+                  className="rounded-2xl border border-border bg-card p-3.5 shadow-soft space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-black text-foreground">{fb.clientName}</span>
+                    <span className="text-[10px] text-muted-foreground font-semibold">
+                      {new Date(fb.creadoEn).toLocaleTimeString("es-EC", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {fb.tags.map((t) => (
+                      <span
+                        key={t}
+                        className={`rounded-md px-2 py-0.5 text-[10px] font-black ${
+                          t === "Algo no estuvo bien"
+                            ? "bg-danger/15 text-danger"
+                            : "bg-primary/10 text-primary"
+                        }`}
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+
+                  {fb.comentarioPrivado && (
+                    <p className="text-xs text-muted-foreground bg-muted p-2 rounded-xl italic">
+                      "{fb.comentarioPrivado}"
+                    </p>
+                  )}
+
+                  {fb.respuestaRestaurante ? (
+                    <div className="rounded-xl bg-accent/60 p-2 text-xs text-foreground font-semibold border border-primary/20">
+                      <span className="font-black text-primary text-[10px] uppercase block">
+                        Tu respuesta enviada:
+                      </span>
+                      "{fb.respuestaRestaurante}"
+                    </div>
+                  ) : (
+                    <div>
+                      {replyingFeedbackId === fb.id ? (
+                        <div className="space-y-1.5 pt-1">
+                          <textarea
+                            rows={2}
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                            placeholder="Escribe tu respuesta amable al comensal..."
+                            className="w-full rounded-xl border border-border bg-input p-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-hidden"
+                          />
+                          <div className="flex gap-1.5 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplyingFeedbackId(null);
+                                setReplyText("");
+                              }}
+                              className="px-2.5 py-1 text-xs font-bold text-muted-foreground"
+                            >
+                              Cancelar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!replyText.trim()) return;
+                                replyFeedback(fb.id, replyText.trim());
+                                setReplyingFeedbackId(null);
+                                setReplyText("");
+                                toast.success("Respuesta enviada al comensal");
+                              }}
+                              className="rounded-lg bg-primary px-3 py-1 text-xs font-black text-primary-foreground shadow-xs active:scale-95"
+                            >
+                              Enviar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReplyingFeedbackId(fb.id);
+                            setReplyText("");
+                          }}
+                          className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                        >
+                          <MessageSquare size={13} /> Responder al comensal
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
         {/* Tarjeta: Almuerzos que debes (Pasivo diferido P10) */}
@@ -1086,6 +1680,8 @@ export function OwnerHomeScreen({
       {addOpen && <AddClientModal onClose={() => setAddOpen(false)} />}
       {migrateOpen && <MigrateCardModal onClose={() => setMigrateOpen(false)} />}
       {closeCashOpen && <CashClosureModal onClose={() => setCloseCashOpen(false)} />}
+      {flashModalOpen && <LaunchFlashOfferModal onClose={() => setFlashModalOpen(false)} />}
+      {stampConfigOpen && <ConfigureStampCardModal onClose={() => setStampConfigOpen(false)} />}
     </div>
   );
 }
@@ -1234,10 +1830,10 @@ const DishItem = ({
 }: {
   title: string;
   name: string;
-  description?: string;
-  price?: number;
-  soldOut?: boolean;
-  onToggleSoldOut?: () => void;
+  description?: string | undefined;
+  price?: number | undefined;
+  soldOut?: boolean | undefined;
+  onToggleSoldOut?: (() => void) | undefined;
 }) => (
   <div
     className={`rounded-2xl bg-card p-3.5 shadow-soft border transition-all ${

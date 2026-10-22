@@ -82,9 +82,9 @@ export type Restaurant = {
   lng: number;
   horario: string;
   abierto: boolean;
-  descripcionCorta?: string;
-  tags?: string[];
-  manualBusyUntil?: string; // ISO timestamp: cuando el dueño activa "Local lleno" (dura 20 min)
+  descripcionCorta?: string | undefined;
+  tags?: string[] | undefined;
+  manualBusyUntil?: string | undefined; // ISO timestamp: cuando el dueño activa "Local lleno" (dura 20 min)
 };
 
 export type Staff = {
@@ -93,7 +93,7 @@ export type Staff = {
   restaurantId: string;
   rol: StaffRole;
   nombre: string;
-  telefono?: string;
+  telefono?: string | undefined;
 };
 
 export type AppUser = {
@@ -107,7 +107,7 @@ export type AppUser = {
 export type Client = {
   id: string;
   restaurantId: string;
-  userId?: string; // Sin userId = contacto sin app migrado o anotado a mano
+  userId?: string | undefined; // Sin userId = contacto sin app migrado o anotado a mano
   nombre: string;
   telefono: string;
   correo: string;
@@ -141,7 +141,7 @@ export type Subscription = {
   compradaEn: string; // ISO
   venceEn: string; // ISO
   estado: SubscriptionStatus;
-  anotacion?: string; // Ej: "Cartulina #14"
+  anotacion?: string | undefined; // Ej: "Cartulina #14"
 };
 
 export type Redemption = {
@@ -152,7 +152,7 @@ export type Redemption = {
   creadoEn: string; // ISO
   paraLlevar: boolean;
   idempotencyKey: string;
-  revierteA?: string; // ID de redención que anula
+  revierteA?: string | undefined; // ID de redención que anula
 };
 
 export type PaymentMethod = "EFECTIVO" | "TRANSFERENCIA";
@@ -161,12 +161,12 @@ export type Payment = {
   id: string;
   montoCents: number;
   metodo: PaymentMethod;
-  subscriptionId?: string;
-  saleId?: string;
+  subscriptionId?: string | undefined;
+  saleId?: string | undefined;
   cobradoPor: string;
   creadoEn: string; // ISO
-  revierteA?: string; // ID de pago que anula
-  fotoComprobante?: string;
+  revierteA?: string | undefined; // ID de pago que anula
+  fotoComprobante?: string | undefined;
 };
 
 export type SaleItem = {
@@ -174,7 +174,7 @@ export type SaleItem = {
   nombre: string;
   cant: number;
   precioCents: number;
-  isLunch?: boolean;
+  isLunch?: boolean | undefined;
 };
 
 export type Sale = {
@@ -184,27 +184,28 @@ export type Sale = {
   items: SaleItem[];
   totalCents: number;
   paraLlevar: boolean;
-  mesa?: string;
+  mesa?: string | undefined;
   creadoEn: string; // ISO
-  revierteA?: string;
+  revierteA?: string | undefined;
 };
 
 export type MenuDish = {
   id: string;
   nombre: string;
   descripcion: string;
-  precioCents?: number;
+  precioCents?: number | undefined;
   agotado: boolean;
-  porciones?: number;
-  foto?: string;
+  porciones?: number | undefined;
+  foto?: string | undefined;
 };
 
 export type MenuSectionId = "jugo" | "sopa" | "fuerte" | "postre" | "adicional";
 
 export type MenuDay = {
+  restaurantId?: string | undefined;
   fecha: string; // YYYY-MM-DD
   secciones: Record<MenuSectionId, MenuDish[]>;
-  publicadoEn?: string; // ISO
+  publicadoEn?: string | undefined; // ISO
 };
 
 export type PlanRequestStatus = "PENDIENTE" | "COBRADA" | "EXPIRADA";
@@ -225,8 +226,8 @@ export type Claim = {
   mensaje: string;
   estado: ClaimStatus;
   creadoEn: string; // ISO
-  respuesta?: string;
-  resueltoEn?: string;
+  respuesta?: string | undefined;
+  resueltoEn?: string | undefined;
 };
 
 export type CashClosure = {
@@ -261,7 +262,7 @@ export type OccupancyInfo = {
   badgeClass: string;
   ratio: number;
   isManual: boolean;
-  manualMinutesLeft?: number;
+  manualMinutesLeft?: number | undefined;
 };
 
 export const ZONE_COORDINATES: Record<string, { lat: number; lng: number }> = {
@@ -276,7 +277,7 @@ export const ZONE_COORDINATES: Record<string, { lat: number; lng: number }> = {
 };
 
 export function getSimulatedDistanceKm(fromZone: string | null, toLat: number, toLng: number): number {
-  const coords = (fromZone && ZONE_COORDINATES[fromZone]) || ZONE_COORDINATES["Frente a la PUCE"];
+  const coords = (fromZone && ZONE_COORDINATES[fromZone]) || ZONE_COORDINATES["Frente a la PUCE"]!;
   const dLat = (toLat - coords.lat) * 111;
   const dLng = (toLng - coords.lng) * 111 * Math.cos((coords.lat * Math.PI) / 180);
   const dist = Math.sqrt(dLat * dLat + dLng * dLng);
@@ -293,7 +294,7 @@ export type OrderItem = {
   platoId: string;
   nombre: string;
   seccion: string;
-  precioCents?: number;
+  precioCents?: number | undefined;
 };
 
 export type Order = {
@@ -309,9 +310,9 @@ export type Order = {
   creadaEn: string; // ISO
   venceEn: string; // ISO (30 min desde creada)
   qrPayload: string;
-  canjeadaEn?: string;
-  subscriptionIdUsed?: string;
-  paymentIdUsed?: string;
+  canjeadaEn?: string | undefined;
+  subscriptionIdUsed?: string | undefined;
+  paymentIdUsed?: string | undefined;
 };
 
 // ----------------------------------------------------------------------------
@@ -342,10 +343,10 @@ export type FeedbackItem = {
   clientId: string;
   clientName: string;
   tags: string[]; // "Buena sazón" | "Buena porción" | "Atención rápida" | "Algo no estuvo bien"
-  comentarioPrivado?: string;
+  comentarioPrivado?: string | undefined;
   creadoEn: string;
-  respuestaRestaurante?: string;
-  respondidoEn?: string;
+  respuestaRestaurante?: string | undefined;
+  respondidoEn?: string | undefined;
 };
 
 // ----------------------------------------------------------------------------
@@ -832,6 +833,8 @@ const initialRedemptions: Redemption[] = [
 const initialSales: Sale[] = [
   {
     id: "sale-init-1",
+    restaurantId: RESTAURANT_ID,
+    ticket: 147,
     items: [
       { platoId: "d-fuerte-1", nombre: "Seco de pollo tierno", cant: 2, precioCents: 300 },
     ],
@@ -1371,7 +1374,7 @@ function useBocadooState() {
   // RECALCULO DE SUSCRIPCIONES (ACTIVA / AGOTADA / VENCIDA / ANULADA)
   // --------------------------------------------------------------------------
   const activeRestaurant = useMemo(
-    () => state.restaurants[0] || initialRestaurant,
+    () => state.restaurants[0] || initialRestaurants[0]!,
     [state.restaurants],
   );
 
@@ -1771,8 +1774,8 @@ function useBocadooState() {
       target: ChargeTarget;
       template: PlanTemplate;
       metodo: PaymentMethod;
-      staffId?: string;
-      fotoComprobante?: string;
+      staffId?: string | undefined;
+      fotoComprobante?: string | undefined;
     }) => {
       const { target, template, metodo, staffId = "st1", fotoComprobante } = params;
 
@@ -1784,15 +1787,18 @@ function useBocadooState() {
 
       let newClients = [...state.clients];
       if (!client) {
-        const u = target.kind === "user" ? target.user : undefined;
-        client = {
-          id: newId("c"),
-          restaurantId: RESTAURANT_ID,
-          userId: u?.id,
-          nombre: u ? u.name : target.client.nombre,
-          telefono: u ? u.phone : target.client.telefono,
-          correo: u ? u.email : target.client.correo,
-        };
+        if (target.kind === "user") {
+          client = {
+            id: newId("c"),
+            restaurantId: RESTAURANT_ID,
+            userId: target.user.id,
+            nombre: target.user.name,
+            telefono: target.user.phone,
+            correo: target.user.email,
+          };
+        } else {
+          client = target.client;
+        }
         newClients = [client, ...newClients];
       }
 
@@ -1879,12 +1885,12 @@ function useBocadooState() {
   // P5: Validar almuerzo (descuento en 1 toque usando FIFO)
   const redeemLunch = useCallback(
     (params: {
-      clientId?: string;
-      userId?: string;
-      subscriptionId?: string;
-      paraLlevar?: boolean;
-      idempotencyKey?: string;
-      staffId?: string;
+      clientId?: string | undefined;
+      userId?: string | undefined;
+      subscriptionId?: string | undefined;
+      paraLlevar?: boolean | undefined;
+      idempotencyKey?: string | undefined;
+      staffId?: string | undefined;
     }) => {
       const {
         clientId: explicitClientId,
@@ -1939,7 +1945,7 @@ function useBocadooState() {
         };
       }
 
-      const chosenSub = activeSubs[0];
+      const chosenSub = activeSubs[0]!;
       const nextRemaining = chosenSub.almuerzosRestantes - 1;
       const isLastLunch = nextRemaining === 0;
 
@@ -2084,9 +2090,9 @@ function useBocadooState() {
       items: SaleItem[];
       totalCents: number;
       paraLlevar: boolean;
-      mesa?: string;
+      mesa?: string | undefined;
       metodo: PaymentMethod;
-      staffId?: string;
+      staffId?: string | undefined;
     }) => {
       const { items, totalCents, paraLlevar, mesa, metodo, staffId = "st1" } = params;
       const saleId = newId("sale");
@@ -2188,16 +2194,17 @@ function useBocadooState() {
 
   // P7: Menú del día
   const publishMenu = useCallback(
-    (menuDay: MenuDay) => {
+    (menuDay: Omit<MenuDay, "fecha"> & { fecha?: string | undefined }) => {
+      const fecha = menuDay.fecha || simulatedTodayKey;
       setState((s) => ({
         ...s,
         menuDays: {
           ...s.menuDays,
-          [menuDay.fecha]: { ...menuDay, publicadoEn: simulatedTodayISO },
+          [fecha]: { ...menuDay, fecha, publicadoEn: simulatedTodayISO },
         },
       }));
     },
-    [simulatedTodayISO],
+    [simulatedTodayKey, simulatedTodayISO],
   );
 
   const toggleSoldOut = useCallback(
@@ -2334,11 +2341,13 @@ function useBocadooState() {
 
   // P9: Reclamos y correcciones
   const fileClaim = useCallback(
-    (params: { redemptionId: string; mensaje: string }) => {
+    (first: { redemptionId: string; mensaje: string } | string, second?: string) => {
+      const redemptionId = typeof first === "string" ? first : first.redemptionId;
+      const mensaje = typeof first === "string" ? (second || "") : first.mensaje;
       const claim: Claim = {
         id: newId("claim"),
-        redemptionId: params.redemptionId,
-        mensaje: params.mensaje.trim() || "No reconozco este consumo",
+        redemptionId,
+        mensaje: mensaje.trim() || "No reconozco este consumo",
         estado: "PENDIENTE",
         creadoEn: simulatedTodayISO,
       };
@@ -2946,7 +2955,7 @@ function useBocadooState() {
       restaurantId: string;
       clientId: string;
       tags: string[];
-      comentarioPrivado?: string;
+      comentarioPrivado?: string | undefined;
     }) => {
       const client = state.clients.find((c) => c.id === params.clientId);
       const feedback: FeedbackItem = {
@@ -3307,6 +3316,7 @@ function useBocadooState() {
     COMMISSION_RATE,
     // Compatibilidad
     plans: legacyPlans,
+    rawClients: state.clients,
     clients: legacyClients,
     addContact,
     linkUser,

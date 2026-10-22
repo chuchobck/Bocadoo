@@ -13,6 +13,7 @@ import {
   CircleCheck,
   CreditCard,
   Flashlight,
+  Gift,
   HelpCircle,
   Info,
   LockKeyhole,
@@ -32,6 +33,7 @@ import {
   Utensils,
   X,
   XCircle,
+  Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -52,6 +54,7 @@ import {
   type ChargeTarget,
   type Client,
   type MenuDish,
+  type Order,
   type PaymentMethod,
   type PlanTemplate,
   type SaleItem,
@@ -59,6 +62,7 @@ import {
 import {
   Avatar,
   FieldLabel,
+  Overlay,
   PaymentMethods,
   PrimaryButton,
   ScanCorner,
@@ -201,34 +205,40 @@ type Person = {
 };
 
 function usePeopleDirectory(): Person[] {
-  const { clients } = useBocadoo();
+  const { rawClients, activeSubsForClient } = useBocadoo();
   return useMemo(() => {
-    const clientByUser = new Map(clients.filter((c) => c.userId).map((c) => [c.userId!, c]));
+    const clientByUser = new Map(rawClients.filter((c) => c.userId).map((c) => [c.userId!, c]));
     const fromUsers: Person[] = APP_USERS.map((u) => {
       const client = clientByUser.get(u.id);
+      const subs = client ? activeSubsForClient(client.id) : [];
+      const lunchesLeft = subs.reduce((sum, s) => sum + s.almuerzosRestantes, 0);
       return {
         key: `u-${u.id}`,
         name: u.name,
         sub: `@${u.username}`,
         phone: u.phone,
-        status: client && client.lunchesLeft > 0 ? "Plan activo" : "Registrado",
+        status: lunchesLeft > 0 ? "Plan activo" : "Registrado",
         target: client ? { kind: "client", client } : { kind: "user", user: u },
-        lunchesLeft: client?.lunchesLeft ?? 0,
+        lunchesLeft,
       };
     });
-    const fromContacts: Person[] = clients
+    const fromContacts: Person[] = rawClients
       .filter((c) => !c.userId)
-      .map((c) => ({
-        key: `c-${c.id}`,
-        name: c.nombre,
-        sub: c.telefono,
-        phone: c.telefono,
-        status: c.lunchesLeft > 0 ? "Plan activo" : "Sin plan",
-        target: { kind: "client", client: c },
-        lunchesLeft: c.lunchesLeft,
-      }));
+      .map((c) => {
+        const subs = activeSubsForClient(c.id);
+        const lunchesLeft = subs.reduce((sum, s) => sum + s.almuerzosRestantes, 0);
+        return {
+          key: `c-${c.id}`,
+          name: c.nombre,
+          sub: c.telefono,
+          phone: c.telefono,
+          status: lunchesLeft > 0 ? "Plan activo" : "Sin plan",
+          target: { kind: "client", client: c },
+          lunchesLeft,
+        };
+      });
     return [...fromUsers, ...fromContacts];
-  }, [clients]);
+  }, [rawClients, activeSubsForClient]);
 }
 
 // ============================================================================
@@ -239,6 +249,9 @@ type ScanResult =
   | { type: "AMBAR"; name: string; lunchesLeft: number; reason: string; redemptionId: string }
   | { type: "ROJO"; title: string; detail: string; action: "vender" | "suelto" }
   | { type: "GRIS"; title: string; detail: string }
+  | { type: "ORDER"; title: string; detail: string; order: Order; resolvedByPlan: boolean }
+  | { type: "REWARD"; title: string; detail: string; clientName: string; premio: string }
+  | { type: "FLASH"; title: string; detail: string; offerTitle: string; amount: string; commission: string }
   | null;
 
 export function ScanDiscountScreen() {
@@ -250,6 +263,12 @@ export function ScanDiscountScreen() {
     clientForUser,
     simulatedToday,
     planTemplates,
+    orders,
+    scanOrder,
+    claimStampReward,
+    redeemFlashOffer,
+    flashOffers,
+    COMMISSION_RATE,
   } = useBocadoo();
 
   const directory = usePeopleDirectory();
@@ -280,6 +299,7 @@ export function ScanDiscountScreen() {
       }, 3500);
       return () => clearTimeout(autoClose);
     }
+    return undefined;
   }, [result]);
 
   const executeDiscount = (clientId?: string, userId?: string, scenario = demoScenario) => {
@@ -336,6 +356,59 @@ export function ScanDiscountScreen() {
         action: "vender",
       });
       return;
+    }
+
+    // P12: Escenario Preorden en camino
+    if (scenario === "ORDER_PREORDER") {
+      const incomingOrder =
+        orders.find((o) => o.restaurantId === RESTAURANT_ID && o.estado === "EN_CAMINO") ||
+        orders[0];
+      if (incomingOrder) {
+        const res = scanOrder(incomingOrder.id, { metodo: "EFECTIVO" });
+        if (res.ok && res.order) {
+          playSoundFeedback("success", soundEnabled);
+          setResult({
+            type: "ORDER",
+            title: "Preorden validada en caja",
+            detail: res.message,
+            order: res.order,
+            resolvedByPlan: Boolean(res.order.subscriptionIdUsed),
+          });
+          return;
+        }
+      }
+    }
+
+    // P13: Escenario Premio de Tarjeta de Sellos ($0)
+    if (scenario === "STAMP_REWARD") {
+      const res = claimStampReward("c1", RESTAURANT_ID);
+      playSoundFeedback("success", soundEnabled);
+      setResult({
+        type: "REWARD",
+        title: "Premio de fidelidad entregado",
+        detail: res.message,
+        clientName: "Carlos Mejía",
+        premio: "Almuerzo gratis",
+      });
+      return;
+    }
+
+    // P15: Escenario Oferta Flash Bocadoo ($2,50)
+    if (scenario === "FLASH_OFFER") {
+      const activeOffer = flashOffers.find((f) => f.activa) || flashOffers[0];
+      if (activeOffer) {
+        const res = redeemFlashOffer(activeOffer.id, { metodo: "EFECTIVO" });
+        playSoundFeedback("success", soundEnabled);
+        setResult({
+          type: "FLASH",
+          title: "Oferta Flash Bocadoo",
+          detail: res.message,
+          offerTitle: activeOffer.titulo,
+          amount: money(activeOffer.precioCents),
+          commission: money(Math.round(activeOffer.precioCents * COMMISSION_RATE)),
+        });
+        return;
+      }
     }
 
     // 2. Ejecución real a través de FIFO en el store
@@ -468,7 +541,7 @@ export function ScanDiscountScreen() {
               </button>
             </div>
 
-            {/* Selector de escenarios demo para mostrar al dueño los 8 resultados */}
+            {/* Selector de escenarios demo para mostrar al dueño los resultados de P5, P12, P13 y P15 */}
             <div className="mt-4 rounded-2xl border border-border bg-card p-3.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-black uppercase text-primary">
@@ -479,6 +552,9 @@ export function ScanDiscountScreen() {
               <div className="mt-2.5 grid grid-cols-2 gap-1.5 text-xs font-bold">
                 {[
                   { id: "NORMAL", label: "✓ Validado normal" },
+                  { id: "ORDER_PREORDER", label: "🛍️ Preorden en camino (P12)" },
+                  { id: "STAMP_REWARD", label: "🎁 Premio sellos $0 (P13)" },
+                  { id: "FLASH_OFFER", label: "⚡ Oferta flash $2,50 (P15)" },
                   { id: "LAST_LUNCH", label: "! Último almuerzo" },
                   { id: "EXPIRING_SOON", label: "! Vence pronto" },
                   { id: "NO_BALANCE", label: "× Sin saldo" },
@@ -674,6 +750,93 @@ export function ScanDiscountScreen() {
                   <PrimaryButton onClick={() => setResult(null)}>Entendido</PrimaryButton>
                 </div>
               )}
+
+              {result.type === "ORDER" && (
+                <div className="rounded-[28px] bg-primary p-6 text-center text-primary-foreground shadow-brand animate-in zoom-in-95">
+                  <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white/20 text-white">
+                    <ShoppingBag size={48} strokeWidth={2.5} />
+                  </div>
+                  <p className="mt-4 text-xs font-black uppercase tracking-wider text-white/80">
+                    COMANDA VALIDADA EN CAJA
+                  </p>
+                  <h3 className="mt-1 text-2xl font-black text-white">{result.order.comensalNombre}</h3>
+                  <div className="mt-3 rounded-2xl bg-white/10 p-3.5 text-xs text-left text-white border border-white/20 space-y-1">
+                    <p className="font-black text-amber-300 uppercase">
+                      {result.order.tipo === "LLEVAR" ? "🥡 Para llevar" : "🍽️ Para comer aquí"}
+                    </p>
+                    {result.order.items.map((it, idx) => (
+                      <p key={idx} className="font-semibold">• {it.nombre}</p>
+                    ))}
+                    <p className="pt-2 border-t border-white/20 font-black text-white">
+                      Resolución: {result.resolvedByPlan ? "Descontado de su plan" : `Cobrado ${money(result.order.totalCents)}`}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setResult(null)}
+                    className="mt-6 flex h-13 w-full items-center justify-center rounded-xl bg-white text-sm font-black text-foreground shadow-xs active:scale-95"
+                  >
+                    Entregar y listo
+                  </button>
+                </div>
+              )}
+
+              {result.type === "REWARD" && (
+                <div className="rounded-[28px] bg-amber-500 p-6 text-center text-slate-900 shadow-brand animate-in zoom-in-95">
+                  <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-white/30 text-slate-900">
+                    <Gift size={48} strokeWidth={2.5} />
+                  </div>
+                  <p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-800">
+                    PREMIO DE FIDELIDAD (SELLOS)
+                  </p>
+                  <h3 className="mt-1 text-2xl font-black text-slate-900">{result.clientName}</h3>
+                  <p className="mt-2 text-xl font-black text-slate-900">
+                    {result.premio}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-800 font-semibold leading-relaxed">
+                    Se registró una venta de $0. Tu arqueo de gaveta física cuadra exacto.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setResult(null)}
+                    className="mt-6 flex h-13 w-full items-center justify-center rounded-xl bg-slate-900 text-sm font-black text-white shadow-xs active:scale-95"
+                  >
+                    Entregar premio
+                  </button>
+                </div>
+              )}
+
+              {result.type === "FLASH" && (
+                <div className="rounded-[28px] bg-linear-to-b from-primary to-slate-900 p-6 text-center text-white shadow-brand animate-in zoom-in-95">
+                  <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-amber-400 text-slate-900">
+                    <Zap size={48} strokeWidth={2.8} />
+                  </div>
+                  <p className="mt-4 text-xs font-black uppercase tracking-wider text-amber-300">
+                    OFERTA FLASH CANJEADA
+                  </p>
+                  <h3 className="mt-1 text-xl font-black text-white">{result.offerTitle}</h3>
+                  <div className="mt-3 rounded-2xl bg-white/10 p-3 text-xs text-white border border-white/20 space-y-1 text-left">
+                    <div className="flex justify-between font-black">
+                      <span>Cobras en caja:</span>
+                      <span className="text-amber-300 text-sm">{result.amount}</span>
+                    </div>
+                    <div className="flex justify-between text-white/80 font-semibold pt-1 border-t border-white/10">
+                      <span>Comisión Bocadoo (7%):</span>
+                      <span className="font-mono text-white">{result.commission}</span>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-[11px] text-white/70">
+                    Se registró en tu libro de comisiones. Solo pagas por comensales reales.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setResult(null)}
+                    className="mt-5 flex h-13 w-full items-center justify-center rounded-xl bg-white text-sm font-black text-foreground shadow-xs active:scale-95"
+                  >
+                    Cobro registrado
+                  </button>
+                </div>
+              )}
             </div>
           </Overlay>
         )}
@@ -732,7 +895,7 @@ export function PosScreen() {
       precioCents: number;
       isLunch: boolean;
       agotado: boolean;
-      porciones?: number;
+      porciones?: number | undefined;
     }> = [
       {
         id: "pos-almuerzo-completo",
@@ -1204,8 +1367,10 @@ export function ChargeScreen({ initialClientId }: { initialClientId?: string | u
 // ============================================================================
 // P3 — CREAR O EDITAR PLANES
 // ============================================================================
+type PlanPresetKey = "Semanal" | "Quincenal" | "Mensual" | "Libre";
+
 const PLAN_PRESETS: Record<
-  string,
+  PlanPresetKey,
   { name: string; lunches: number; days: number; priceCents: number }
 > = {
   Semanal: { name: "Plan semanal", lunches: 5, days: 7, priceCents: 1500 },
@@ -1214,14 +1379,13 @@ const PLAN_PRESETS: Record<
   Libre: { name: "Plan personalizado", lunches: 12, days: 21, priceCents: 3200 },
 };
 
-type PlanPresetKey = "Semanal" | "Quincenal" | "Mensual" | "Libre";
-
 export function NewPlanScreen({ initialType = "Mensual" }: { initialType?: string }) {
   const { addPlan, activeRole } = useBocadoo();
   const navigate = useNavigate();
 
-  const preset = PLAN_PRESETS[initialType] || PLAN_PRESETS.Mensual;
-  const [tipo, setTipo] = useState<PlanPresetKey>((initialType as PlanPresetKey) || "Mensual");
+  const validKey = (initialType in PLAN_PRESETS ? initialType : "Mensual") as PlanPresetKey;
+  const preset = PLAN_PRESETS[validKey];
+  const [tipo, setTipo] = useState<PlanPresetKey>(validKey);
   const [nombre, setNombre] = useState(preset.name);
   const [almuerzos, setAlmuerzos] = useState(preset.lunches);
   const [dias, setDias] = useState(preset.days);
@@ -1250,9 +1414,10 @@ export function NewPlanScreen({ initialType = "Mensual" }: { initialType?: strin
   }
 
   const selectPreset = (t: string) => {
-    const p = PLAN_PRESETS[t];
-    if (!p) return;
-    setTipo(t);
+    if (!(t in PLAN_PRESETS)) return;
+    const key = t as PlanPresetKey;
+    const p = PLAN_PRESETS[key];
+    setTipo(key);
     setNombre(p.name);
     setAlmuerzos(p.lunches);
     setDias(p.days);
