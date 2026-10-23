@@ -502,7 +502,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
                         {/* Muestra solo el nombre del plan, sin texto truncado */}
                         <div className="pt-1">
                           <span className="rounded-full bg-[#F3E8FF] px-2.5 py-0.5 text-[13px] font-bold text-[#7B2CBF]">
-                            {(client.habitualPlanName || "Plan mensual").split("(")[0].trim()}
+                            {(client.habitualPlanName || "Plan mensual").split("(")[0]?.trim() || "Plan mensual"}
                           </span>
                         </div>
                       </div>
