@@ -14,18 +14,23 @@ import {
   Landmark,
   Menu as MenuIcon,
   Minus,
+  Monitor,
   Plus,
+  QrCode,
   Settings,
   ShoppingBag,
+  Smartphone,
   Store,
   UserRound,
   Utensils,
   WalletCards,
   X,
+  Zap,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { usePlatform } from "@/platform/usePlatform";
 import type { TxnIcon } from "./store";
 
 export type IconType = LucideIcon;
@@ -53,64 +58,137 @@ export const Logo = ({ compact = false }: { compact?: boolean }) => (
   </div>
 );
 
-const StatusBar = ({ app = false }: { app?: boolean }) => (
-  <div
-    className={`flex h-11 shrink-0 items-center justify-between px-6 pt-1 text-[12px] font-bold text-foreground ${app ? "max-[500px]:hidden embedded:flex!" : ""}`}
-  >
-    <span>9:41</span>
-    <div className="flex items-center gap-1.5">
-      <span className="flex items-end gap-[2px]" aria-hidden="true">
-        <i className="h-1 w-[2px] rounded-full bg-foreground" />
-        <i className="h-1.5 w-[2px] rounded-full bg-foreground" />
-        <i className="h-2 w-[2px] rounded-full bg-foreground" />
-        <i className="h-2.5 w-[2px] rounded-full bg-foreground" />
-      </span>
-      <span className="h-2 w-3 rounded-t-full border-2 border-foreground border-b-0" />
-      <span className="h-2.5 w-5 rounded-[4px] border border-foreground p-[1px]">
-        <i className="block h-full w-3 rounded-[2px] bg-foreground" />
-      </span>
+const StatusBar = ({ app = false }: { app?: boolean }) => {
+  const { isAndroid } = usePlatform();
+
+  if (isAndroid) {
+    return (
+      <div
+        className={`flex h-10 shrink-0 items-center justify-between px-5 pt-1 text-[12px] font-bold text-foreground ${
+          app ? "max-[500px]:hidden embedded:flex!" : ""
+        }`}
+      >
+        <span className="font-semibold tracking-tight text-[13px]">12:00</span>
+        <div className="flex items-center gap-2">
+          {/* Material Wi-Fi icon */}
+          <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+            <path d="M12 4C7.31 4 3.07 5.9 0 8.98L12 21 24 8.98C20.93 5.9 16.69 4 12 4zm0 3c3.78 0 7.23 1.48 9.8 3.9L12 18.67 2.2 10.9C4.77 8.48 8.22 7 12 7z" />
+          </svg>
+          {/* Material Cell signal triangle */}
+          <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+            <path d="M2 22h20V2L2 22zm18-2H6.83L20 6.83V20z" />
+          </svg>
+          {/* Material Vertical Battery */}
+          <div className="flex items-center gap-0.5">
+            <div className="h-3.5 w-2 rounded-[2px] border border-current p-[1px] flex flex-col justify-end">
+              <div className="w-full h-2 bg-current rounded-[1px]" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // iOS Status Bar
+  return (
+    <div
+      className={`flex h-11 shrink-0 items-center justify-between px-6 pt-1 text-[12px] font-bold text-foreground ${
+        app ? "max-[500px]:hidden embedded:flex!" : ""
+      }`}
+    >
+      <span>9:41</span>
+      <div className="flex items-center gap-1.5">
+        <span className="flex items-end gap-[2px]" aria-hidden="true">
+          <i className="h-1 w-[2px] rounded-full bg-foreground" />
+          <i className="h-1.5 w-[2px] rounded-full bg-foreground" />
+          <i className="h-2 w-[2px] rounded-full bg-foreground" />
+          <i className="h-2.5 w-[2px] rounded-full bg-foreground" />
+        </span>
+        <span className="h-2 w-3 rounded-t-full border-2 border-foreground border-b-0" />
+        <span className="h-2.5 w-5 rounded-[4px] border border-foreground p-[1px]">
+          <i className="block h-full w-3 rounded-[2px] bg-foreground" />
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /**
- * Marco de celular. En la galería (`app` = false) mantiene el tamaño fijo de las maquetas;
- * en el prototipo navegable se ajusta al alto de la ventana y en un celular real ocupa toda la pantalla.
+ * Marco de celular responsive adaptado por plataforma:
+ * - iOS: 390×844 con Dynamic Island y barra de inicio inferior.
+ * - Android: 412×915 sin Dynamic Island ni home indicator, reloj Material a la izquierda.
  */
 export const DeviceFrame = ({
   title,
   children,
   app = false,
+  responsive = false,
 }: {
   title?: string;
   children: ReactNode;
   app?: boolean;
+  responsive?: boolean;
 }) => {
+  const { isAndroid } = usePlatform();
+
+  // Modo adaptable para pantallas grandes (sin marco de plástico ni notch falso)
+  if (app && responsive) {
+    return (
+      <div className="relative w-full max-w-xl min-h-dvh md:my-4 md:min-h-[92vh] flex flex-col bg-background rounded-none md:rounded-3xl md:border md:border-border/80 shadow-2xl overflow-hidden transition-all duration-200">
+        <div className="flex h-full flex-col overflow-hidden">
+          {children}
+        </div>
+      </div>
+    );
+  }
+
+  const shellWidth = isAndroid ? "w-[412px]" : "w-[390px]";
+  const shellHeight = isAndroid
+    ? "h-[min(915px,calc(100dvh_-_2rem))]"
+    : "h-[min(844px,calc(100dvh_-_2rem))]";
+  const shellFixedGallery = isAndroid ? "h-[915px]" : "h-[844px]";
+  const borderRadius = isAndroid ? "rounded-[38px]" : "rounded-[47px]";
+  const innerRadius = isAndroid ? "rounded-[32px]" : "rounded-[39px]";
+
   const shell = (
     <div
       className={
         app
-          ? "relative h-[min(844px,calc(100dvh_-_2rem))] w-[390px] overflow-hidden rounded-[47px] border-[7px] border-phone bg-background shadow-phone max-[500px]:h-dvh max-[500px]:w-full max-[500px]:rounded-none max-[500px]:border-0 max-[500px]:shadow-none embedded:h-dvh embedded:w-full embedded:rounded-none embedded:border-0 embedded:shadow-none"
-          : "phone-shell relative h-[844px] overflow-hidden rounded-[47px] border-[7px] border-phone bg-background shadow-phone"
+          ? `relative ${shellHeight} ${shellWidth} overflow-hidden ${borderRadius} border-[7px] border-phone bg-background shadow-phone max-[500px]:h-dvh max-[500px]:w-full max-[500px]:rounded-none max-[500px]:border-0 max-[500px]:shadow-none embedded:h-dvh embedded:w-full embedded:rounded-none embedded:border-0 embedded:shadow-none transition-all duration-200`
+          : `phone-shell relative ${shellFixedGallery} ${shellWidth} overflow-hidden ${borderRadius} border-[7px] border-phone bg-background shadow-phone transition-all duration-200`
       }
     >
+      {/* Dynamic Island / Notch solo en iOS */}
+      {!isAndroid ? (
+        <div
+          className={`absolute left-1/2 top-2 z-30 h-[25px] w-[92px] -translate-x-1/2 rounded-full bg-phone ${
+            app ? "max-[500px]:hidden embedded:hidden" : ""
+          }`}
+        />
+      ) : null}
+
       <div
-        className={`absolute left-1/2 top-2 z-30 h-[25px] w-[92px] -translate-x-1/2 rounded-full bg-phone ${app ? "max-[500px]:hidden embedded:hidden" : ""}`}
-      />
-      <div
-        className={`flex h-full flex-col overflow-hidden rounded-[39px] ${app ? "max-[500px]:rounded-none embedded:rounded-none" : ""}`}
+        className={`flex h-full flex-col overflow-hidden ${innerRadius} ${
+          app ? "max-[500px]:rounded-none embedded:rounded-none" : ""
+        }`}
       >
         <StatusBar app={app} />
         {children}
       </div>
-      <div
-        className={`pointer-events-none absolute bottom-2 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-foreground/80 ${app ? "max-[500px]:hidden embedded:hidden" : ""}`}
-      />
+
+      {/* Home indicator solo en iOS */}
+      {!isAndroid && (
+        <div
+          className={`pointer-events-none absolute bottom-2 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-foreground/80 ${
+            app ? "max-[500px]:hidden embedded:hidden" : ""
+          }`}
+        />
+      )}
     </div>
   );
   if (app) return shell;
   return (
-    <figure className="w-[390px] shrink-0">
+    <figure className={`${shellWidth} shrink-0`}>
       {shell}
       {title && (
         <figcaption className="mt-5 text-center text-sm font-bold text-showcase-muted">
@@ -121,36 +199,218 @@ export const DeviceFrame = ({
   );
 };
 
-/** Página del prototipo navegable: un solo celular centrado. */
-export const AppShell = ({ children }: { children: ReactNode }) => (
-  <main className="grid min-h-dvh place-items-center bg-showcase p-4 font-sans max-[500px]:p-0 embedded:p-0">
-    <Link
-      to="/app/galeria"
-      className="fixed left-8 top-8 hidden items-center gap-4 xl:flex embedded:hidden!"
-    >
-      <Logo compact />
-      <span className="rounded-full bg-showcase-pill px-3 py-1.5 text-xs font-bold text-showcase-muted">
-        Ver todas las pantallas
-      </span>
-    </Link>
-    <DeviceFrame app>{children}</DeviceFrame>
-  </main>
-);
+/** Página del prototipo navegable con soporte adaptable y marco móvil */
+export const AppShell = ({ children }: { children: ReactNode }) => {
+  const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
+  const isDueno = currentPath.includes("/dueno");
+
+  const [viewMode, setViewMode] = useState<"phone" | "fluid">(() => {
+    if (typeof window === "undefined") return "fluid";
+    const stored = localStorage.getItem("bocadoo-view-mode");
+    return stored === "phone" || stored === "fluid" ? stored : "fluid";
+  });
+
+  const toggleViewMode = (mode: "phone" | "fluid") => {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("bocadoo-view-mode", mode);
+    }
+  };
+
+  return (
+    <main className="min-h-dvh bg-showcase font-sans flex flex-col items-center justify-start max-[500px]:p-0 embedded:p-0">
+      {/* Barra superior de control en pantallas medianas y de escritorio */}
+      <header className="hidden min-[501px]:flex w-full items-center justify-between px-6 py-2.5 bg-background/85 backdrop-blur-md border-b border-border/80 sticky top-0 z-40 shadow-xs embedded:hidden!">
+        <div className="flex items-center gap-4">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-85 transition-opacity">
+            <Logo compact />
+          </Link>
+
+          {/* Selector rápido de rol Comensal / Dueño */}
+          <div className="flex items-center rounded-xl bg-muted p-0.5 border border-border/60 text-xs font-bold">
+            <Link
+              to="/app/comensal"
+              className={`rounded-lg px-3 py-1 transition-all ${
+                !isDueno
+                  ? "bg-background text-primary shadow-xs font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              👤 Comensal
+            </Link>
+            <Link
+              to="/app/dueno"
+              className={`rounded-lg px-3 py-1 transition-all ${
+                isDueno
+                  ? "bg-background text-primary shadow-xs font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              🏪 Dueño
+            </Link>
+          </div>
+        </div>
+
+        {/* Atajos de Dueño si está en /app/dueno */}
+        {isDueno && (
+          <div className="hidden lg:flex items-center gap-1 text-xs font-bold text-muted-foreground">
+            <span className="text-[13px] font-bold uppercase tracking-wider text-muted-foreground/60 mr-1">
+              Atajos:
+            </span>
+            <Link
+              to="/app/dueno"
+              className="rounded-lg px-2.5 py-1 hover:bg-muted text-foreground transition-colors"
+            >
+              Caja
+            </Link>
+            <Link
+              to="/app/dueno/menu"
+              className="rounded-lg px-2.5 py-1 hover:bg-muted text-foreground transition-colors"
+            >
+              Menú de hoy
+            </Link>
+            <Link
+              to="/app/dueno/oferta"
+              className="rounded-lg px-2.5 py-1 hover:bg-muted text-foreground transition-colors flex items-center gap-1 text-primary font-extrabold"
+            >
+              <Zap size={13} />
+              Ofertas flash
+            </Link>
+            <Link
+              to="/app/dueno/planes"
+              className="rounded-lg px-2.5 py-1 hover:bg-muted text-foreground transition-colors"
+            >
+              Planes
+            </Link>
+          </div>
+        )}
+
+        {/* Selector de modo: Celular vs Adaptable */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-xl bg-muted p-0.5 border border-border/60 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => toggleViewMode("fluid")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition-all ${
+                viewMode === "fluid"
+                  ? "bg-background text-primary shadow-xs font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Adaptar contenido al tamaño de pantalla"
+            >
+              <Monitor size={14} />
+              <span>Adaptable</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleViewMode("phone")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition-all ${
+                viewMode === "phone"
+                  ? "bg-background text-primary shadow-xs font-extrabold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Simulador con marco de teléfono móvil"
+            >
+              <Smartphone size={14} />
+              <span>Celular</span>
+            </button>
+          </div>
+
+          <Link
+            to="/app/galeria"
+            className="rounded-full bg-showcase-pill px-3 py-1 text-xs font-bold text-showcase-muted hover:text-foreground hover:bg-muted transition-colors hidden xl:inline-block"
+          >
+            Ver galería
+          </Link>
+        </div>
+      </header>
+
+      {/* Contenedor principal con el dispositivo seleccionado */}
+      <div className="w-full flex-1 flex items-center justify-center p-0 min-[501px]:p-4 max-[500px]:p-0">
+        <DeviceFrame app responsive={viewMode === "fluid"}>
+          {children}
+        </DeviceFrame>
+      </div>
+    </main>
+  );
+};
 
 /**
  * Capa emergente con fondo difuminado. Se posiciona sobre el marco del celular,
  * por eso debe renderizarse fuera de contenedores con `position` o scroll.
  */
-export const Overlay = ({ children, onClose }: { children: ReactNode; onClose?: () => void }) => (
-  <div
-    className="absolute inset-0 z-20 flex flex-col overflow-hidden rounded-[39px] bg-foreground/35 p-0 backdrop-blur-[6px] animate-in fade-in duration-200 max-[500px]:rounded-none embedded:rounded-none"
-    onClick={onClose}
-  >
-    <div className="contents" onClick={(e) => e.stopPropagation()}>
-      {children}
+export const Overlay = ({ children, onClose }: { children: ReactNode; onClose?: () => void }) => {
+  const isPushedRef = useRef(false);
+  const modalIdRef = useRef<string>("");
+  const depthRef = useRef<number>(0);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !onCloseRef.current) return;
+
+    if (!modalIdRef.current) {
+      modalIdRef.current = "modal-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+    }
+
+    const currentModalId = modalIdRef.current;
+    const currentState = window.history.state || {};
+
+    if (currentState.bocadooModalId === currentModalId) {
+      isPushedRef.current = true;
+      depthRef.current = currentState.bocadooModalDepth || 1;
+    } else {
+      const nextDepth = (currentState.bocadooModalDepth || 0) + 1;
+      depthRef.current = nextDepth;
+      window.history.pushState(
+        {
+          ...currentState,
+          bocadooModalId: currentModalId,
+          bocadooModalDepth: nextDepth,
+        },
+        ""
+      );
+      isPushedRef.current = true;
+    }
+
+    const handlePopState = (e: PopStateEvent) => {
+      const state = e.state || {};
+      const newDepth = state.bocadooModalDepth || 0;
+      if (newDepth < depthRef.current) {
+        isPushedRef.current = false;
+        onCloseRef.current?.();
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      // NUNCA llamar a history.back() en cleanup para no chocar con cambios de ruta
+    };
+  }, []);
+
+  const handleUserClose = () => {
+    if (isPushedRef.current && typeof window !== "undefined") {
+      isPushedRef.current = false;
+      if (window.history.state?.bocadooModalId === modalIdRef.current) {
+        window.history.back();
+      }
+    }
+    onCloseRef.current?.();
+  };
+
+  return (
+    <div
+      className="absolute inset-0 z-40 flex flex-col overflow-hidden rounded-[39px] bg-foreground/35 p-0 backdrop-blur-[6px] animate-in fade-in duration-200 max-[500px]:rounded-none embedded:rounded-none"
+      onClick={handleUserClose}
+    >
+      <div className="contents" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export function useGoBack(fallback: AppPath) {
   const router = useRouter();
@@ -161,14 +421,15 @@ export function useGoBack(fallback: AppPath) {
 
 const NAV_ITEMS: Record<"diner" | "owner", Array<[string, IconType, AppPath]>> = {
   diner: [
-    ["Home", Home, "/app/comensal"],
-    ["Restaurantes", Store, "/app/comensal/restaurantes"],
-    ["Ajustes", Settings, "/app/comensal/ajustes"],
+    ["Pase", QrCode, "/app/comensal"],
+    ["Comer", Store, "/app/comensal/restaurantes"],
+    ["Yo", UserRound, "/app/comensal/ajustes"],
   ],
   owner: [
-    ["Home", Home, "/app/dueno"],
+    ["Caja", QrCode, "/app/dueno"],
+    ["Menú", Utensils, "/app/dueno/menu"],
+    ["Ofertas", Zap, "/app/dueno/oferta"],
     ["Planes", WalletCards, "/app/dueno/planes"],
-    ["Menú", MenuIcon, "/app/dueno/menu"],
     ["Ajustes", Settings, "/app/dueno/ajustes"],
   ],
 };
@@ -177,22 +438,33 @@ export const NavBar = ({ active, owner = false }: { active: string; owner?: bool
   const items = NAV_ITEMS[owner ? "owner" : "diner"];
   return (
     <nav
-      className="mt-auto grid h-[73px] shrink-0 border-t border-border bg-background/95 px-3 pb-3 pt-2 backdrop-blur-sm"
+      className="mt-auto grid min-h-[76px] shrink-0 border-t border-border bg-background/95 px-2 pb-6 pt-2 backdrop-blur-md z-20 shadow-[0_-4px_16px_rgba(74,14,120,0.04)]"
       style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      aria-label={owner ? "Navegación del dueño" : "Navegación del comensal"}
     >
       {items.map(([label, Icon, to]) => {
-        const selected = active === label;
+        const selected =
+          active.toLowerCase() === label.toLowerCase() ||
+          (label === "Caja" && active.toLowerCase() === "home");
         return (
           <Link
             key={label}
             to={to}
             replace
-            className={`flex flex-col items-center justify-center gap-1 rounded-2xl ${selected ? "text-primary" : "text-muted-foreground"}`}
+            className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-all active:scale-95 ${
+              selected
+                ? "text-primary font-black"
+                : "text-muted-foreground hover:text-foreground font-semibold"
+            }`}
           >
-            <div className={selected ? "rounded-xl bg-accent px-4 py-1" : "px-4 py-1"}>
-              <Icon size={19} strokeWidth={selected ? 2.7 : 2} />
+            <div
+              className={`grid place-items-center rounded-xl px-2.5 py-1 transition-all ${
+                selected ? "bg-accent text-primary" : ""
+              }`}
+            >
+              <Icon size={20} strokeWidth={selected ? 2.8 : 2} />
             </div>
-            <span className="text-xs font-bold">{label}</span>
+            <span className="text-[13px] font-bold leading-none tracking-tight">{label}</span>
           </Link>
         );
       })}
@@ -308,18 +580,49 @@ export const Toggle = ({
   on?: boolean;
   onToggle?: () => void;
   label?: string;
-}) => (
-  <button
-    type="button"
-    role="switch"
-    aria-checked={on}
-    aria-label={label}
-    onClick={onToggle}
-    className={`flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${on ? "justify-end bg-primary" : "justify-start bg-muted-foreground/30"}`}
-  >
-    <i className="h-4 w-4 rounded-full bg-background shadow-soft" />
-  </button>
-);
+}) => {
+  const { isAndroid } = usePlatform();
+
+  if (isAndroid) {
+    // Material 3 Switch
+    return (
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        onClick={onToggle}
+        className={`flex h-7 w-12 shrink-0 items-center rounded-full border-2 p-0.5 transition-colors ${
+          on
+            ? "border-primary bg-primary justify-end"
+            : "border-muted-foreground/40 bg-muted justify-start"
+        }`}
+      >
+        <i
+          className={`h-5 w-5 rounded-full shadow-xs transition-all ${
+            on ? "bg-white scale-100" : "bg-muted-foreground/70 scale-90"
+          }`}
+        />
+      </button>
+    );
+  }
+
+  // iOS Switch
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      onClick={onToggle}
+      className={`flex h-6 w-11 shrink-0 items-center rounded-full p-1 transition-colors ${
+        on ? "justify-end bg-primary" : "justify-start bg-muted-foreground/30"
+      }`}
+    >
+      <i className="h-4 w-4 rounded-full bg-background shadow-soft" />
+    </button>
+  );
+};
 
 export const FieldLabel = ({ children }: { children: ReactNode }) => (
   <p className="mb-2 mt-4 text-xs font-black uppercase text-muted-foreground">{children}</p>
@@ -361,12 +664,66 @@ export const ModalHeader = ({
   </div>
 );
 
-export const BottomSheet = ({ children }: { children: ReactNode }) => (
-  <div className="no-scrollbar mt-auto max-h-[calc(100%-48px)] overflow-y-auto rounded-t-[30px] bg-background px-5 pb-8 pt-3 shadow-card animate-in slide-in-from-bottom-10 duration-300">
-    <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-    {children}
-  </div>
-);
+export const BottomSheet = ({
+  children,
+  onClose,
+}: {
+  children: ReactNode;
+  onClose?: () => void;
+}) => {
+  const isPushedRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !onCloseRef.current) return;
+
+    if (!window.history.state?.bocadooSheet) {
+      const stateId = "bocadoo-sheet-" + Date.now();
+      window.history.pushState({ ...window.history.state, bocadooSheet: stateId }, "");
+      isPushedRef.current = true;
+    } else {
+      isPushedRef.current = true;
+    }
+
+    const handlePopState = () => {
+      isPushedRef.current = false;
+      onCloseRef.current?.();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      // NUNCA llamar a history.back() en cleanup para no chocar con navegación del router
+    };
+  }, []);
+
+  const handleUserClose = () => {
+    if (isPushedRef.current && typeof window !== "undefined") {
+      isPushedRef.current = false;
+      if (window.history.state?.bocadooSheet) {
+        window.history.back();
+      }
+    }
+    onCloseRef.current?.();
+  };
+
+  return (
+    <div
+      className="absolute inset-0 z-40 flex flex-col justify-end bg-foreground/35 backdrop-blur-[4px] animate-in fade-in duration-150"
+      onClick={handleUserClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="no-scrollbar mt-auto max-h-[calc(100%-48px)] overflow-y-auto rounded-t-[30px] bg-background px-5 pb-8 pt-3 shadow-card animate-in slide-in-from-bottom-10 duration-300"
+      >
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export const PrimaryButton = ({
   children,

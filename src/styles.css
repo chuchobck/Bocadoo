@@ -21,7 +21,7 @@
  */
 
 @theme inline {
-  --font-sans: "Outfit", sans-serif;
+  --font-sans: "Plus Jakarta Sans", sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -64,9 +64,6 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-lavender: var(--lavender);
   --color-primary-soft: var(--primary-soft);
-  --color-card-dark: var(--card-dark);
-  --color-card-dark-foreground: var(--card-dark-foreground);
-  --color-card-dark-muted: var(--card-dark-muted);
   --color-phone: var(--phone);
   --color-showcase: var(--showcase);
   --color-showcase-foreground: var(--showcase-foreground);
@@ -107,9 +104,6 @@
   --ring: oklch(0.49 0.23 303.5);
   --lavender: oklch(0.82 0.13 311.5);
   --primary-soft: oklch(0.91 0.09 311.5);
-  --card-dark: oklch(0.14 0.015 303.5);
-  --card-dark-foreground: oklch(1 0 0);
-  --card-dark-muted: oklch(0.75 0.02 303.5);
   --phone: oklch(0 0 0);
   --showcase: oklch(0.905 0 0);
   --showcase-foreground: oklch(0.12 0.01 303.5);

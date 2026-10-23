@@ -28,7 +28,7 @@ export const TOKENS = {
     errorBg: "#FDEBEB",
     errorText: "#C0392B",
 
-    // Advertencia en gama morada (SIN amarillo ni naranja)
+    // Advertencia funcional en gama morada (#9D4EDD)
     warning: "#9D4EDD",
     warningBg: "#F3E8FF",
     warningText: "#4A0E78",

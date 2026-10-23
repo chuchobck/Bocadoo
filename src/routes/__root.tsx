@@ -13,22 +13,51 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { BocadooProvider } from "@/components/bocadoo/store";
 import { Toaster } from "@/components/ui/sonner";
+import { DevPanel } from "@/dev/DevPanel";
 
 function NotFoundComponent() {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const pathname = window.location.pathname.replace(/\/+$/, "") || "/";
+    if (pathname === "/app") {
+      router.navigate({ to: "/app" as any, replace: true });
+    } else if (pathname === "/app/dueno/caja" || pathname === "/caja") {
+      router.navigate({ to: "/app/dueno", replace: true });
+    } else if (pathname === "/dueno") {
+      router.navigate({ to: "/app/dueno", replace: true });
+    } else if (pathname === "/comensal") {
+      router.navigate({ to: "/app/comensal", replace: true });
+    }
+  }, [router]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Página no encontrada</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+          La ruta que buscas no existe o fue movida.
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Link
+            to="/app/dueno"
+            className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Ir a Panel Dueño
+          </Link>
+          <Link
+            to="/app/comensal"
+            className="inline-flex items-center justify-center rounded-xl border border-input bg-background px-4 py-2 text-sm font-bold text-foreground transition-colors hover:bg-accent"
+          >
+            Ir a Comensal
+          </Link>
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-xl border border-input bg-background px-4 py-2 text-sm font-bold text-muted-foreground transition-colors hover:bg-accent"
           >
-            Go home
+            Inicio
           </Link>
         </div>
       </div>
@@ -108,7 +137,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
       {
         rel: "stylesheet",
@@ -154,6 +183,7 @@ function RootComponent() {
         {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
         <Outlet />
         <Toaster position="top-center" />
+        <DevPanel />
       </BocadooProvider>
     </QueryClientProvider>
   );

@@ -326,14 +326,6 @@ export function LoginScreen({
               <span className="rounded-md bg-accent/60 px-2 py-0.5 text-[9px] font-black tracking-wider text-primary uppercase">
                 {role === "diner" ? "Pase Comensal" : "Terminal Restaurante"}
               </span>
-              <button
-                type="button"
-                onClick={() => autofillDemo(role)}
-                className="rounded-md bg-muted px-2 py-0.5 text-[9px] font-bold text-muted-foreground hover:text-foreground hover:bg-border transition-colors"
-                title="Cargar credenciales demo de prueba"
-              >
-                ⚡ Llenar demo
-              </button>
             </div>
           </div>
 

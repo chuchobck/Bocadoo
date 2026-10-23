@@ -9,13 +9,16 @@ import {
   type ReactNode,
 } from "react";
 
+import { DEFAULT_COMMISSION_RATE, calculateCommission } from "@/domain/money";
+import { FEEDBACK_DELAY_MIN, shouldShowFeedback } from "@/domain/feedback";
+
 // ============================================================================
 // BOCADOO V3 STORE — ESTADO INTERACTIVO SINCRONIZADO EN LOCALSTORAGE
 // ============================================================================
 
 export const STORAGE_KEY = "bocadoo-demo-v3";
 const BROADCAST_CHANNEL_NAME = "bocadoo-sync-v3";
-export const COMMISSION_RATE = 0.07; // 7% comisión transparente en ofertas flash / marketplace
+export const COMMISSION_RATE = DEFAULT_COMMISSION_RATE; // Comisión configurable en ofertas flash / marketplace
 
 // ----------------------------------------------------------------------------
 // MONEDA & FORMATEO (DINERO SIEMPRE EN CENTAVOS ENTEROS)
@@ -85,6 +88,7 @@ export type Restaurant = {
   descripcionCorta?: string | undefined;
   tags?: string[] | undefined;
   manualBusyUntil?: string | undefined; // ISO timestamp: cuando el dueño activa "Local lleno" (dura 20 min)
+  logoUrl?: string | null | undefined;
 };
 
 export type Staff = {
@@ -460,6 +464,10 @@ export type State = {
   commissionLedger: CommissionEntry[];
   dinerZone: string | null;
   soundEnabled: boolean;
+  commissionRate: number;
+  scannerDemoScenario: string;
+  dinerHasPlanOverride: boolean | null;
+  dismissedFeedbackIds: string[];
 };
 
 // ----------------------------------------------------------------------------
@@ -1214,6 +1222,10 @@ export const initialState: State = {
   commissionLedger: initialCommissionLedger,
   dinerZone: "Frente a la PUCE",
   soundEnabled: true,
+  commissionRate: DEFAULT_COMMISSION_RATE,
+  scannerDemoScenario: "NORMAL",
+  dinerHasPlanOverride: null,
+  dismissedFeedbackIds: [],
 };
 
 // ----------------------------------------------------------------------------
@@ -2941,13 +2953,30 @@ function useBocadooState() {
         const sub = state.subscriptions.find((s) => s.id === r.subscriptionId);
         if (sub?.clientId !== clientId) return false;
         const redTime = new Date(r.creadoEn).getTime();
-        const diffMins = (simulatedToday.getTime() - redTime) / 60000;
-        if (diffMins < 20) return false;
-        return !state.feedbackList.some((f) => f.redemptionId === r.id);
+        const answered = state.feedbackList.some((f) => f.redemptionId === r.id);
+        const dismissed = (state.dismissedFeedbackIds || []).includes(r.id);
+        return shouldShowFeedback(
+          {
+            redemptionId: r.id,
+            restaurantId: r.restaurantId || RESTAURANT_ID,
+            validatedAt: redTime,
+            answeredAt: answered ? redTime : null,
+            dismissedAt: dismissed ? redTime : null,
+          },
+          simulatedToday.getTime(),
+          FEEDBACK_DELAY_MIN,
+        );
       });
     },
-    [state.redemptions, state.subscriptions, state.feedbackList, simulatedToday],
+    [state.redemptions, state.subscriptions, state.feedbackList, state.dismissedFeedbackIds, simulatedToday],
   );
+
+  const dismissFeedback = useCallback((redemptionId: string) => {
+    setState((s) => ({
+      ...s,
+      dismissedFeedbackIds: [...(s.dismissedFeedbackIds || []), redemptionId],
+    }));
+  }, []);
 
   const submitFeedback = useCallback(
     (params: {
@@ -2974,6 +3003,25 @@ function useBocadooState() {
     },
     [state.clients, simulatedTodayISO],
   );
+
+  const scanAndFastForward25Min = useCallback(() => {
+    const sub = state.subscriptions.find((s) => s.clientId === "c1" && s.almuerzosRestantes > 0);
+    const subId = sub ? sub.id : "sub-1";
+    const newRed: Redemption = {
+      id: newId("red"),
+      subscriptionId: subId,
+      restaurantId: RESTAURANT_ID,
+      staffId: "st1",
+      creadoEn: simulatedTodayISO,
+      paraLlevar: false,
+      idempotencyKey: `scan-25-${Date.now()}`,
+    };
+    setState((s) => ({
+      ...s,
+      redemptions: [newRed, ...s.redemptions],
+      simulatedMinutesOffset: s.simulatedMinutesOffset + 25,
+    }));
+  }, [state.subscriptions, simulatedTodayISO]);
 
   const replyFeedback = useCallback(
     (feedbackId: string, respuesta: string) => {
@@ -3095,14 +3143,15 @@ function useBocadooState() {
         creadoEn: simulatedTodayISO,
       };
 
-      const comisionCents = Math.round(offer.precioCents * COMMISSION_RATE);
+      const currentRate = state.commissionRate ?? COMMISSION_RATE;
+      const comisionCents = calculateCommission(offer.precioCents, currentRate);
       const commEntry: CommissionEntry = {
         id: newId("comm"),
         tipo: "FLASH_OFFER",
         referenciaId: offer.id,
         restaurantId: offer.restaurantId,
         montoVentaCents: offer.precioCents,
-        tasaPorcentaje: COMMISSION_RATE,
+        tasaPorcentaje: currentRate,
         comisionCents,
         creadoEn: simulatedTodayISO,
       };
@@ -3124,7 +3173,7 @@ function useBocadooState() {
         ok: true,
         sale: newSale,
         commission: commEntry,
-        message: `¡Oferta canjeada! Venta: ${money(offer.precioCents)} | Comisión (7%): ${money(comisionCents)}`,
+        message: `¡Oferta canjeada! Venta: ${money(offer.precioCents)} | Comisión (${Math.round(currentRate * 100)}%): ${money(comisionCents)}`,
       };
     },
     [evaluatedFlashOffers, state.sales.length, state.flashOffers, simulatedTodayISO],
@@ -3306,14 +3355,24 @@ function useBocadooState() {
     // P14 Feedback
     pendingFeedbackRedemptions,
     submitFeedback,
+    dismissFeedback,
     replyFeedback,
     getRestaurantFeedbackTags,
+    scanAndFastForward25Min,
     // P15 Ofertas Flash & Comisiones
     flashOffers: evaluatedFlashOffers,
     launchFlashOffer,
     redeemFlashOffer,
     getRestaurantCommissions,
-    COMMISSION_RATE,
+    commissionRate: state.commissionRate ?? COMMISSION_RATE,
+    setCommissionRate: (rate: number) => setState((s) => ({ ...s, commissionRate: rate })),
+    COMMISSION_RATE: state.commissionRate ?? COMMISSION_RATE,
+    scannerDemoScenario: state.scannerDemoScenario ?? "NORMAL",
+    setScannerDemoScenario: (scenario: string) =>
+      setState((s) => ({ ...s, scannerDemoScenario: scenario })),
+    dinerHasPlanOverride: state.dinerHasPlanOverride,
+    setDinerHasPlanOverride: (val: boolean | null) =>
+      setState((s) => ({ ...s, dinerHasPlanOverride: val })),
     // Compatibilidad
     plans: legacyPlans,
     rawClients: state.clients,

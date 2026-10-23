@@ -12,16 +12,26 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AppGaleriaRouteImport } from './routes/app/galeria'
+import { Route as AppKitRouteImport } from './routes/app/kit'
 import { Route as AppComensalIndexRouteImport } from './routes/app/comensal/index'
 import { Route as AppComensalAjustesRouteImport } from './routes/app/comensal/ajustes'
+import { Route as AppComensalEstadosRouteImport } from './routes/app/comensal/estados'
 import { Route as AppComensalRestaurantesRouteImport } from './routes/app/comensal/restaurantes'
 import { Route as AppDuenoIndexRouteImport } from './routes/app/dueno/index'
 import { Route as AppDuenoAgregarMenuRouteImport } from './routes/app/dueno/agregar-menu'
 import { Route as AppDuenoAjustesRouteImport } from './routes/app/dueno/ajustes'
+import { Route as AppDuenoCajaRouteImport } from './routes/app/dueno/caja'
+import { Route as AppDuenoCierreRouteImport } from './routes/app/dueno/cierre'
+import { Route as AppDuenoClientesRouteImport } from './routes/app/dueno/clientes'
 import { Route as AppDuenoCobrarRouteImport } from './routes/app/dueno/cobrar'
 import { Route as AppDuenoDescontarRouteImport } from './routes/app/dueno/descontar'
+import { Route as AppDuenoEstadosRouteImport } from './routes/app/dueno/estados'
 import { Route as AppDuenoMenuRouteImport } from './routes/app/dueno/menu'
+import { Route as AppDuenoOfertaRouteImport } from './routes/app/dueno/oferta'
+import { Route as AppDuenoOpinionesRouteImport } from './routes/app/dueno/opiniones'
+import { Route as AppDuenoPedidosRouteImport } from './routes/app/dueno/pedidos'
 import { Route as AppDuenoRegistrarConsumoRouteImport } from './routes/app/dueno/registrar-consumo'
+import { Route as AppComensalMesaMesaIdRouteImport } from './routes/app/comensal/mesa.$mesaId'
 import { Route as AppDuenoPlanesIndexRouteImport } from './routes/app/dueno/planes/index'
 import { Route as AppDuenoPlanesNuevoRouteImport } from './routes/app/dueno/planes/nuevo'
 
@@ -40,6 +50,11 @@ const AppGaleriaRoute = AppGaleriaRouteImport.update({
   path: '/app/galeria',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppKitRoute = AppKitRouteImport.update({
+  id: '/app/kit',
+  path: '/app/kit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppComensalIndexRoute = AppComensalIndexRouteImport.update({
   id: '/app/comensal/',
   path: '/app/comensal/',
@@ -48,6 +63,11 @@ const AppComensalIndexRoute = AppComensalIndexRouteImport.update({
 const AppComensalAjustesRoute = AppComensalAjustesRouteImport.update({
   id: '/app/comensal/ajustes',
   path: '/app/comensal/ajustes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppComensalEstadosRoute = AppComensalEstadosRouteImport.update({
+  id: '/app/comensal/estados',
+  path: '/app/comensal/estados',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppComensalRestaurantesRoute = AppComensalRestaurantesRouteImport.update({
@@ -70,6 +90,21 @@ const AppDuenoAjustesRoute = AppDuenoAjustesRouteImport.update({
   path: '/app/dueno/ajustes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDuenoCajaRoute = AppDuenoCajaRouteImport.update({
+  id: '/app/dueno/caja',
+  path: '/app/dueno/caja',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDuenoCierreRoute = AppDuenoCierreRouteImport.update({
+  id: '/app/dueno/cierre',
+  path: '/app/dueno/cierre',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDuenoClientesRoute = AppDuenoClientesRouteImport.update({
+  id: '/app/dueno/clientes',
+  path: '/app/dueno/clientes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppDuenoCobrarRoute = AppDuenoCobrarRouteImport.update({
   id: '/app/dueno/cobrar',
   path: '/app/dueno/cobrar',
@@ -80,9 +115,29 @@ const AppDuenoDescontarRoute = AppDuenoDescontarRouteImport.update({
   path: '/app/dueno/descontar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppDuenoEstadosRoute = AppDuenoEstadosRouteImport.update({
+  id: '/app/dueno/estados',
+  path: '/app/dueno/estados',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppDuenoMenuRoute = AppDuenoMenuRouteImport.update({
   id: '/app/dueno/menu',
   path: '/app/dueno/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDuenoOfertaRoute = AppDuenoOfertaRouteImport.update({
+  id: '/app/dueno/oferta',
+  path: '/app/dueno/oferta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDuenoOpinionesRoute = AppDuenoOpinionesRouteImport.update({
+  id: '/app/dueno/opiniones',
+  path: '/app/dueno/opiniones',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppDuenoPedidosRoute = AppDuenoPedidosRouteImport.update({
+  id: '/app/dueno/pedidos',
+  path: '/app/dueno/pedidos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppDuenoRegistrarConsumoRoute =
@@ -91,6 +146,11 @@ const AppDuenoRegistrarConsumoRoute =
     path: '/app/dueno/registrar-consumo',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AppComensalMesaMesaIdRoute = AppComensalMesaMesaIdRouteImport.update({
+  id: '/app/comensal/mesa/$mesaId',
+  path: '/app/comensal/mesa/$mesaId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppDuenoPlanesIndexRoute = AppDuenoPlanesIndexRouteImport.update({
   id: '/app/dueno/planes/',
   path: '/app/dueno/planes/',
@@ -105,34 +165,54 @@ const AppDuenoPlanesNuevoRoute = AppDuenoPlanesNuevoRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app/galeria': typeof AppGaleriaRoute
+  '/app/kit': typeof AppKitRoute
   '/app/': typeof AppIndexRoute
   '/app/comensal/ajustes': typeof AppComensalAjustesRoute
+  '/app/comensal/estados': typeof AppComensalEstadosRoute
   '/app/comensal/restaurantes': typeof AppComensalRestaurantesRoute
   '/app/dueno/agregar-menu': typeof AppDuenoAgregarMenuRoute
   '/app/dueno/ajustes': typeof AppDuenoAjustesRoute
+  '/app/dueno/caja': typeof AppDuenoCajaRoute
+  '/app/dueno/cierre': typeof AppDuenoCierreRoute
+  '/app/dueno/clientes': typeof AppDuenoClientesRoute
   '/app/dueno/cobrar': typeof AppDuenoCobrarRoute
   '/app/dueno/descontar': typeof AppDuenoDescontarRoute
+  '/app/dueno/estados': typeof AppDuenoEstadosRoute
   '/app/dueno/menu': typeof AppDuenoMenuRoute
+  '/app/dueno/oferta': typeof AppDuenoOfertaRoute
+  '/app/dueno/opiniones': typeof AppDuenoOpinionesRoute
+  '/app/dueno/pedidos': typeof AppDuenoPedidosRoute
   '/app/dueno/registrar-consumo': typeof AppDuenoRegistrarConsumoRoute
   '/app/comensal/': typeof AppComensalIndexRoute
   '/app/dueno/': typeof AppDuenoIndexRoute
+  '/app/comensal/mesa/$mesaId': typeof AppComensalMesaMesaIdRoute
   '/app/dueno/planes/nuevo': typeof AppDuenoPlanesNuevoRoute
   '/app/dueno/planes/': typeof AppDuenoPlanesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/galeria': typeof AppGaleriaRoute
+  '/app/kit': typeof AppKitRoute
   '/app': typeof AppIndexRoute
   '/app/comensal/ajustes': typeof AppComensalAjustesRoute
+  '/app/comensal/estados': typeof AppComensalEstadosRoute
   '/app/comensal/restaurantes': typeof AppComensalRestaurantesRoute
   '/app/dueno/agregar-menu': typeof AppDuenoAgregarMenuRoute
   '/app/dueno/ajustes': typeof AppDuenoAjustesRoute
+  '/app/dueno/caja': typeof AppDuenoCajaRoute
+  '/app/dueno/cierre': typeof AppDuenoCierreRoute
+  '/app/dueno/clientes': typeof AppDuenoClientesRoute
   '/app/dueno/cobrar': typeof AppDuenoCobrarRoute
   '/app/dueno/descontar': typeof AppDuenoDescontarRoute
+  '/app/dueno/estados': typeof AppDuenoEstadosRoute
   '/app/dueno/menu': typeof AppDuenoMenuRoute
+  '/app/dueno/oferta': typeof AppDuenoOfertaRoute
+  '/app/dueno/opiniones': typeof AppDuenoOpinionesRoute
+  '/app/dueno/pedidos': typeof AppDuenoPedidosRoute
   '/app/dueno/registrar-consumo': typeof AppDuenoRegistrarConsumoRoute
   '/app/comensal': typeof AppComensalIndexRoute
   '/app/dueno': typeof AppDuenoIndexRoute
+  '/app/comensal/mesa/$mesaId': typeof AppComensalMesaMesaIdRoute
   '/app/dueno/planes/nuevo': typeof AppDuenoPlanesNuevoRoute
   '/app/dueno/planes': typeof AppDuenoPlanesIndexRoute
 }
@@ -140,17 +220,27 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app/galeria': typeof AppGaleriaRoute
+  '/app/kit': typeof AppKitRoute
   '/app/': typeof AppIndexRoute
   '/app/comensal/ajustes': typeof AppComensalAjustesRoute
+  '/app/comensal/estados': typeof AppComensalEstadosRoute
   '/app/comensal/restaurantes': typeof AppComensalRestaurantesRoute
   '/app/dueno/agregar-menu': typeof AppDuenoAgregarMenuRoute
   '/app/dueno/ajustes': typeof AppDuenoAjustesRoute
+  '/app/dueno/caja': typeof AppDuenoCajaRoute
+  '/app/dueno/cierre': typeof AppDuenoCierreRoute
+  '/app/dueno/clientes': typeof AppDuenoClientesRoute
   '/app/dueno/cobrar': typeof AppDuenoCobrarRoute
   '/app/dueno/descontar': typeof AppDuenoDescontarRoute
+  '/app/dueno/estados': typeof AppDuenoEstadosRoute
   '/app/dueno/menu': typeof AppDuenoMenuRoute
+  '/app/dueno/oferta': typeof AppDuenoOfertaRoute
+  '/app/dueno/opiniones': typeof AppDuenoOpinionesRoute
+  '/app/dueno/pedidos': typeof AppDuenoPedidosRoute
   '/app/dueno/registrar-consumo': typeof AppDuenoRegistrarConsumoRoute
   '/app/comensal/': typeof AppComensalIndexRoute
   '/app/dueno/': typeof AppDuenoIndexRoute
+  '/app/comensal/mesa/$mesaId': typeof AppComensalMesaMesaIdRoute
   '/app/dueno/planes/nuevo': typeof AppDuenoPlanesNuevoRoute
   '/app/dueno/planes/': typeof AppDuenoPlanesIndexRoute
 }
@@ -159,51 +249,81 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app/galeria'
+    | '/app/kit'
     | '/app/'
     | '/app/comensal/ajustes'
+    | '/app/comensal/estados'
     | '/app/comensal/restaurantes'
     | '/app/dueno/agregar-menu'
     | '/app/dueno/ajustes'
+    | '/app/dueno/caja'
+    | '/app/dueno/cierre'
+    | '/app/dueno/clientes'
     | '/app/dueno/cobrar'
     | '/app/dueno/descontar'
+    | '/app/dueno/estados'
     | '/app/dueno/menu'
+    | '/app/dueno/oferta'
+    | '/app/dueno/opiniones'
+    | '/app/dueno/pedidos'
     | '/app/dueno/registrar-consumo'
     | '/app/comensal/'
     | '/app/dueno/'
+    | '/app/comensal/mesa/$mesaId'
     | '/app/dueno/planes/nuevo'
     | '/app/dueno/planes/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app/galeria'
+    | '/app/kit'
     | '/app'
     | '/app/comensal/ajustes'
+    | '/app/comensal/estados'
     | '/app/comensal/restaurantes'
     | '/app/dueno/agregar-menu'
     | '/app/dueno/ajustes'
+    | '/app/dueno/caja'
+    | '/app/dueno/cierre'
+    | '/app/dueno/clientes'
     | '/app/dueno/cobrar'
     | '/app/dueno/descontar'
+    | '/app/dueno/estados'
     | '/app/dueno/menu'
+    | '/app/dueno/oferta'
+    | '/app/dueno/opiniones'
+    | '/app/dueno/pedidos'
     | '/app/dueno/registrar-consumo'
     | '/app/comensal'
     | '/app/dueno'
+    | '/app/comensal/mesa/$mesaId'
     | '/app/dueno/planes/nuevo'
     | '/app/dueno/planes'
   id:
     | '__root__'
     | '/'
     | '/app/galeria'
+    | '/app/kit'
     | '/app/'
     | '/app/comensal/ajustes'
+    | '/app/comensal/estados'
     | '/app/comensal/restaurantes'
     | '/app/dueno/agregar-menu'
     | '/app/dueno/ajustes'
+    | '/app/dueno/caja'
+    | '/app/dueno/cierre'
+    | '/app/dueno/clientes'
     | '/app/dueno/cobrar'
     | '/app/dueno/descontar'
+    | '/app/dueno/estados'
     | '/app/dueno/menu'
+    | '/app/dueno/oferta'
+    | '/app/dueno/opiniones'
+    | '/app/dueno/pedidos'
     | '/app/dueno/registrar-consumo'
     | '/app/comensal/'
     | '/app/dueno/'
+    | '/app/comensal/mesa/$mesaId'
     | '/app/dueno/planes/nuevo'
     | '/app/dueno/planes/'
   fileRoutesById: FileRoutesById
@@ -211,17 +331,27 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppGaleriaRoute: typeof AppGaleriaRoute
+  AppKitRoute: typeof AppKitRoute
   AppIndexRoute: typeof AppIndexRoute
   AppComensalAjustesRoute: typeof AppComensalAjustesRoute
+  AppComensalEstadosRoute: typeof AppComensalEstadosRoute
   AppComensalRestaurantesRoute: typeof AppComensalRestaurantesRoute
   AppDuenoAgregarMenuRoute: typeof AppDuenoAgregarMenuRoute
   AppDuenoAjustesRoute: typeof AppDuenoAjustesRoute
+  AppDuenoCajaRoute: typeof AppDuenoCajaRoute
+  AppDuenoCierreRoute: typeof AppDuenoCierreRoute
+  AppDuenoClientesRoute: typeof AppDuenoClientesRoute
   AppDuenoCobrarRoute: typeof AppDuenoCobrarRoute
   AppDuenoDescontarRoute: typeof AppDuenoDescontarRoute
+  AppDuenoEstadosRoute: typeof AppDuenoEstadosRoute
   AppDuenoMenuRoute: typeof AppDuenoMenuRoute
+  AppDuenoOfertaRoute: typeof AppDuenoOfertaRoute
+  AppDuenoOpinionesRoute: typeof AppDuenoOpinionesRoute
+  AppDuenoPedidosRoute: typeof AppDuenoPedidosRoute
   AppDuenoRegistrarConsumoRoute: typeof AppDuenoRegistrarConsumoRoute
   AppComensalIndexRoute: typeof AppComensalIndexRoute
   AppDuenoIndexRoute: typeof AppDuenoIndexRoute
+  AppComensalMesaMesaIdRoute: typeof AppComensalMesaMesaIdRoute
   AppDuenoPlanesNuevoRoute: typeof AppDuenoPlanesNuevoRoute
   AppDuenoPlanesIndexRoute: typeof AppDuenoPlanesIndexRoute
 }
@@ -249,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGaleriaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/kit': {
+      id: '/app/kit'
+      path: '/app/kit'
+      fullPath: '/app/kit'
+      preLoaderRoute: typeof AppKitRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/comensal/': {
       id: '/app/comensal/'
       path: '/app/comensal'
@@ -261,6 +398,13 @@ declare module '@tanstack/react-router' {
       path: '/app/comensal/ajustes'
       fullPath: '/app/comensal/ajustes'
       preLoaderRoute: typeof AppComensalAjustesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/comensal/estados': {
+      id: '/app/comensal/estados'
+      path: '/app/comensal/estados'
+      fullPath: '/app/comensal/estados'
+      preLoaderRoute: typeof AppComensalEstadosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/comensal/restaurantes': {
@@ -291,6 +435,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDuenoAjustesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/dueno/caja': {
+      id: '/app/dueno/caja'
+      path: '/app/dueno/caja'
+      fullPath: '/app/dueno/caja'
+      preLoaderRoute: typeof AppDuenoCajaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/dueno/cierre': {
+      id: '/app/dueno/cierre'
+      path: '/app/dueno/cierre'
+      fullPath: '/app/dueno/cierre'
+      preLoaderRoute: typeof AppDuenoCierreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/dueno/clientes': {
+      id: '/app/dueno/clientes'
+      path: '/app/dueno/clientes'
+      fullPath: '/app/dueno/clientes'
+      preLoaderRoute: typeof AppDuenoClientesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/dueno/cobrar': {
       id: '/app/dueno/cobrar'
       path: '/app/dueno/cobrar'
@@ -305,6 +470,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDuenoDescontarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/dueno/estados': {
+      id: '/app/dueno/estados'
+      path: '/app/dueno/estados'
+      fullPath: '/app/dueno/estados'
+      preLoaderRoute: typeof AppDuenoEstadosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/dueno/menu': {
       id: '/app/dueno/menu'
       path: '/app/dueno/menu'
@@ -312,11 +484,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDuenoMenuRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/dueno/oferta': {
+      id: '/app/dueno/oferta'
+      path: '/app/dueno/oferta'
+      fullPath: '/app/dueno/oferta'
+      preLoaderRoute: typeof AppDuenoOfertaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/dueno/opiniones': {
+      id: '/app/dueno/opiniones'
+      path: '/app/dueno/opiniones'
+      fullPath: '/app/dueno/opiniones'
+      preLoaderRoute: typeof AppDuenoOpinionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/dueno/pedidos': {
+      id: '/app/dueno/pedidos'
+      path: '/app/dueno/pedidos'
+      fullPath: '/app/dueno/pedidos'
+      preLoaderRoute: typeof AppDuenoPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/dueno/registrar-consumo': {
       id: '/app/dueno/registrar-consumo'
       path: '/app/dueno/registrar-consumo'
       fullPath: '/app/dueno/registrar-consumo'
       preLoaderRoute: typeof AppDuenoRegistrarConsumoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/comensal/mesa/$mesaId': {
+      id: '/app/comensal/mesa/$mesaId'
+      path: '/app/comensal/mesa/$mesaId'
+      fullPath: '/app/comensal/mesa/$mesaId'
+      preLoaderRoute: typeof AppComensalMesaMesaIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/dueno/planes/': {
@@ -339,17 +539,27 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppGaleriaRoute: AppGaleriaRoute,
+  AppKitRoute: AppKitRoute,
   AppIndexRoute: AppIndexRoute,
   AppComensalAjustesRoute: AppComensalAjustesRoute,
+  AppComensalEstadosRoute: AppComensalEstadosRoute,
   AppComensalRestaurantesRoute: AppComensalRestaurantesRoute,
   AppDuenoAgregarMenuRoute: AppDuenoAgregarMenuRoute,
   AppDuenoAjustesRoute: AppDuenoAjustesRoute,
+  AppDuenoCajaRoute: AppDuenoCajaRoute,
+  AppDuenoCierreRoute: AppDuenoCierreRoute,
+  AppDuenoClientesRoute: AppDuenoClientesRoute,
   AppDuenoCobrarRoute: AppDuenoCobrarRoute,
   AppDuenoDescontarRoute: AppDuenoDescontarRoute,
+  AppDuenoEstadosRoute: AppDuenoEstadosRoute,
   AppDuenoMenuRoute: AppDuenoMenuRoute,
+  AppDuenoOfertaRoute: AppDuenoOfertaRoute,
+  AppDuenoOpinionesRoute: AppDuenoOpinionesRoute,
+  AppDuenoPedidosRoute: AppDuenoPedidosRoute,
   AppDuenoRegistrarConsumoRoute: AppDuenoRegistrarConsumoRoute,
   AppComensalIndexRoute: AppComensalIndexRoute,
   AppDuenoIndexRoute: AppDuenoIndexRoute,
+  AppComensalMesaMesaIdRoute: AppComensalMesaMesaIdRoute,
   AppDuenoPlanesNuevoRoute: AppDuenoPlanesNuevoRoute,
   AppDuenoPlanesIndexRoute: AppDuenoPlanesIndexRoute,
 }
