@@ -1,0 +1,16 @@
+export const PLANES_COPY = {
+  createTitle: "Nuevo plan",
+  editTitle: "Editar plan",
+  guideLine: "Define almuerzos y precio del paquete",
+  lunchesLabel: "Cantidad de almuerzos",
+  priceLabel: "Precio total",
+  saveButton: "Guardar plan",
+  cancel: "Cancelar",
+  savedUndo: (name: string, price: string) => `${name} (${price}) guardado`,
+  loadingTitle: "Guardando plan",
+  emptyTitle: "Sin planes configurados",
+  emptyDesc: "Crea tu primer paquete de almuerzos.",
+  errorTitle: "Error al guardar",
+  errorDesc: "No se pudo guardar la configuración.",
+  offlineBadge: "Sin conexión · Se guardará localmente",
+} as const;

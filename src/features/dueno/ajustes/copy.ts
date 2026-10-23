@@ -1,0 +1,16 @@
+export const AJUSTES_COPY = {
+  title: "Ajustes",
+  roleLabel: "Rol del dispositivo",
+  ownerRole: "Dueño (Todo)",
+  cashierRole: "Cajero / Ayudante",
+  cashierScope: "El cajero solo ve Caja, Cobrar, Vender y Pedidos en camino.",
+  ownerScope: "El dueño tiene acceso total a ventas, comisiones y cierre.",
+  migrateCardButton: "Pasar cartulina",
+  migrateCardDesc: "Registra clientes de cartulina física a digital.",
+  loadingTitle: "Cargando ajustes",
+  emptyTitle: "Sin ajustes",
+  emptyDesc: "Configuración inicial completa.",
+  errorTitle: "Error de ajustes",
+  errorDesc: "No se pudieron guardar las preferencias.",
+  offlineBadge: "Sin conexión · Ajustes guardados localmente",
+} as const;

@@ -29,19 +29,19 @@ export interface SaleTransaction {
   anulada: boolean;
 }
 
-export interface PlansRepository {
+export interface IPlansRepository {
   getActivePlansByClient(clienteId: string): Promise<PlanItem[]>;
   savePlan(plan: PlanItem): Promise<void>;
   updatePlan(planId: string, patch: Partial<PlanItem>): Promise<void>;
 }
 
-export interface ClientsRepository {
+export interface IClientsRepository {
   getClient(id: string): Promise<DinerClient | null>;
   searchClients(query: string): Promise<DinerClient[]>;
   saveClient(client: DinerClient): Promise<void>;
 }
 
-export interface SalesRepository {
+export interface ISalesRepository {
   recordSale(sale: SaleTransaction): Promise<void>;
   getTodaySales(restauranteId: string): Promise<SaleTransaction[]>;
 }

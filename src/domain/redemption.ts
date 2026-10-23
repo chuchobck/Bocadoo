@@ -19,17 +19,17 @@ export interface ValidationResult {
   outcome: ValidationOutcomeType;
   title: string;
   supportingLine: string;
-  comensalNombre?: string;
-  almuerzosRestantes?: number;
-  redemptionId?: string;
-  actionRequired?: "VENDER_PLAN" | "COBRAR_SUELTO" | "NINGUNA";
+  comensalNombre?: string | undefined;
+  almuerzosRestantes?: number | undefined;
+  redemptionId?: string | undefined;
+  actionRequired?: "VENDER_PLAN" | "COBRAR_SUELTO" | "NINGUNA" | undefined;
 }
 
 export interface PastRedemption {
   id: string;
   clienteId: string;
   restauranteId: string;
-  planId?: string;
+  planId?: string | undefined;
   timestamp: string;
   anulada: boolean;
 }

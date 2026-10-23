@@ -1,0 +1,28 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import React from "react";
+import { z } from "zod";
+
+import { ClientesPlanesView } from "@/components/dueno";
+import { AppShell, NavBar } from "@/components/bocadoo/ui";
+
+export const Route = createFileRoute("/app/dueno/clientes")({
+  validateSearch: z.object({ cliente: z.string().optional() }),
+  head: () => ({ meta: [{ title: "Bocadoo — Clientes y planes" }] }),
+  component: RouteComponent,
+});
+
+function RouteComponent() {
+  const navigate = useNavigate();
+  return (
+    <AppShell>
+      <div className="flex h-full flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto no-scrollbar">
+          <ClientesPlanesView
+            onBack={() => navigate({ to: "/app/dueno" }).catch(() => {})}
+          />
+        </div>
+        <NavBar active="Planes" owner />
+      </div>
+    </AppShell>
+  );
+}

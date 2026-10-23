@@ -32,8 +32,8 @@ export function calculateOccupancy({
 }: {
   totalSeats: number;
   dinersLast25Min: number;
-  manualBusyUntil?: string | null;
-  now?: Date;
+  manualBusyUntil?: string | null | undefined;
+  now?: Date | undefined;
 }): OccupancyState {
   // 1. Verificar si hay interruptor manual activo (20 min)
   if (manualBusyUntil) {

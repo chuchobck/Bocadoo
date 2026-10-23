@@ -1,0 +1,15 @@
+export const COBRO_PASE_COPY = {
+  validating: "Verificando…",
+  scanPassPrompt: "Apunta al código",
+  scanError: "Código no legible",
+  scanOffline: "Almuerzo descontado offline",
+  validPass: "Almuerzo registrado",
+  warningPass: "Último almuerzo",
+  warningPlanEnded: "Su plan acaba de terminar hoy.",
+  expiredPass: "Sin saldo activo",
+  expiredSub: "Su plan anterior ya venció.",
+  offerPlan: "Ofrecer nuevo plan",
+  sellNewPlan: "Vender nuevo plan",
+  done: "Listo",
+  undoLabel: "Almuerzo descontado",
+};

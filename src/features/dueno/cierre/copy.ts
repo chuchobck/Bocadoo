@@ -1,0 +1,18 @@
+export const CIERRE_COPY = {
+  title: "Cierre de caja",
+  shiftToday: "Turno hoy",
+  shiftSales: "Ventas del turno",
+  lunchesServed: (count: number) => `${count} almuerzos servidos hoy`,
+  cashInRegister: "Efectivo en caja",
+  transfers: "Transferencias",
+  bocadooCommission: "Comisión Bocadoo",
+  closeShiftButton: "Cerrar turno",
+  restrictedMessage: "Solo para el dueño",
+  loadingTitle: "Calculando ventas",
+  emptyTitle: "Caja sin movimientos",
+  emptyDesc: "Aún no se han registrado cobros hoy.",
+  errorTitle: "Error en cierre",
+  errorDesc: "No se pudo calcular el total del turno.",
+  offlineBadge: "Sin conexión · Cierre guardado localmente",
+  closedUndo: "Turno cerrado correctamente",
+} as const;

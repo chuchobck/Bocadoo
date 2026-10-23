@@ -134,3 +134,69 @@ export function calculateOwedLunchesLiability(
     totalLiabilityCents,
   };
 }
+
+export interface PlanTemplate {
+  id: string;
+  name: string;
+  lunches: number;
+  priceCents: Cents;
+  daysValidity: number;
+  includes: string[];
+  rules?: {
+    validDays?: string[];
+    maxPerDay?: number;
+  };
+  active: boolean;
+  archived?: boolean;
+}
+
+export interface SoldSubscription {
+  id: string;
+  clienteId: string;
+  restauranteId: string;
+  templatePlanId: string;
+  // Copia inmutable congelada al momento de la venta
+  snapshot: {
+    name: string;
+    lunchesTotal: number;
+    priceCents: Cents;
+    daysValidity: number;
+    includes: string[];
+  };
+  lunchesRemaining: number;
+  purchasedAt: string;
+  expiresAt: string;
+  status: "ACTIVO" | "AGOTADO" | "VENCIDO" | "ANULADO";
+}
+
+/**
+ * Vende un plan a un cliente creando un pase con copia inmutable
+ * de todos los datos del plan y fecha de vencimiento propia.
+ * Editar o archivar la plantilla original NO altera este plan ya vendido.
+ */
+export function sellPlanSubscription(
+  template: PlanTemplate,
+  clienteId: string,
+  restauranteId: string,
+  purchasedAt: Date = new Date()
+): SoldSubscription {
+  const expiresAtDate = new Date(purchasedAt.getTime() + template.daysValidity * 24 * 60 * 60 * 1000);
+
+  return {
+    id: `sub-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    clienteId,
+    restauranteId,
+    templatePlanId: template.id,
+    snapshot: {
+      name: template.name,
+      lunchesTotal: template.lunches,
+      priceCents: template.priceCents,
+      daysValidity: template.daysValidity,
+      includes: [...(template.includes || ["sopa", "segundo"])],
+    },
+    lunchesRemaining: template.lunches,
+    purchasedAt: purchasedAt.toISOString(),
+    expiresAt: expiresAtDate.toISOString(),
+    status: "ACTIVO",
+  };
+}

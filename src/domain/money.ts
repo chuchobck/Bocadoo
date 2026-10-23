@@ -33,9 +33,13 @@ export function parseToCents(input: string | number): Cents {
   return isNaN(val) ? 0 : Math.round(val * 100);
 }
 
+export const DEFAULT_COMMISSION_RATE = 0.07; // 7% comisión oficial
+export const COMMISSION_RATE_MIN = 0.05; // 5% mínimo
+export const COMMISSION_RATE_MAX = 0.10; // 10% máximo
+
 /**
- * Calcula la comisión de una venta (7% transparente).
+ * Calcula la comisión de una venta con tasa configurable (por defecto 7%).
  */
-export function calculateCommission(cents: Cents, rate = 0.07): Cents {
+export function calculateCommission(cents: Cents, rate: number = DEFAULT_COMMISSION_RATE): Cents {
   return Math.round(cents * rate);
 }

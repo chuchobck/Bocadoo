@@ -5,3 +5,4 @@ export * from "./redemption";
 export * from "./occupancy";
 export * from "./cash";
 export * from "./qr";
+export * from "./feedback";

@@ -1,0 +1,15 @@
+export const MENU_COPY = {
+  title: "Menú de hoy",
+  publishedBadge: "Publicado",
+  draftBadge: "Borrador",
+  soupSection: "Sopa del día",
+  mainSection: "Segundo a elegir",
+  publishButton: "Publicar menú",
+  loadingTitle: "Cargando platos",
+  emptyTitle: "Sin platos activos",
+  emptyDesc: "Elige sopa y segundo.",
+  errorTitle: "Error al publicar",
+  errorDesc: "No se pudo actualizar el menú de hoy.",
+  offlineBadge: "Sin conexión · Se publicará al conectar",
+  publishedUndo: "Menú publicado con éxito",
+} as const;

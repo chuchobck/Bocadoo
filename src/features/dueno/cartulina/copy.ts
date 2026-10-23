@@ -1,0 +1,15 @@
+export const CARTULINA_COPY = {
+  title: "Pasar cartulina",
+  guideLine: "Pasa sellos físicos a digital ahora",
+  nameLabel: "Nombre del comensal",
+  phoneLabel: "Celular del comensal",
+  lunchesLabel: "Almuerzos pendientes",
+  migrateButton: "Digitalizar cartulina",
+  migratedUndo: (name: string, lunches: number) => `Cartulina de ${name} (${lunches} almuerzos) digitalizada`,
+  loadingTitle: "Registrando cartulina",
+  emptyTitle: "Sin cartulinas pendientes",
+  emptyDesc: "Todos los comensales están al día.",
+  errorTitle: "Error al digitalizar",
+  errorDesc: "No se pudo registrar la cartulina física.",
+  offlineBadge: "Sin conexión · Se guardará localmente",
+} as const;

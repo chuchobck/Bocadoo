@@ -53,8 +53,8 @@ export function parseAndValidateQr(
   now = Date.now()
 ): {
   valid: boolean;
-  userId?: string;
-  isExpired?: boolean;
+  userId?: string | undefined;
+  isExpired?: boolean | undefined;
 } {
   const parts = rawPayload.split(".");
   if (parts.length !== 4 || parts[0] !== "BCD1") {
@@ -62,6 +62,9 @@ export function parseAndValidateQr(
   }
 
   const [, userId, rawTimeStep, hash] = parts;
+  if (!userId || !rawTimeStep || !hash) {
+    return { valid: false };
+  }
   const timeStep = parseInt(rawTimeStep, 10);
   if (isNaN(timeStep)) return { valid: false };
 
