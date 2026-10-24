@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   CreditCard,
   Plus,
+  Minus,
   Edit2,
   Archive,
   Pause,
@@ -64,23 +65,23 @@ const INITIAL_PLANS: LocalPlanItem[] = [
     id: "p-quincenal",
     name: "Plan quincenal",
     lunches: 10,
-    daysValidity: 15,
+    daysValidity: 18,
     priceCents: 2800,
     includes: ["Sopa", "Segundo", "Bebida"],
     rules: { maxPerDay: 1, validDays: "Lun a Sáb" },
     active: true,
-    salesCount: 25,
+    salesCount: 19,
   },
   {
     id: "p-mensual",
     name: "Plan mensual",
     lunches: 20,
-    daysValidity: 30,
-    priceCents: 5500,
+    daysValidity: 35,
+    priceCents: 5200,
     includes: ["Sopa", "Segundo", "Bebida", "Postre"],
     rules: { maxPerDay: 1, validDays: "Todos los días" },
     active: true,
-    salesCount: 48,
+    salesCount: 31,
   },
 ];
 
@@ -104,14 +105,18 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
 
-  // Modal para crear / editar plan
+  // Modal para crear / editar plan (estilo Image 2)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
-  const [planName, setPlanName] = useState("");
-  const [planLunches, setPlanLunches] = useState(10);
-  const [planValidityDays, setPlanValidityDays] = useState(15);
-  const [planPriceDollars, setPlanPriceDollars] = useState(28);
-  const [planIncludes, setPlanIncludes] = useState<string[]>(["Sopa", "Segundo", "Bebida"]);
+  const [planName, setPlanName] = useState("Plan mensual ejecutivo");
+  const [planType, setPlanType] = useState<"semanal" | "quincenal" | "mensual" | "libre">("mensual");
+  const [planLunches, setPlanLunches] = useState(20);
+  const [planValidityDays, setPlanValidityDays] = useState(35);
+  const [planPriceDollars, setPlanPriceDollars] = useState(52);
+  const [planCupos, setPlanCupos] = useState(40);
+  const [selectedDays, setSelectedDays] = useState<string[]>(["L", "M", "X", "J", "V"]);
+  const [planIncludes, setPlanIncludes] = useState<string[]>(["Sopa", "Segundo", "Jugo"]);
+  const [visibleInMarketplace, setVisibleInMarketplace] = useState(true);
 
   const filteredClients = clientList.filter(
     (c) =>
@@ -123,33 +128,58 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
 
   const handleOpenCreatePlan = () => {
     setEditingPlanId(null);
-    setPlanName("Plan quincenal");
-    setPlanLunches(10);
-    setPlanValidityDays(15);
-    setPlanPriceDollars(28);
-    setPlanIncludes(["Sopa", "Segundo", "Bebida"]);
+    setPlanName("Plan mensual ejecutivo");
+    setPlanType("mensual");
+    setPlanLunches(20);
+    setPlanValidityDays(35);
+    setPlanPriceDollars(52);
+    setPlanCupos(40);
+    setSelectedDays(["L", "M", "X", "J", "V"]);
+    setPlanIncludes(["Sopa", "Segundo", "Jugo"]);
+    setVisibleInMarketplace(true);
     setIsPlanModalOpen(true);
   };
 
-  const handleApplyTemplate = (type: "semanal" | "quincenal" | "mensual") => {
+  const handleOpenEditPlan = (plan: LocalPlanItem) => {
+    setEditingPlanId(plan.id);
+    setPlanName(plan.name);
+    setPlanLunches(plan.lunches);
+    setPlanValidityDays(plan.daysValidity);
+    setPlanPriceDollars(Math.round(plan.priceCents / 100));
+    setPlanIncludes(plan.includes);
+    setPlanCupos(35);
+    setPlanType(plan.lunches <= 5 ? "semanal" : plan.lunches <= 10 ? "quincenal" : "mensual");
+    setIsPlanModalOpen(true);
+  };
+
+  const handleApplyTemplate = (type: "semanal" | "quincenal" | "mensual" | "libre") => {
+    setPlanType(type);
     if (type === "semanal") {
       setPlanName("Plan semanal");
       setPlanLunches(5);
       setPlanValidityDays(7);
       setPlanPriceDollars(15);
+      setPlanCupos(20);
       setPlanIncludes(["Sopa", "Segundo", "Bebida"]);
+      setSelectedDays(["L", "M", "X", "J", "V"]);
     } else if (type === "quincenal") {
       setPlanName("Plan quincenal");
       setPlanLunches(10);
-      setPlanValidityDays(15);
+      setPlanValidityDays(18);
       setPlanPriceDollars(28);
+      setPlanCupos(30);
       setPlanIncludes(["Sopa", "Segundo", "Bebida"]);
-    } else {
-      setPlanName("Plan mensual");
+      setSelectedDays(["L", "M", "X", "J", "V", "S"]);
+    } else if (type === "mensual") {
+      setPlanName("Plan mensual ejecutivo");
       setPlanLunches(20);
-      setPlanValidityDays(30);
-      setPlanPriceDollars(55);
-      setPlanIncludes(["Sopa", "Segundo", "Bebida", "Postre"]);
+      setPlanValidityDays(35);
+      setPlanPriceDollars(52);
+      setPlanCupos(40);
+      setPlanIncludes(["Sopa", "Segundo", "Jugo"]);
+      setSelectedDays(["L", "M", "X", "J", "V"]);
+    } else {
+      setPlanType("libre");
     }
   };
 
@@ -256,7 +286,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
       aria-label="Planes y clientes"
       className="flex h-full flex-col bg-white overflow-y-auto no-scrollbar focus:outline-hidden"
     >
-      <header className="px-4 py-3 border-b border-[#E7E1F2] bg-white sticky top-0 z-10 space-y-2.5">
+      <header className="px-4 py-3.5 border-b border-[#F0EDF5] bg-white sticky top-0 z-10 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -269,7 +299,14 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
                 <ArrowLeft className="h-5 w-5" />
               </button>
             )}
-            <h1 className="text-[20px] font-black text-[#4A0E78]">{CLIENTES_COPY.title}</h1>
+            <div>
+              <span className="block text-[13px] font-extrabold uppercase tracking-widest text-[#7B2CBF]">
+                LA CUCHARA DE SAN BLAS
+              </span>
+              <h1 className="text-[24px] font-black tracking-tight text-[#1F1135]">
+                {activeSegment === "planes" ? "Mis planes" : "Clientes"}
+              </h1>
+            </div>
           </div>
 
           {activeSegment === "clientes" ? (
@@ -292,10 +329,10 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
             <button
               type="button"
               onClick={handleOpenCreatePlan}
-              className="flex items-center gap-1 rounded-full bg-[#7B2CBF] px-3.5 py-1 text-[13px] font-bold text-white shadow-xs active:scale-95"
+              aria-label="Nuevo plan"
+              className="grid h-10 w-10 place-items-center rounded-full bg-[#7B2CBF] text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
             >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Nuevo plan</span>
+              <Plus className="h-5 w-5 stroke-[2.5]" />
             </button>
           )}
         </div>
@@ -374,7 +411,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
 
         {(state === "exito" || state === "offline") && (
           <>
-            {/* SEGMENTO 1: PLANES */}
+            {/* SEGMENTO 1: PLANES (Estilo exacto Mockup Image 1) */}
             {activeSegment === "planes" && (
               <div className="space-y-4">
                 {plansList.map((plan) => {
@@ -382,95 +419,87 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
                     .toFixed(2)
                     .replace(".", ",");
                   const totalPrice = (plan.priceCents / 100).toFixed(2).replace(".", ",");
+                  const planTag = plan.name.replace(/plan\s*/i, "").toUpperCase();
 
                   return (
                     <div
                       key={plan.id}
-                      className={`rounded-[24px] border bg-white p-4 transition-all ${
+                      className={`rounded-[28px] border bg-white p-5 transition-all shadow-xs ${
                         plan.active && !plan.archived
-                          ? "border-[#E7E1F2] shadow-xs"
+                          ? "border-[#F0EDF5]"
                           : "border-[#E7E1F2] opacity-60 bg-[#FAF8FC]"
                       }`}
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-[16px] font-black text-[#4A0E78]">{plan.name}</h3>
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[13px] font-bold ${
-                                plan.active && !plan.archived
-                                  ? "bg-[#E6F6EC] text-[#157A41]"
-                                  : "bg-[#F5F3FA] text-[#6B5B7B]"
-                              }`}
-                            >
-                              {plan.archived ? "Archivado" : plan.active ? "Activo" : "Pausado"}
-                            </span>
-                          </div>
-                          <span className="text-[13px] font-semibold text-[#6B5B7B] mt-0.5 block">
-                            {plan.lunches} almuerzos · Vigencia {plan.daysValidity} días
-                          </span>
-                        </div>
+                      {/* Fila superior: Badge de tipo y Switch iOS */}
+                      <div className="flex items-center justify-between">
+                        <span className="rounded-full bg-[#F3E8FF] px-3 py-1 text-[13px] font-black uppercase tracking-wider text-[#7B2CBF]">
+                          {planTag}
+                        </span>
 
-                        <div className="text-right">
-                          <span className="text-[17px] font-black text-[#7B2CBF] block">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={plan.active}
+                            aria-label={`Estado de ${plan.name}`}
+                            onClick={() => handleTogglePlanActive(plan.id)}
+                            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors focus:outline-hidden ${
+                              plan.active ? "bg-[#7B2CBF]" : "bg-[#D9D3E6]"
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                                plan.active ? "translate-x-5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Título grande: 5 almuerzos, 10 almuerzos... */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditPlan(plan)}
+                        className="mt-2.5 text-left w-full group"
+                      >
+                        <h3 className="text-[22px] font-black text-[#1F1135] group-hover:text-[#7B2CBF] transition-colors">
+                          {plan.lunches} almuerzos
+                        </h3>
+                      </button>
+
+                      {/* Línea divisoria */}
+                      <div className="border-t border-[#F0EDF5] my-3.5" />
+
+                      {/* 3 Columnas: Precio, Vigencia, Clientes */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <span className="block text-[13px] font-medium text-[#6B5B7B] uppercase tracking-wider">
+                            Precio
+                          </span>
+                          <span className="text-[17px] font-black text-[#1F1135] block mt-0.5">
                             ${totalPrice}
                           </span>
-                          <span className="text-[13px] font-bold text-[#6B5B7B]">
+                          <span className="text-[13px] font-bold text-[#7B2CBF]">
                             ${lunchUnitPrice} c/u
                           </span>
                         </div>
-                      </div>
 
-                      {/* Qué incluye (chips de secciones) */}
-                      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[#E7E1F2] pt-2.5">
-                        {plan.includes.map((inc) => (
-                          <span
-                            key={inc}
-                            className="rounded-full bg-[#F3E8FF] px-2.5 py-0.5 text-[13px] font-bold text-[#4A0E78]"
-                          >
-                            {inc}
+                        <div>
+                          <span className="block text-[13px] font-medium text-[#6B5B7B] uppercase tracking-wider">
+                            Vigencia
                           </span>
-                        ))}
-                      </div>
+                          <span className="text-[16px] font-black text-[#1F1135] block mt-0.5">
+                            {plan.daysValidity} días
+                          </span>
+                        </div>
 
-                      {/* Acciones del dueño */}
-                      <div className="mt-3 flex items-center justify-between border-t border-[#E7E1F2] pt-2.5">
-                        <span className="text-[13px] font-semibold text-[#6B5B7B]">
-                          {plan.salesCount} ventas
-                        </span>
-
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingPlanId(plan.id);
-                              setPlanName(plan.name);
-                              setPlanLunches(plan.lunches);
-                              setPlanValidityDays(plan.daysValidity);
-                              setPlanPriceDollars(plan.priceCents / 100);
-                              setPlanIncludes(plan.includes);
-                              setIsPlanModalOpen(true);
-                            }}
-                            className="rounded-full bg-[#F5F3FA] px-3 py-1 text-[13px] font-bold text-[#4A0E78] border border-[#E7E1F2] active:scale-95"
-                          >
-                            Editar
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleTogglePlanActive(plan.id)}
-                            className="rounded-full bg-[#F5F3FA] px-3 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95"
-                          >
-                            {plan.active ? "Pausar" : "Activar"}
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleArchivePlan(plan.id)}
-                            className="rounded-full bg-[#F5F3FA] px-3 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95"
-                          >
-                            {plan.archived ? "Restaurar" : "Archivar"}
-                          </button>
+                        <div>
+                          <span className="block text-[13px] font-medium text-[#6B5B7B] uppercase tracking-wider">
+                            Clientes
+                          </span>
+                          <span className="text-[16px] font-black text-[#1F1135] block mt-0.5">
+                            {plan.salesCount}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -523,157 +552,315 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
         )}
       </main>
 
-      {/* Modal: Crear / Editar Plan en 3 toques */}
+      {/* Modal: Crear / Editar Plan (Estilo exacto Mockup Image 2) */}
       {isPlanModalOpen && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#1F1135]/50 backdrop-blur-[6px] p-2 sm:p-4 animate-in fade-in"
           onClick={() => setIsPlanModalOpen(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-xl animate-in slide-in-from-bottom space-y-4 max-h-[90vh] overflow-y-auto no-scrollbar"
+            className="w-full max-w-md rounded-[32px] bg-white p-5 shadow-2xl animate-in slide-in-from-bottom space-y-4 max-h-[92vh] overflow-y-auto no-scrollbar border border-[#E7E1F2]"
           >
+            {/* Header del modal */}
             <div className="flex items-center justify-between">
-              <h3 className="text-[17px] font-black text-[#4A0E78]">
-                {editingPlanId ? "Editar plan" : "Nuevo plan"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsPlanModalOpen(false)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            {/* Chips de plantillas rápidas (3 toques) */}
-            {!editingPlanId && (
-              <div>
-                <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1.5">
-                  Plantillas editables
-                </label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTemplate("semanal")}
-                    className="rounded-xl bg-[#F5F3FA] p-2 text-center border border-[#E7E1F2] active:scale-95"
-                  >
-                    <p className="text-[13px] font-bold text-[#4A0E78]">Semanal</p>
-                    <p className="text-[13px] font-semibold text-[#7B2CBF]">$15,00</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTemplate("quincenal")}
-                    className="rounded-xl bg-[#F5F3FA] p-2 text-center border border-[#E7E1F2] active:scale-95"
-                  >
-                    <p className="text-[13px] font-bold text-[#4A0E78]">Quincenal</p>
-                    <p className="text-[13px] font-semibold text-[#7B2CBF]">$28,00</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTemplate("mensual")}
-                    className="rounded-xl bg-[#F5F3FA] p-2 text-center border border-[#E7E1F2] active:scale-95"
-                  >
-                    <p className="text-[13px] font-bold text-[#4A0E78]">Mensual</p>
-                    <p className="text-[13px] font-semibold text-[#7B2CBF]">$55,00</p>
-                  </button>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsPlanModalOpen(false)}
+                  aria-label="Cerrar modal"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-[#F5F3FA] text-[#4A0E78] active:scale-95"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+                <div>
+                  <span className="block text-[13px] font-black tracking-widest uppercase text-[#7B2CBF]">
+                    LA CUCHARA DE SAN BLAS
+                  </span>
+                  <h3 className="text-[18px] font-black text-[#1F1135]">
+                    {editingPlanId ? "Editar plan" : "Nuevo plan"}
+                  </h3>
                 </div>
               </div>
-            )}
 
+              <span className="text-[13px] font-extrabold text-[#7B2CBF]">
+                {editingPlanId ? "Activo" : "Borrador"}
+              </span>
+            </div>
+
+            {/* VISTA PREVIA PARA COMENSALES (Tarjeta oscura Mockup Image 2) */}
+            <div className="relative overflow-hidden rounded-[24px] bg-[#181126] p-4 text-white shadow-lg border border-[#311F4A]">
+              <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-[#7B2CBF]/30 blur-2xl pointer-events-none" />
+              <span className="block text-[13px] font-black tracking-widest uppercase text-[#C084FC] mb-1.5">
+                VISTA PREVIA PARA COMENSALES
+              </span>
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-[17px] font-black text-white leading-tight">
+                    {planName || `Plan ${planLunches} almuerzos`}
+                  </h4>
+                  <p className="mt-1 text-[13px] font-semibold text-[#A89CB8]">
+                    {planLunches} almuerzos · vigencia {planValidityDays} días
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="block text-[24px] font-black text-white leading-none">
+                    ${planPriceDollars},00
+                  </span>
+                  <span className="text-[13px] font-bold text-[#C084FC]">
+                    ${pricePerLunch} c/u
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* NOMBRE DEL PLAN */}
             <div>
-              <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
-                Nombre del plan
+              <label className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B] mb-1">
+                NOMBRE DEL PLAN
               </label>
               <input
                 type="text"
                 value={planName}
                 onChange={(e) => setPlanName(e.target.value)}
-                placeholder="Ej. Plan mensual"
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[14px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-none"
+                placeholder="Ej. Plan mensual ejecutivo"
+                className="w-full rounded-[16px] border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[14px] font-bold text-[#1F1135] focus:border-[#7B2CBF] focus:outline-hidden"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
-                  Almuerzos
-                </label>
-                <input
-                  type="number"
-                  value={planLunches}
-                  onChange={(e) => setPlanLunches(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[14px] font-bold text-[#4A0E78]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
-                  Vigencia (días)
-                </label>
-                <input
-                  type="number"
-                  value={planValidityDays}
-                  onChange={(e) => setPlanValidityDays(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[14px] font-bold text-[#4A0E78]"
-                />
-              </div>
-            </div>
-
+            {/* TIPO DE PLAN (Semanal, Quincenal, Mensual, Libre) */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[13px] font-bold text-[#6B5B7B]">
-                  Precio total
-                </label>
-                <span className="text-[13px] font-bold text-[#7B2CBF]">
-                  ${pricePerLunch} c/u
-                </span>
-              </div>
-              <input
-                type="number"
-                value={planPriceDollars}
-                onChange={(e) => setPlanPriceDollars(Math.max(1, parseFloat(e.target.value) || 1))}
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[14px] font-bold text-[#4A0E78]"
-              />
-            </div>
-
-            {/* Qué incluye (casillas por sección) */}
-            <div>
-              <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1.5">
-                Qué incluye cada almuerzo
+              <label className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B] mb-1.5">
+                TIPO DE PLAN
               </label>
-              <div className="flex flex-wrap gap-2">
-                {["Sopa", "Segundo", "Bebida", "Postre"].map((sec) => {
-                  const on = planIncludes.includes(sec);
+              <div className="grid grid-cols-4 gap-1 rounded-full bg-[#F5F3FA] p-1 border border-[#E7E1F2]">
+                {(["semanal", "quincenal", "mensual", "libre"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => handleApplyTemplate(t)}
+                    className={`rounded-full py-1.5 text-center text-[13px] font-extrabold capitalize transition-all ${
+                      planType === t
+                        ? "bg-[#7B2CBF] text-white shadow-xs"
+                        : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cuadrícula 2x2 de Steppers (Almuerzos, Vigencia, Precio, Cupos) */}
+            <div className="grid grid-cols-2 gap-2.5">
+              {/* Stepper 1: Almuerzos */}
+              <div className="rounded-[20px] bg-[#F5F3FA] p-3 text-center border border-[#E7E1F2]">
+                <span className="block text-[13px] font-bold text-[#6B5B7B] mb-2">
+                  Almuerzos
+                </span>
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    aria-label="Menos almuerzos"
+                    onClick={() => setPlanLunches((prev) => Math.max(1, prev - 1))}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-white text-[#6B5B7B] shadow-xs active:scale-95"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-[17px] font-black text-[#1F1135]">{planLunches}</span>
+                  <button
+                    type="button"
+                    aria-label="Más almuerzos"
+                    onClick={() => setPlanLunches((prev) => prev + 1)}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-[#7B2CBF] text-white shadow-xs active:scale-95"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Stepper 2: Vigencia */}
+              <div className="rounded-[20px] bg-[#F5F3FA] p-3 text-center border border-[#E7E1F2]">
+                <span className="block text-[13px] font-bold text-[#6B5B7B] mb-2">
+                  Vigencia (días)
+                </span>
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    aria-label="Menos días"
+                    onClick={() => setPlanValidityDays((prev) => Math.max(1, prev - 1))}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-white text-[#6B5B7B] shadow-xs active:scale-95"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-[17px] font-black text-[#1F1135]">{planValidityDays}</span>
+                  <button
+                    type="button"
+                    aria-label="Más días"
+                    onClick={() => setPlanValidityDays((prev) => prev + 1)}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-[#7B2CBF] text-white shadow-xs active:scale-95"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Stepper 3: Precio */}
+              <div className="rounded-[20px] bg-[#F5F3FA] p-3 text-center border border-[#E7E1F2]">
+                <span className="block text-[13px] font-bold text-[#6B5B7B] mb-2">
+                  Precio del plan
+                </span>
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    aria-label="Menos precio"
+                    onClick={() => setPlanPriceDollars((prev) => Math.max(1, prev - 1))}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-white text-[#6B5B7B] shadow-xs active:scale-95"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-[17px] font-black text-[#1F1135]">${planPriceDollars},00</span>
+                  <button
+                    type="button"
+                    aria-label="Más precio"
+                    onClick={() => setPlanPriceDollars((prev) => prev + 1)}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-[#7B2CBF] text-white shadow-xs active:scale-95"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Stepper 4: Cupos */}
+              <div className="rounded-[20px] bg-[#F5F3FA] p-3 text-center border border-[#E7E1F2]">
+                <span className="block text-[13px] font-bold text-[#6B5B7B] mb-2">
+                  Cupos disponibles
+                </span>
+                <div className="flex items-center justify-between px-1">
+                  <button
+                    type="button"
+                    aria-label="Menos cupos"
+                    onClick={() => setPlanCupos((prev) => Math.max(1, prev - 5))}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-white text-[#6B5B7B] shadow-xs active:scale-95"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="text-[17px] font-black text-[#1F1135]">{planCupos}</span>
+                  <button
+                    type="button"
+                    aria-label="Más cupos"
+                    onClick={() => setPlanCupos((prev) => prev + 5)}
+                    className="grid h-8 w-8 place-items-center rounded-full bg-[#7B2CBF] text-white shadow-xs active:scale-95"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* DÍAS DE CONSUMO (L, M, M, J, V, S, D) */}
+            <div>
+              <label className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B] mb-1.5">
+                DÍAS DE CONSUMO
+              </label>
+              <div className="flex items-center justify-between">
+                {["L", "M", "X", "J", "V", "S", "D"].map((day, idx) => {
+                  const displayDay = day === "X" ? "M" : day;
+                  const isSelected = selectedDays.includes(day);
                   return (
                     <button
-                      key={sec}
+                      key={`${day}-${idx}`}
                       type="button"
-                      onClick={() =>
-                        setPlanIncludes((prev) =>
-                          prev.includes(sec) ? prev.filter((s) => s !== sec) : [...prev, sec]
-                        )
-                      }
-                      className={`rounded-full px-3 py-1.5 text-[13px] font-bold transition-all ${
-                        on
+                      onClick={() => {
+                        setSelectedDays((prev) =>
+                          prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+                        );
+                      }}
+                      className={`h-9 w-9 rounded-full text-[13px] font-black transition-all ${
+                        isSelected
                           ? "bg-[#7B2CBF] text-white shadow-xs"
-                          : "bg-[#F5F3FA] text-[#4A0E78] border border-[#E7E1F2]"
+                          : "bg-[#F5F3FA] text-[#6B5B7B] hover:bg-[#EBD7FC]"
                       }`}
                     >
-                      {sec}
+                      {displayDay}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="pt-2">
-              <ButtonPrimary onClick={handleSavePlan}>
-                Guardar plan
-              </ButtonPrimary>
+            {/* EL ALMUERZO INCLUYE */}
+            <div>
+              <label className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B] mb-1.5">
+                EL ALMUERZO INCLUYE
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {["Sopa", "Segundo", "Jugo", "Postre"].map((sec) => {
+                  const included = planIncludes.includes(sec);
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => {
+                        setPlanIncludes((prev) =>
+                          included ? prev.filter((s) => s !== sec) : [...prev, sec]
+                        );
+                      }}
+                      className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all flex items-center gap-1 ${
+                        included
+                          ? "bg-[#F3E8FF] text-[#7B2CBF] border border-[#EBD7FC]"
+                          : "bg-[#F5F3FA] text-[#6B5B7B] border border-[#E7E1F2]"
+                      }`}
+                    >
+                      {included ? <Check className="h-3 w-3 stroke-[3]" /> : <Plus className="h-3 w-3" />}
+                      <span>{sec}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Switch: Visible en el marketplace */}
+            <div className="flex items-center justify-between rounded-2xl bg-[#F5F3FA] p-3 border border-[#E7E1F2]">
+              <div>
+                <p className="text-[13px] font-bold text-[#1F1135]">Visible en el marketplace</p>
+                <p className="text-[13px] font-semibold text-[#6B5B7B]">
+                  Los comensales pueden comprarlo en la app
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={visibleInMarketplace}
+                onClick={() => setVisibleInMarketplace((prev) => !prev)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors focus:outline-hidden ${
+                  visibleInMarketplace ? "bg-[#7B2CBF]" : "bg-[#D9D3E6]"
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                    visibleInMarketplace ? "translate-x-5" : "translate-x-0"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Botón principal */}
+            <button
+              type="button"
+              onClick={handleSavePlan}
+              aria-label="Guardar plan"
+              className="w-full flex items-center justify-center gap-2 rounded-full bg-[#7B2CBF] py-3.5 text-[15px] font-black text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
+            >
+              <Check className="h-4 w-4 stroke-[3]" />
+              <span>Guardar plan</span>
+            </button>
+
+            <p className="text-center text-[13px] font-semibold text-[#6B5B7B]">
+              Gratis para publicar. Bocadoo cobra un porcentaje solo con cada almuerzo servido.
+            </p>
           </div>
         </div>
       )}
