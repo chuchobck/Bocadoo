@@ -74,6 +74,11 @@ export const CajaScreen: React.FC<CajaScreenProps> = ({
               {occupancy === "LIBRE" ? "Libre" : "Movido"}
             </span>
           )}
+          {role === "cajero" && (
+            <span className="rounded-full bg-[#FAF5FF] border border-[#E9D5FF] px-2.5 py-0.5 text-[13px] font-extrabold text-[#7B2CBF]">
+              Cajero
+            </span>
+          )}
         </div>
 
         {/* Único control manual: Marcar lleno (1 toque, 20 min, se revierte con 1 toque) */}
@@ -215,38 +220,62 @@ export const CajaScreen: React.FC<CajaScreenProps> = ({
                 <span>{CAJA_COPY.chargeSingle(singlePrice)}</span>
               </button>
 
-              {/* Fila de 3 accesos directos: Vender plan, Oferta flash y Cuadre de caja */}
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={onSellPlan}
-                  aria-label="Vender plan a comensal"
-                  className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
-                >
-                  <Users className="h-4 w-4 text-[#7B2CBF]" />
-                  <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Vender plan</span>
-                </button>
+              {/* Acciones rápidas: Si es dueño ve Vender plan, Oferta flash y Cuadre. Si es cajero ve solo Vender plan y Pedidos */}
+              {role === "cajero" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={onSellPlan}
+                    aria-label="Vender plan a comensal"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                  >
+                    <Users className="h-4 w-4 text-[#7B2CBF]" />
+                    <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Vender plan</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowOfertaModal(true)}
-                  aria-label="Lanzar oferta flash"
-                  className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F3E8FF] p-2.5 text-center border border-[#EBD7FC] active:scale-95 transition-all hover:bg-[#E0AAFF]/30"
-                >
-                  <Zap className="h-4 w-4 text-[#7B2CBF]" />
-                  <span className="text-[13px] font-black text-[#7B2CBF] leading-tight">Oferta flash</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={onViewOrders}
+                    aria-label="Ver pedidos en camino"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                  >
+                    <Clock className="h-4 w-4 text-[#7B2CBF]" />
+                    <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Pedidos</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={onSellPlan}
+                    aria-label="Vender plan a comensal"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                  >
+                    <Users className="h-4 w-4 text-[#7B2CBF]" />
+                    <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Vender plan</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={onOpenCierre || (() => window.location.assign("/app/dueno/cierre"))}
-                  aria-label="Cuadre de caja"
-                  className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
-                >
-                  <Receipt className="h-4 w-4 text-[#4A0E78]" />
-                  <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Cuadre caja</span>
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowOfertaModal(true)}
+                    aria-label="Lanzar oferta flash"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F3E8FF] p-2.5 text-center border border-[#EBD7FC] active:scale-95 transition-all hover:bg-[#E0AAFF]/30"
+                  >
+                    <Zap className="h-4 w-4 text-[#7B2CBF]" />
+                    <span className="text-[13px] font-black text-[#7B2CBF] leading-tight">Oferta flash</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onOpenCierre || (() => window.location.assign("/app/dueno/cierre"))}
+                    aria-label="Cuadre de caja"
+                    className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                  >
+                    <Receipt className="h-4 w-4 text-[#4A0E78]" />
+                    <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Cuadre caja</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}

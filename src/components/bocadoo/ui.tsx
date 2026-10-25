@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   Banknote,
   ChevronRight,
+  Clock,
   CreditCard,
   Home,
   Landmark,
@@ -419,7 +420,7 @@ export function useGoBack(fallback: AppPath) {
   return () => (canGoBack ? router.history.back() : navigate({ to: fallback }));
 }
 
-const NAV_ITEMS: Record<"diner" | "owner", Array<[string, IconType, AppPath]>> = {
+const NAV_ITEMS: Record<"diner" | "owner" | "cashier", Array<[string, IconType, AppPath]>> = {
   diner: [
     ["Pase", QrCode, "/app/comensal"],
     ["Comer", Store, "/app/comensal/restaurantes"],
@@ -431,24 +432,40 @@ const NAV_ITEMS: Record<"diner" | "owner", Array<[string, IconType, AppPath]>> =
     ["Planes", WalletCards, "/app/dueno/planes"],
     ["Ajustes", Settings, "/app/dueno/ajustes"],
   ],
+  cashier: [
+    ["Caja", QrCode, "/app/dueno"],
+    ["Pedidos", Clock, "/app/dueno/pedidos"],
+    ["Turno", Settings, "/app/dueno/ajustes"],
+  ],
 };
 
-export const NavBar = ({ active, owner = false }: { active: string; owner?: boolean }) => {
-  const items = NAV_ITEMS[owner ? "owner" : "diner"];
+export const NavBar = ({
+  active,
+  owner = false,
+  cashier = false,
+}: {
+  active: string;
+  owner?: boolean;
+  cashier?: boolean;
+}) => {
+  const items = cashier ? NAV_ITEMS.cashier : NAV_ITEMS[owner ? "owner" : "diner"];
   return (
     <nav
       className="mt-auto grid min-h-[76px] shrink-0 border-t border-border bg-background/95 px-2 pb-6 pt-2 backdrop-blur-md z-20 shadow-[0_-4px_16px_rgba(74,14,120,0.04)]"
       style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
-      aria-label={owner ? "Navegación del dueño" : "Navegación del comensal"}
+      aria-label={cashier ? "Navegación del cajero" : owner ? "Navegación del dueño" : "Navegación del comensal"}
     >
       {items.map(([label, Icon, to]) => {
         const selected =
           active.toLowerCase() === label.toLowerCase() ||
-          (label === "Caja" && active.toLowerCase() === "home");
+          (label === "Caja" && active.toLowerCase() === "home") ||
+          (label === "Turno" && active.toLowerCase() === "ajustes") ||
+          (label === "Ajustes" && active.toLowerCase() === "turno");
         return (
           <Link
             key={label}
             to={to}
+            search={cashier ? ({ role: "cajero" } as any) : undefined}
             replace
             className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-all active:scale-95 ${
               selected

@@ -68,6 +68,41 @@ const INITIAL_CATALOG: CatalogItem[] = [
   { id: "c-b2", name: "Jugo de mora", section: "Bebida" },
 ];
 
+export interface ALaCarteItem {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  archived?: boolean;
+}
+
+const INITIAL_A_LA_CARTE: ALaCarteItem[] = [
+  {
+    id: "alc-1",
+    name: "Fritada tradicional con mote",
+    price: 6.5,
+    description: "Carne de cerdo dorada con mote, chulpi y tostado",
+  },
+  {
+    id: "alc-2",
+    name: "Churrasco con papas y huevo",
+    price: 5.5,
+    description: "Lomo a la plancha con papas fritas y ensalada",
+  },
+  {
+    id: "alc-3",
+    name: "Ceviche mixto de camarón",
+    price: 7.0,
+    description: "Con chifle, maíz tostado y aguacate",
+  },
+  {
+    id: "alc-4",
+    name: "Trucha al ajillo con patacones",
+    price: 6.0,
+    description: "Trucha fresca en salsa de ajo con patacones",
+  },
+];
+
 export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   onPublishMenu,
   onBack,
@@ -77,56 +112,80 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   const { publishMenu, simulatedTodayKey, menuDays } = useBocadoo();
 
   const [activeSegment, setActiveSegment] = useState<"hoy" | "catalogo">("hoy");
+  const [catalogSubSegment, setCatalogSubSegment] = useState<"almuerzos" | "alacarta">("almuerzos");
   const [catalog, setCatalog] = useState<CatalogItem[]>(INITIAL_CATALOG);
+  const [aLaCarteCatalog, setALaCarteCatalog] = useState<ALaCarteItem[]>(INITIAL_A_LA_CARTE);
   const [activeSections, setActiveSections] = useState<string[]>(["Sopa", "Segundo", "Bebida"]);
 
-  // Los 4 componentes claros del almuerzo diario
-  const [todaySoup, setTodaySoup] = useState<string>("Locro de papa con queso");
-  const [todayMain, setTodayMain] = useState<string>("Pollo a la plancha");
-  const [todayVeggie, setTodayVeggie] = useState<string>("Bowl de quinoa");
-  const [todayBeverage, setTodayBeverage] = useState<string>("Jugo de naranjilla");
-  const [todayDessert, setTodayDessert] = useState<string>("Higos con queso");
-
-  const [selectedDishes, setSelectedDishes] = useState<string[]>([
+  // Múltiples opciones por sección para el almuerzo diario (ej. 3 sopas, 3 segundos, 1 jugo, 1 postre)
+  const [todaySoups, setTodaySoups] = useState<string[]>([
     "Locro de papa con queso",
+    "Sopa de lenteja",
+  ]);
+  const [todayMains, setTodayMains] = useState<string[]>([
     "Pollo a la plancha",
+    "Seco de pollo con maduro",
     "Bowl de quinoa",
+  ]);
+  const [todayBeverages, setTodayBeverages] = useState<string[]>([
     "Jugo de naranjilla",
   ]);
+  const [todayDesserts, setTodayDesserts] = useState<string[]>([
+    "Higos con queso",
+  ]);
+
   const [exhaustedDishes, setExhaustedDishes] = useState<string[]>([]);
   const [published, setPublished] = useState(false);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
 
-  // Modal para cambiar plato en 1 toque (Ley del mínimo esfuerzo)
-  const [selectingSlot, setSelectingSlot] = useState<"sopa" | "main" | "veggie" | "beverage" | "dessert" | null>(null);
+  // Modal para seleccionar múltiples platos en 1 toque
   const [selectingSection, setSelectingSection] = useState<"Sopa" | "Segundo" | "Bebida" | "Postre" | null>(null);
   const [quickDishInput, setQuickDishInput] = useState<string>("");
 
-  // Modal de creación en catálogo
+  // Modales de creación
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDishName, setNewDishName] = useState("");
   const [newDishSection, setNewDishSection] = useState("Segundo");
 
+  const [showALaCarteModal, setShowALaCarteModal] = useState(false);
+  const [newAlcName, setNewAlcName] = useState("");
+  const [newAlcPrice, setNewAlcPrice] = useState("");
+  const [newAlcDesc, setNewAlcDesc] = useState("");
+
   const openSelector = (
-    slot: "sopa" | "main" | "veggie" | "beverage" | "dessert",
     section: "Sopa" | "Segundo" | "Bebida" | "Postre"
   ) => {
-    setSelectingSlot(slot);
     setSelectingSection(section);
     setQuickDishInput("");
   };
 
-  const handleSelectDishForToday = (dishName: string) => {
-    if (selectingSlot === "sopa") setTodaySoup(dishName);
-    else if (selectingSlot === "main") setTodayMain(dishName);
-    else if (selectingSlot === "veggie") setTodayVeggie(dishName);
-    else if (selectingSlot === "beverage") setTodayBeverage(dishName);
-    else if (selectingSlot === "dessert") setTodayDessert(dishName);
-
-    setSelectedDishes((prev) => (prev.includes(dishName) ? prev : [...prev, dishName]));
-    setSelectingSlot(null);
-    setSelectingSection(null);
+  const handleToggleDishInTodayCategory = (dishName: string, section: "Sopa" | "Segundo" | "Bebida" | "Postre") => {
+    if (section === "Sopa") {
+      setTodaySoups((prev) =>
+        prev.includes(dishName)
+          ? prev.length > 1 ? prev.filter((d) => d !== dishName) : prev
+          : [...prev, dishName]
+      );
+    } else if (section === "Segundo") {
+      setTodayMains((prev) =>
+        prev.includes(dishName)
+          ? prev.length > 1 ? prev.filter((d) => d !== dishName) : prev
+          : [...prev, dishName]
+      );
+    } else if (section === "Bebida") {
+      setTodayBeverages((prev) =>
+        prev.includes(dishName)
+          ? prev.length > 1 ? prev.filter((d) => d !== dishName) : prev
+          : [...prev, dishName]
+      );
+    } else if (section === "Postre") {
+      setTodayDesserts((prev) =>
+        prev.includes(dishName)
+          ? prev.length > 1 ? prev.filter((d) => d !== dishName) : prev
+          : [...prev, dishName]
+      );
+    }
   };
 
   const handleCreateQuickDish = () => {
@@ -138,7 +197,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
       section: selectingSection,
     };
     setCatalog((prev) => [...prev, newItem]);
-    handleSelectDishForToday(newName);
+    handleToggleDishInTodayCategory(newName, selectingSection);
     setQuickDishInput("");
   };
 
@@ -150,15 +209,28 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
       section: newDishSection,
     };
     setCatalog((prev) => [...prev, newItem]);
-    setSelectedDishes((prev) => [...prev, newItem.name]);
+    if (newDishSection === "Sopa") setTodaySoups((prev) => [...prev, newItem.name]);
+    else if (newDishSection === "Segundo") setTodayMains((prev) => [...prev, newItem.name]);
+    else if (newDishSection === "Bebida") setTodayBeverages((prev) => [...prev, newItem.name]);
+    else if (newDishSection === "Postre") setTodayDesserts((prev) => [...prev, newItem.name]);
     setNewDishName("");
     setShowAddModal(false);
   };
 
-  const handleToggleDishToday = (dishName: string) => {
-    setSelectedDishes((prev) =>
-      prev.includes(dishName) ? prev.filter((d) => d !== dishName) : [...prev, dishName]
-    );
+  const handleCreateALaCarte = () => {
+    if (!newAlcName.trim()) return;
+    const priceNum = parseFloat(newAlcPrice.replace(",", ".")) || 5.0;
+    const newItem: ALaCarteItem = {
+      id: `alc-new-${Date.now()}`,
+      name: newAlcName.trim(),
+      price: priceNum,
+      description: newAlcDesc.trim() || "Especialidad de la casa preparada al momento",
+    };
+    setALaCarteCatalog((prev) => [...prev, newItem]);
+    setNewAlcName("");
+    setNewAlcPrice("");
+    setNewAlcDesc("");
+    setShowALaCarteModal(false);
   };
 
   const handleToggleExhausted = (dishName: string) => {
@@ -168,18 +240,11 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   };
 
   const handleRepeatYesterday = () => {
-    // 1 toque: Repite la combinación ganadora de ayer (Ley del mínimo esfuerzo)
-    setTodaySoup("Locro de papa con queso");
-    setTodayMain("Pollo a la plancha");
-    setTodayVeggie("Bowl de quinoa");
-    setTodayBeverage("Jugo de naranjilla");
-    setTodayDessert("Higos con queso");
-    setSelectedDishes([
-      "Locro de papa con queso",
-      "Pollo a la plancha",
-      "Bowl de quinoa",
-      "Jugo de naranjilla",
-    ]);
+    // 1 toque: Repite la combinación ganadora de ayer con todas sus opciones (Ley del mínimo esfuerzo)
+    setTodaySoups(["Locro de papa con queso", "Sopa de lenteja"]);
+    setTodayMains(["Pollo a la plancha", "Seco de pollo con maduro", "Bowl de quinoa"]);
+    setTodayBeverages(["Jugo de naranjilla"]);
+    setTodayDesserts(["Higos con queso"]);
     setExhaustedDishes([]);
   };
 
@@ -192,49 +257,35 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
     publishMenu({
       fecha: simulatedTodayKey,
       secciones: {
-        sopa: [
-          {
-            id: "s-1",
-            nombre: todaySoup,
-            descripcion: "",
-            agotado: exhaustedDishes.includes(todaySoup),
-          },
-        ],
-        fuerte: [
-          {
-            id: "m-1",
-            nombre: todayMain,
-            descripcion: "",
-            agotado: exhaustedDishes.includes(todayMain),
-          },
-          {
-            id: "m-2",
-            nombre: todayVeggie,
-            descripcion: "",
-            agotado: exhaustedDishes.includes(todayVeggie),
-          },
-        ],
-        postre: [
-          {
-            id: "p-1",
-            nombre: todayDessert,
-            descripcion: "",
-            agotado: exhaustedDishes.includes(todayDessert),
-          },
-        ],
-        jugo: [
-          {
-            id: "j-1",
-            nombre: todayBeverage,
-            descripcion: "",
-            agotado: exhaustedDishes.includes(todayBeverage),
-          },
-        ],
+        sopa: todaySoups.map((s, idx) => ({
+          id: `s-${idx}`,
+          nombre: s,
+          descripcion: "",
+          agotado: exhaustedDishes.includes(s),
+        })),
+        fuerte: todayMains.map((m, idx) => ({
+          id: `m-${idx}`,
+          nombre: m,
+          descripcion: "",
+          agotado: exhaustedDishes.includes(m),
+        })),
+        postre: todayDesserts.map((p, idx) => ({
+          id: `p-${idx}`,
+          nombre: p,
+          descripcion: "",
+          agotado: exhaustedDishes.includes(p),
+        })),
+        jugo: todayBeverages.map((j, idx) => ({
+          id: `j-${idx}`,
+          nombre: j,
+          descripcion: "",
+          agotado: exhaustedDishes.includes(j),
+        })),
         adicional: [],
       },
     });
 
-    onPublishMenu?.(todaySoup, todayMain);
+    onPublishMenu?.(todaySoups[0] || "Locro de papa con queso", todayMains[0] || "Pollo a la plancha");
   };
 
   const handleToggleSection = (section: string) => {
@@ -246,6 +297,12 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   const handleArchiveDish = (dishId: string) => {
     setCatalog((prev) =>
       prev.map((c) => (c.id === dishId ? { ...c, archived: !c.archived } : c))
+    );
+  };
+
+  const handleArchiveALaCarte = (id: string) => {
+    setALaCarteCatalog((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, archived: !c.archived } : c))
     );
   };
 
@@ -454,105 +511,120 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   </span>
                 </div>
 
-                {/* Cuadrícula de 4 componentes del almuerzo de hoy (Sopa, Segundo, Veggie, Bebida) */}
+                {/* Cuadrícula de componentes del almuerzo de hoy (soporta múltiples opciones por sección) */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     {
                       category: "SOPA",
-                      slot: "sopa" as const,
                       section: "Sopa" as const,
-                      name: todaySoup,
-                      image: getDishImage(todaySoup, "Sopa"),
+                      items: todaySoups,
+                      image: getDishImage(todaySoups[0] || "Locro de papa con queso", "Sopa"),
                     },
                     {
                       category: "SEGUNDO",
-                      slot: "main" as const,
                       section: "Segundo" as const,
-                      name: todayMain,
-                      image: getDishImage(todayMain, "Segundo"),
+                      items: todayMains.filter((m) => !m.toLowerCase().includes("quinoa")),
+                      image: getDishImage(todayMains[0] || "Pollo a la plancha", "Segundo"),
                     },
                     {
                       category: "OPCIÓN VEGGIE",
-                      slot: "veggie" as const,
                       section: "Segundo" as const,
-                      name: todayVeggie,
-                      image: getDishImage(todayVeggie, "Veggie"),
+                      items: todayMains.filter((m) => m.toLowerCase().includes("quinoa")).length > 0
+                        ? todayMains.filter((m) => m.toLowerCase().includes("quinoa"))
+                        : ["Bowl de quinoa"],
+                      image: getDishImage("Bowl de quinoa", "Veggie"),
                     },
                     {
                       category: "BEBIDA",
-                      slot: "beverage" as const,
                       section: "Bebida" as const,
-                      name: todayBeverage,
-                      image: getDishImage(todayBeverage, "Bebida"),
+                      items: todayBeverages,
+                      image: getDishImage(todayBeverages[0] || "Jugo de naranjilla", "Bebida"),
                     },
                   ].map((dish) => {
-                    const isExhausted = exhaustedDishes.includes(dish.name);
-
                     return (
                       <div
                         key={dish.category}
                         className="rounded-[24px] border border-[#F0EDF5] bg-white overflow-hidden shadow-xs flex flex-col justify-between"
                       >
                         <div>
-                          {/* Foto apetitosa del plato con botón Cambiar en 1 toque */}
+                          {/* Foto apetitosa con botón Cambiar/Agregar en 1 toque */}
                           <div className="relative aspect-4/3 w-full overflow-hidden bg-[#F5F3FA]">
                             <img
                               src={dish.image}
-                              alt={dish.name}
-                              className={`h-full w-full object-cover transition-transform duration-300 ${
-                                isExhausted ? "grayscale opacity-60" : ""
-                              }`}
+                              alt={dish.category}
+                              className="h-full w-full object-cover transition-transform duration-300"
                             />
-                            {isExhausted ? (
-                              <span className="absolute top-2 right-2 rounded-full bg-[#FDEBEB] px-2 py-0.5 text-[13px] font-black uppercase text-[#C0392B]">
-                                AGOTADO
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openSelector(dish.slot, dish.section)}
-                                aria-label={`Cambiar ${dish.category}`}
-                                className="absolute top-2 right-2 rounded-full bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[13px] font-bold text-[#7B2CBF] shadow-xs active:scale-95 transition-all hover:bg-white flex items-center gap-1"
-                              >
-                                <RotateCcw className="h-3 w-3 text-[#7B2CBF]" />
-                                <span>Cambiar</span>
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => openSelector(dish.section)}
+                              aria-label={`Cambiar ${dish.category.toLowerCase()}`}
+                              className="absolute top-2 right-2 rounded-full bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[13px] font-bold text-[#7B2CBF] shadow-xs active:scale-95 transition-all hover:bg-white flex items-center gap-1"
+                            >
+                              <RotateCcw className="h-3 w-3 text-[#7B2CBF]" />
+                              <span>Opciones ({dish.items.length})</span>
+                            </button>
                           </div>
 
                           <div className="p-3">
-                            <span className="block text-[13px] font-black uppercase tracking-wider text-[#7B2CBF] mb-0.5">
-                              {dish.category}
+                            <span className="block text-[13px] font-black uppercase tracking-wider text-[#7B2CBF] mb-1">
+                              {dish.category} ({dish.items.length})
                             </span>
-                            <h3 className="text-[14px] font-black text-[#1F1135] leading-tight line-clamp-1">
-                              {dish.name}
-                            </h3>
+                            <div className="space-y-1">
+                              {dish.items.map((itemName) => {
+                                const isExhausted = exhaustedDishes.includes(itemName);
+                                return (
+                                  <div key={itemName} className="flex items-center justify-between gap-1">
+                                    <span
+                                      className={`text-[13px] font-extrabold leading-tight line-clamp-1 ${
+                                        isExhausted ? "line-through text-[#6B5B7B] opacity-60" : "text-[#1F1135]"
+                                      }`}
+                                    >
+                                      • {itemName}
+                                    </span>
+                                    {isExhausted && (
+                                      <span className="shrink-0 rounded-full bg-[#FDEBEB] px-2 py-0.5 text-[13px] font-black uppercase text-[#C0392B]">
+                                        Agotado
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
                         </div>
 
-                        {/* Botón de estado: Se acabó / Agotado tras publicar o Disponible hoy */}
+                        {/* Botón de estado por categoría o plato */}
                         <div className="p-3 pt-0">
                           {published ? (
-                            <button
-                              type="button"
-                              onClick={() => handleToggleExhausted(dish.name)}
-                              className={`w-full rounded-full py-1.5 text-[13px] font-bold transition-all active:scale-95 ${
-                                isExhausted
-                                  ? "bg-[#C0392B] text-white shadow-xs"
-                                  : "bg-[#F5F3FA] text-[#6B5B7B] border border-[#E7E1F2]"
-                              }`}
-                            >
-                              {isExhausted ? "Agotado" : "Se acabó"}
-                            </button>
+                            <div className="space-y-1">
+                              {dish.items.map((itemName) => {
+                                const isExhausted = exhaustedDishes.includes(itemName);
+                                return (
+                                  <button
+                                    key={itemName}
+                                    type="button"
+                                    onClick={() => handleToggleExhausted(itemName)}
+                                    className={`w-full rounded-full py-1 text-[13px] font-bold transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                                      isExhausted
+                                        ? "bg-[#C0392B] text-white shadow-xs"
+                                        : "bg-[#F5F3FA] text-[#6B5B7B] border border-[#E7E1F2]"
+                                    }`}
+                                  >
+                                    <span>{isExhausted ? "Agotado" : "Se acabó"}</span>
+                                    <span className="text-[13px] opacity-75 line-clamp-1">({itemName.split(" ")[0]})</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
                           ) : (
                             <button
                               type="button"
-                              aria-label={`Disponible: ${dish.name}`}
-                              onClick={() => openSelector(dish.slot, dish.section)}
+                              aria-label={`Disponible: ${dish.items[0] || dish.category}`}
+                              onClick={() => openSelector(dish.section)}
                               className="w-full rounded-full py-1.5 text-[13px] font-bold transition-all flex items-center justify-center gap-1 bg-[#F3E8FF] text-[#7B2CBF] border border-[#EBD7FC] hover:bg-[#EBD7FC]"
                             >
                               <Check className="h-3 w-3 stroke-[3]" />
-                              <span>Disponible hoy</span>
+                              <span>Disponible hoy ({dish.items.length})</span>
                             </button>
                           )}
                         </div>
@@ -622,199 +694,248 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
               </div>
             )}
 
-            {/* SEGMENTO 2: AGREGAR MENÚ (Estilo exacto Mockup Image 3) */}
+            {/* SEGMENTO 2: MIS PLATOS / CATÁLOGO CON SUB-SEGMENTOS MODULARES */}
             {activeSegment === "catalogo" && (
-              <div className="space-y-6">
-                {/* Banner educativo: Ley del mínimo esfuerzo y no-destrucción de datos */}
-                <div className="rounded-[24px] bg-[#F3E8FF] p-4 border border-[#EBD7FC] flex items-start gap-3 shadow-xs">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#7B2CBF] text-white">
-                    <Utensils className="h-4.5 w-4.5" />
-                  </div>
-                  <div>
-                    <h3 className="text-[14px] font-black text-[#1F1135]">
-                      Tus platos nunca se pierden
-                    </h3>
-                    <p className="mt-0.5 text-[13px] font-medium text-[#6B5B7B] leading-snug">
-                      Conserva siempre el historial de ventas y favoritos. Si dejas de preparar un plato temporalmente, usa <strong>Archivar</strong> para ocultarlo del selector sin borrar su data.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Configuración rápida: Secciones activas */}
-                <div className="rounded-[24px] bg-[#F5F3FA] p-3.5 border border-[#E7E1F2] space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B]">
-                      Secciones activas
-                    </span>
-                    <span className="text-[13px] font-bold text-[#7B2CBF]">
-                      {activeSections.length} activas
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["Sopa", "Segundo", "Postre", "Bebida"].map((sec) => {
-                      const on = activeSections.includes(sec);
-                      return (
-                        <button
-                          key={sec}
-                          type="button"
-                          onClick={() => handleToggleSection(sec)}
-                          aria-pressed={on}
-                          className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
-                            on
-                              ? "bg-[#7B2CBF] text-white shadow-xs"
-                              : "bg-white text-[#4A0E78] border border-[#E7E1F2]"
-                          }`}
-                        >
-                          {sec}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <span className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B] mb-4">
-                    OPCIONES PARA EL ALMUERZO DIARIO
-                  </span>
-
-                  <div className="space-y-5">
-                    {[
-                      { key: "Bebida", label: "Jugo", emptyText: "Aún no hay platos en jugo." },
-                      { key: "Sopa", label: "Sopa", emptyText: "Aún no hay platos en sopa." },
-                      { key: "Segundo", label: "Plato fuerte", emptyText: "Aún no hay platos en plato fuerte." },
-                      { key: "Postre", label: "Postre", emptyText: "Aún no hay platos en postre." },
-                      { key: "Adicional", label: "Adicional", emptyText: "Aún no hay platos en adicional." },
-                    ].map((sec) => {
-                      const items = catalog.filter((c) => c.section === sec.key);
-                      return (
-                        <div key={sec.label} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-[20px] font-black text-[#1F1135]">{sec.label}</h3>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setNewDishSection(sec.key);
-                                setShowAddModal(true);
-                              }}
-                              className="flex items-center gap-1 rounded-full bg-[#F3E8FF] px-3.5 py-1 text-[13px] font-bold text-[#7B2CBF] active:scale-95 transition-all hover:bg-[#EBD7FC]"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              <span>Agregar</span>
-                            </button>
-                          </div>
-
-                          {items.length === 0 ? (
-                            <p className="py-3 text-center text-[13px] font-medium text-[#6B5B7B]">
-                              {sec.emptyText}
-                            </p>
-                          ) : (
-                            <div className="space-y-1.5">
-                              {items.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className={`rounded-2xl p-3 border bg-white flex items-center justify-between ${
-                                    item.archived ? "opacity-50 border-[#E7E1F2]" : "border-[#E7E1F2] shadow-xs"
-                                  }`}
-                                >
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-[14px] font-bold text-[#4A0E78]">
-                                        {item.name}
-                                      </span>
-                                      {item.id === "c-s1" || item.id === "c-m1" ? (
-                                        <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[13px] font-black text-[#D97706]">
-                                          ⭐ Más pedido
-                                        </span>
-                                      ) : null}
-                                    </div>
-                                    <span className="text-[13px] font-medium text-[#6B5B7B]">
-                                      {item.archived ? "Archivado · Oculto del menú diario" : "Activo en opciones de almuerzo"}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleArchiveDish(item.id)}
-                                      className="rounded-full bg-[#F5F3FA] px-2.5 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95"
-                                    >
-                                      {item.archived ? "Activar" : "Archivar"}
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Línea divisoria */}
-                <div className="border-t border-[#F0EDF5]" />
-
-                {/* Platos especiales (a la carta) */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-[18px] font-black text-[#1F1135]">
-                        Platos a la carta (Especialidades de la casa)
-                      </h3>
-                      <p className="text-[13px] font-medium text-[#6B5B7B]">
-                        Se ofrecen por separado, no forman parte del almuerzo del día.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setNewDishSection("Segundo");
-                        setShowAddModal(true);
-                      }}
-                      className="flex items-center gap-1 rounded-full bg-[#F3E8FF] px-3.5 py-1 text-[13px] font-bold text-[#7B2CBF] active:scale-95 transition-all hover:bg-[#EBD7FC] shrink-0"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                      <span>Agregar</span>
-                    </button>
-                  </div>
-
-                  <p className="py-3 text-center text-[13px] font-medium text-[#6B5B7B]">
-                    Aún no hay platos a la carta.
-                  </p>
-                </div>
-
-                {/* Botón inferior: Guardar platos */}
-                <div className="pt-2">
+              <div className="space-y-5">
+                {/* Sub-segmentos modulares: Almuerzos vs A la carta */}
+                <div className="flex gap-1 rounded-2xl bg-[#F5F3FA] p-1 border border-[#E7E1F2]">
                   <button
                     type="button"
-                    onClick={() => {
-                      setActiveSegment("hoy");
-                      setUndoLabel("Platos de la casa guardados");
-                      setUndoSeconds(10);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 rounded-full bg-[#7B2CBF] py-3.5 text-[15px] font-black text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
+                    onClick={() => setCatalogSubSegment("almuerzos")}
+                    aria-pressed={catalogSubSegment === "almuerzos"}
+                    className={`flex-1 rounded-xl py-2 text-center text-[13px] font-bold transition-all ${
+                      catalogSubSegment === "almuerzos"
+                        ? "bg-white text-[#7B2CBF] shadow-xs"
+                        : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                    }`}
                   >
-                    <Check className="h-4 w-4 stroke-[3]" />
-                    <span>Guardar platos de la casa</span>
+                    Almuerzos del día
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogSubSegment("alacarta")}
+                    aria-pressed={catalogSubSegment === "alacarta"}
+                    className={`flex-1 rounded-xl py-2 text-center text-[13px] font-bold transition-all ${
+                      catalogSubSegment === "alacarta"
+                        ? "bg-white text-[#7B2CBF] shadow-xs"
+                        : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                    }`}
+                  >
+                    Platos a la carta
                   </button>
                 </div>
+
+                {/* SUB-SEGMENTO 1: ALMUERZOS DEL DÍA */}
+                {catalogSubSegment === "almuerzos" && (
+                  <div className="space-y-5">
+                    {/* Banner educativo: Ley del mínimo esfuerzo y no-destrucción de datos */}
+                    <div className="rounded-[24px] bg-[#F3E8FF] p-4 border border-[#EBD7FC] flex items-start gap-3 shadow-xs">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#7B2CBF] text-white">
+                        <Utensils className="h-4.5 w-4.5" />
+                      </div>
+                      <div>
+                        <h3 className="text-[14px] font-black text-[#1F1135]">
+                          Tus platos nunca se pierden
+                        </h3>
+                        <p className="mt-0.5 text-[13px] font-medium text-[#6B5B7B] leading-snug">
+                          Conserva siempre el historial de ventas y favoritos. Si dejas de preparar un plato temporalmente, usa <strong>Archivar</strong> para ocultarlo del selector sin borrar su data.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Configuración rápida: Secciones activas */}
+                    <div className="rounded-[24px] bg-[#F5F3FA] p-3.5 border border-[#E7E1F2] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B]">
+                          Secciones activas
+                        </span>
+                        <span className="text-[13px] font-bold text-[#7B2CBF]">
+                          {activeSections.length} activas
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {["Sopa", "Segundo", "Postre", "Bebida"].map((sec) => {
+                          const on = activeSections.includes(sec);
+                          return (
+                            <button
+                              key={sec}
+                              type="button"
+                              onClick={() => handleToggleSection(sec)}
+                              aria-pressed={on}
+                              className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
+                                on
+                                  ? "bg-[#7B2CBF] text-white shadow-xs"
+                                  : "bg-white text-[#4A0E78] border border-[#E7E1F2]"
+                              }`}
+                            >
+                              {sec}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Categorías de almuerzo */}
+                    <div className="space-y-5">
+                      {[
+                        { key: "Bebida", label: "Jugo", emptyText: "Aún no hay platos en jugo." },
+                        { key: "Sopa", label: "Sopa", emptyText: "Aún no hay platos en sopa." },
+                        { key: "Segundo", label: "Plato fuerte", emptyText: "Aún no hay platos en plato fuerte." },
+                        { key: "Postre", label: "Postre", emptyText: "Aún no hay platos en postre." },
+                      ].map((sec) => {
+                        const items = catalog.filter((c) => c.section === sec.key);
+                        return (
+                          <div key={sec.label} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h3 className="text-[18px] font-black text-[#1F1135]">{sec.label}</h3>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewDishSection(sec.key);
+                                  setShowAddModal(true);
+                                }}
+                                className="flex items-center gap-1 rounded-full bg-[#F3E8FF] px-3.5 py-1 text-[13px] font-bold text-[#7B2CBF] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                              >
+                                <Plus className="h-3.5 w-3.5" />
+                                <span>Agregar</span>
+                              </button>
+                            </div>
+
+                            {items.length === 0 ? (
+                              <p className="py-3 text-center text-[13px] font-medium text-[#6B5B7B]">
+                                {sec.emptyText}
+                              </p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {items.map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className={`rounded-2xl p-3 border bg-white flex items-center justify-between ${
+                                      item.archived ? "opacity-50 border-[#E7E1F2]" : "border-[#E7E1F2] shadow-xs"
+                                    }`}
+                                  >
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[14px] font-bold text-[#4A0E78]">
+                                          {item.name}
+                                        </span>
+                                        {item.id === "c-s1" || item.id === "c-m1" ? (
+                                          <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[13px] font-black text-[#D97706]">
+                                            ⭐ Más pedido
+                                          </span>
+                                        ) : null}
+                                      </div>
+                                      <span className="text-[13px] font-medium text-[#6B5B7B]">
+                                        {item.archived ? "Archivado · Oculto de hoy" : "Activo en opciones de almuerzo"}
+                                      </span>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleArchiveDish(item.id)}
+                                        className="rounded-full bg-[#F5F3FA] px-2.5 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95"
+                                      >
+                                        {item.archived ? "Activar" : "Archivar"}
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Botón inferior: Guardar platos */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveSegment("hoy");
+                          setUndoLabel("Platos de la casa guardados");
+                          setUndoSeconds(10);
+                        }}
+                        className="w-full flex items-center justify-center gap-2 rounded-full bg-[#7B2CBF] py-3.5 text-[15px] font-black text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
+                      >
+                        <Check className="h-4 w-4 stroke-[3]" />
+                        <span>Guardar platos de la casa</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB-SEGMENTO 2: PLATOS A LA CARTA */}
+                {catalogSubSegment === "alacarta" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-[18px] font-black text-[#1F1135]">
+                          Especialidades de la casa
+                        </h3>
+                        <p className="text-[13px] font-medium text-[#6B5B7B]">
+                          Platos individuales que se venden a precio libre fuera del combo de almuerzo.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowALaCarteModal(true)}
+                        className="flex items-center gap-1 rounded-full bg-[#7B2CBF] px-3.5 py-1.5 text-[13px] font-black text-white active:scale-95 transition-all shadow-xs shrink-0"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Nuevo plato</span>
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {aLaCarteCatalog.map((alc) => (
+                        <div
+                          key={alc.id}
+                          className={`rounded-2xl p-4 border bg-white flex items-center justify-between ${
+                            alc.archived ? "opacity-50 border-[#E7E1F2]" : "border-[#E7E1F2] shadow-xs"
+                          }`}
+                        >
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-[15px] font-extrabold text-[#1F1135]">
+                                {alc.name}
+                              </h4>
+                              <span className="rounded-full bg-[#E6F6EC] px-2 py-0.5 text-[13px] font-black text-[#157A41]">
+                                ${alc.price.toFixed(2).replace(".", ",")}
+                              </span>
+                            </div>
+                            <p className="text-[13px] font-medium text-[#6B5B7B]">
+                              {alc.description}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleArchiveALaCarte(alc.id)}
+                            className="rounded-full bg-[#F5F3FA] px-3 py-1.5 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95 shrink-0"
+                          >
+                            {alc.archived ? "Activar" : "Archivar"}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
         )}
       </main>
 
-      {/* Modal selector rápido de categoría (Ley del mínimo esfuerzo: 1 toque cambia el plato de hoy) */}
-      {selectingSlot && selectingSection && (
+      {/* Modal selector rápido con selección múltiple (Ley del mínimo esfuerzo) */}
+      {selectingSection && (
         <div
           role="dialog"
           aria-modal="true"
           aria-label={`Elegir ${selectingSection} del día`}
           className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
-          onClick={() => {
-            setSelectingSlot(null);
-            setSelectingSection(null);
-          }}
+          onClick={() => setSelectingSection(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -826,15 +947,12 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   Almuerzo de hoy
                 </span>
                 <h3 className="text-[17px] font-black text-[#1F1135]">
-                  Elegir {selectingSection.toLowerCase()}
+                  Elegir {selectingSection.toLowerCase()}s
                 </h3>
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectingSlot(null);
-                  setSelectingSection(null);
-                }}
+                onClick={() => setSelectingSection(null)}
                 aria-label="Cerrar selector"
                 className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
               >
@@ -842,23 +960,26 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
               </button>
             </div>
 
-            {/* Lista de opciones disponibles en 1 toque */}
+            <p className="text-[13px] font-medium text-[#6B5B7B]">
+              Selecciona las opciones que ofreces hoy (puedes marcar varias):
+            </p>
+
+            {/* Lista de opciones con toggle de selección múltiple */}
             <div className="max-h-60 overflow-y-auto space-y-2 py-1 pr-0.5">
               {catalog
                 .filter((c) => c.section === selectingSection && !c.archived)
                 .map((item) => {
                   const isCurrent =
-                    (selectingSlot === "sopa" && todaySoup === item.name) ||
-                    (selectingSlot === "main" && todayMain === item.name) ||
-                    (selectingSlot === "veggie" && todayVeggie === item.name) ||
-                    (selectingSlot === "beverage" && todayBeverage === item.name) ||
-                    (selectingSlot === "dessert" && todayDessert === item.name);
+                    (selectingSection === "Sopa" && todaySoups.includes(item.name)) ||
+                    (selectingSection === "Segundo" && todayMains.includes(item.name)) ||
+                    (selectingSection === "Bebida" && todayBeverages.includes(item.name)) ||
+                    (selectingSection === "Postre" && todayDesserts.includes(item.name));
 
                   return (
                     <button
                       key={item.id}
                       type="button"
-                      onClick={() => handleSelectDishForToday(item.name)}
+                      onClick={() => handleToggleDishInTodayCategory(item.name, selectingSection)}
                       className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all active:scale-[0.98] ${
                         isCurrent
                           ? "border-[#7B2CBF] bg-[#F3E8FF] text-[#7B2CBF] shadow-xs"
@@ -874,10 +995,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                         ) : null}
                       </div>
                       {isCurrent ? (
-                        <Check className="h-4 w-4 stroke-[3]" />
+                        <div className="flex items-center gap-1 text-[13px] font-bold text-[#7B2CBF]">
+                          <Check className="h-4 w-4 stroke-[3]" />
+                          <span>Incluido</span>
+                        </div>
                       ) : (
-                        <span className="text-[13px] font-bold text-[#7B2CBF]">
-                          Elegir
+                        <span className="text-[13px] font-bold text-[#6B5B7B]">
+                          + Agregar
                         </span>
                       )}
                     </button>
@@ -894,7 +1018,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 <input
                   id="quick-dish-input"
                   type="text"
-                  placeholder={`Ej. ${selectingSection === "Sopa" ? "Sancocho de carne" : selectingSection === "Bebida" ? "Limonada imperial" : "Seco de chivo"}`}
+                  placeholder={`Ej. ${selectingSection === "Sopa" ? "Caldo de bola" : selectingSection === "Bebida" ? "Jugo de maracuyá" : "Chivo al hueco"}`}
                   value={quickDishInput}
                   onChange={(e) => setQuickDishInput(e.target.value)}
                   className="flex-1 rounded-xl border border-[#E7E1F2] bg-[#F5F3FA] px-3 py-2 text-[14px] font-bold text-[#1F1135] focus:border-[#7B2CBF] focus:outline-hidden"
@@ -907,6 +1031,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   Agregar
                 </button>
               </div>
+            </div>
+
+            {/* Botón de cierre con resumen */}
+            <div className="pt-2">
+              <ButtonPrimary onClick={() => setSelectingSection(null)}>
+                ✓ Listo para hoy
+              </ButtonPrimary>
             </div>
           </div>
         </div>
@@ -976,6 +1107,82 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             <div className="pt-2">
               <ButtonPrimary onClick={handleCreateDish}>
                 Guardar plato
+              </ButtonPrimary>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para crear plato a la carta */}
+      {showALaCarteModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Nueva especialidad a la carta"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          onClick={() => setShowALaCarteModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-xl animate-in slide-in-from-bottom space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-[17px] font-black text-[#4A0E78]">Plato a la carta</h3>
+              <button
+                type="button"
+                onClick={() => setShowALaCarteModal(false)}
+                className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div>
+              <label htmlFor="new-alc-name-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+                Nombre del plato
+              </label>
+              <input
+                id="new-alc-name-input"
+                type="text"
+                value={newAlcName}
+                onChange={(e) => setNewAlcName(e.target.value)}
+                placeholder="Ej. Parrillada mixta"
+                autoFocus
+                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="new-alc-price-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+                Precio en dólares
+              </label>
+              <input
+                id="new-alc-price-input"
+                type="text"
+                value={newAlcPrice}
+                onChange={(e) => setNewAlcPrice(e.target.value)}
+                placeholder="Ej. 6.50"
+                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="new-alc-desc-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+                Descripción
+              </label>
+              <input
+                id="new-alc-desc-input"
+                type="text"
+                value={newAlcDesc}
+                onChange={(e) => setNewAlcDesc(e.target.value)}
+                placeholder="Ej. Con patacones y ensalada"
+                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+              />
+            </div>
+
+            <div className="pt-2">
+              <ButtonPrimary onClick={handleCreateALaCarte}>
+                Guardar especialidad
               </ButtonPrimary>
             </div>
           </div>
