@@ -34,6 +34,7 @@ function RouteComponent() {
             onScanPass={() => setIsScannerOpen(true)}
             onViewOrders={() => navigate({ to: "/app/dueno/pedidos" as any }).catch(() => {})}
             onSellPlan={() => navigate({ to: "/app/dueno/cobrar" as any }).catch(() => {})}
+            onOpenCierre={() => navigate({ to: "/app/dueno/cierre" as any }).catch(() => {})}
           />
         </div>
         <NavBar active="Caja" owner />

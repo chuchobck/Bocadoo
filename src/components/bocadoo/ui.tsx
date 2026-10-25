@@ -428,7 +428,6 @@ const NAV_ITEMS: Record<"diner" | "owner", Array<[string, IconType, AppPath]>> =
   owner: [
     ["Caja", QrCode, "/app/dueno"],
     ["Menú", Utensils, "/app/dueno/menu"],
-    ["Ofertas", Zap, "/app/dueno/oferta"],
     ["Planes", WalletCards, "/app/dueno/planes"],
     ["Ajustes", Settings, "/app/dueno/ajustes"],
   ],

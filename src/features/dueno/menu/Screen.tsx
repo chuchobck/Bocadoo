@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Utensils, Check, AlertCircle, WifiOff, Loader2, ArrowLeft, Plus, RotateCcw, Archive, Edit3, X, Calendar, Eye } from "lucide-react";
+import { Utensils, Check, AlertCircle, WifiOff, Loader2, ArrowLeft, Plus, RotateCcw, Archive, Edit3, X, Calendar, Eye, Clock } from "lucide-react";
 import { ButtonPrimary, UndoBanner } from "@/design-system";
 import { useBocadoo } from "@/components/bocadoo/store";
 import { MENU_COPY } from "./copy";
@@ -225,13 +225,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   LA CUCHARA DE SAN BLAS
                 </span>
                 <h1 className="text-[22px] font-black tracking-tight text-[#1F1135] leading-tight">
-                  Agregar menú
+                  Platos de la casa
                 </h1>
               </div>
             </div>
 
-            <span className="text-[14px] font-black text-[#7B2CBF]">
-              {selectedDishes.length} platos
+            <span className="text-[13px] font-black text-[#7B2CBF]">
+              {catalog.length} platos
             </span>
           </div>
         )}
@@ -323,24 +323,44 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             {activeSegment === "hoy" && (
               <div className="space-y-4">
                 {/* Botón rápido "Repetir ayer" (1 toque) */}
-                <div className="flex gap-2">
+                <div>
                   <button
                     type="button"
                     onClick={handleRepeatYesterday}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-2xl bg-[#F5F3FA] py-2.5 text-[14px] font-bold text-[#4A0E78] border border-[#E7E1F2] active:scale-95 transition-all shadow-xs"
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#F5F3FA] py-2.5 text-[14px] font-bold text-[#4A0E78] border border-[#E7E1F2] active:scale-95 transition-all shadow-xs hover:border-[#7B2CBF]"
                   >
                     <RotateCcw className="h-4 w-4 text-[#7B2CBF]" />
                     <span>Repetir ayer</span>
                   </button>
+                </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(true)}
-                    className="flex items-center justify-center gap-1 rounded-2xl bg-[#F3E8FF] px-4 py-2.5 text-[14px] font-bold text-[#7B2CBF] active:scale-95 transition-all shadow-xs"
-                  >
-                    <Plus className="h-4 w-4" />
-                    <span>+ Plato</span>
-                  </button>
+                {/* Franja de preórdenes activas para hoy */}
+                <div
+                  onClick={() => {
+                    if (onBack) onBack();
+                    else window.location.assign("/app/dueno/pedidos");
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Ver 3 pedidos en camino"
+                  className="flex items-center justify-between rounded-2xl bg-[#F3E8FF] px-4 py-3 border border-[#EBD7FC] cursor-pointer hover:bg-[#EBD7FC] transition-all shadow-xs"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-[#7B2CBF] text-white">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="block text-[13px] font-black text-[#1F1135]">
+                        3 preórdenes en camino
+                      </span>
+                      <span className="text-[13px] font-medium text-[#6B5B7B]">
+                        2 Seco de pollo · 1 Quinoa
+                      </span>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-[#7B2CBF] px-3 py-1 text-[13px] font-black text-white">
+                    Ver
+                  </span>
                 </div>
 
                 {/* Cuadrícula de 2 columnas de platos con fotos reales (Mockup Image 4) */}
@@ -571,7 +591,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
 
                 <div>
                   <span className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B] mb-4">
-                    MENÚ DEL DÍA
+                    OPCIONES PARA EL ALMUERZO DIARIO
                   </span>
 
                   <div className="space-y-5">
@@ -643,10 +663,10 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-[18px] font-black text-[#1F1135]">
-                        Platos especiales (a la carta)
+                        Platos a la carta (Especialidades de la casa)
                       </h3>
                       <p className="text-[13px] font-medium text-[#6B5B7B]">
-                        Se venden aparte, no forman parte del menú del día.
+                        Se ofrecen por separado, no forman parte del almuerzo del día.
                       </p>
                     </div>
                     <button
@@ -667,19 +687,19 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   </p>
                 </div>
 
-                {/* Botón inferior: Guardar menú */}
+                {/* Botón inferior: Guardar platos */}
                 <div className="pt-2">
                   <button
                     type="button"
                     onClick={() => {
                       setActiveSegment("hoy");
-                      setUndoLabel("Menú guardado");
+                      setUndoLabel("Platos de la casa guardados");
                       setUndoSeconds(10);
                     }}
                     className="w-full flex items-center justify-center gap-2 rounded-full bg-[#7B2CBF] py-3.5 text-[15px] font-black text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
                   >
                     <Check className="h-4 w-4 stroke-[3]" />
-                    <span>Guardar menú</span>
+                    <span>Guardar platos de la casa</span>
                   </button>
                 </div>
               </div>

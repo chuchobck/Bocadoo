@@ -8,10 +8,13 @@ import {
   WifiOff,
   Loader2,
   Clock,
+  Zap,
+  Receipt,
 } from "lucide-react";
 import { UndoBanner } from "@/design-system";
 import { useCaja } from "./hooks/useCaja";
 import { CAJA_COPY } from "./copy";
+import { OfertaFlashScreen } from "../oferta/Screen";
 import type { ComponentState } from "@/design-system";
 
 export interface CajaScreenProps {
@@ -21,6 +24,7 @@ export interface CajaScreenProps {
   onChargeSingle?: (method: "EFECTIVO" | "TRANSFERENCIA") => void;
   onViewOrders?: () => void;
   onSellPlan?: () => void;
+  onOpenCierre?: () => void;
   onRetry?: () => void;
 }
 
@@ -31,10 +35,13 @@ export const CajaScreen: React.FC<CajaScreenProps> = ({
   onChargeSingle,
   onViewOrders,
   onSellPlan,
+  onOpenCierre,
   onRetry,
 }) => {
   const { singlePrice, occupancy, isManualBusy, busyMinutesLeft, toggleManualBusy } = useCaja();
   const [showSingleChargeModal, setShowSingleChargeModal] = useState(false);
+  const [showOfertaModal, setShowOfertaModal] = useState(false);
+  const [activeOffer, setActiveOffer] = useState<{ slots: number; endTime: string; price: number } | null>(null);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
 
@@ -170,27 +177,76 @@ export const CajaScreen: React.FC<CajaScreenProps> = ({
               <h2 className="mt-3 text-[17px] font-black text-[#4A0E78]">{CAJA_COPY.scanPass}</h2>
             </div>
 
-            {/* Botones de acción del primer pliegue: Cobro suelto y Vender plan */}
+            {/* Banner de oferta flash activa si fue lanzada */}
+            {activeOffer && (
+              <div className="mt-3 flex items-center justify-between rounded-2xl bg-[#F3E8FF] p-3 border border-[#EBD7FC] shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="grid h-7 w-7 place-items-center rounded-full bg-[#7B2CBF] text-white">
+                    <Zap className="h-3.5 w-3.5" />
+                  </div>
+                  <div>
+                    <span className="block text-[13px] font-black text-[#1F1135]">
+                      Oferta flash activa
+                    </span>
+                    <span className="text-[13px] font-semibold text-[#7B2CBF]">
+                      {activeOffer.slots} cupos a ${activeOffer.price.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowOfertaModal(true)}
+                  className="rounded-full bg-[#7B2CBF] px-3 py-1 text-[13px] font-bold text-white active:scale-95 transition-all"
+                >
+                  Ver
+                </button>
+              </div>
+            )}
+
+            {/* Botones de acción del primer pliegue: Cobro suelto y 3 accesos rápidos */}
             <div className="mt-3 space-y-2 shrink-0">
               {/* Botón 1: Cobro suelto con precio dinámico leído de configuración */}
               <button
                 type="button"
                 onClick={() => setShowSingleChargeModal(true)}
-                className="w-full rounded-full bg-[#4A0E78] py-3 text-[15px] font-bold text-white shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                className="w-full rounded-full bg-[#4A0E78] py-3 text-[15px] font-black text-white shadow-xs active:scale-[0.98] transition-all flex items-center justify-center gap-2 hover:bg-[#3D0A66]"
               >
                 <Banknote className="h-5 w-5" />
                 <span>{CAJA_COPY.chargeSingle(singlePrice)}</span>
               </button>
 
-              {/* Botón 2: Vender plan */}
-              <button
-                type="button"
-                onClick={onSellPlan}
-                className="w-full rounded-full bg-[#F3E8FF] py-2.5 text-[14px] font-bold text-[#7B2CBF] active:scale-95 transition-all flex items-center justify-center gap-1.5"
-              >
-                <Users className="h-4 w-4" />
-                <span>{CAJA_COPY.sellPlan}</span>
-              </button>
+              {/* Fila de 3 accesos directos: Vender plan, Oferta flash y Cuadre de caja */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={onSellPlan}
+                  aria-label="Vender plan a comensal"
+                  className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                >
+                  <Users className="h-4 w-4 text-[#7B2CBF]" />
+                  <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Vender plan</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowOfertaModal(true)}
+                  aria-label="Lanzar oferta flash"
+                  className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F3E8FF] p-2.5 text-center border border-[#EBD7FC] active:scale-95 transition-all hover:bg-[#E0AAFF]/30"
+                >
+                  <Zap className="h-4 w-4 text-[#7B2CBF]" />
+                  <span className="text-[13px] font-black text-[#7B2CBF] leading-tight">Oferta flash</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onOpenCierre || (() => window.location.assign("/app/dueno/cierre"))}
+                  aria-label="Cuadre de caja"
+                  className="flex flex-col items-center justify-center gap-1 rounded-2xl bg-[#F5F3FA] p-2.5 text-center border border-[#E7E1F2] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                >
+                  <Receipt className="h-4 w-4 text-[#4A0E78]" />
+                  <span className="text-[13px] font-bold text-[#1F1135] leading-tight">Cuadre caja</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -252,6 +308,24 @@ export const CajaScreen: React.FC<CajaScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Modal de Oferta Flash lanzado directamente desde Caja */}
+      <OfertaFlashScreen
+        isOpen={showOfertaModal}
+        onClose={() => setShowOfertaModal(false)}
+        onPublishOffer={(slots, endTime, price) => {
+          setActiveOffer({ slots, endTime, price });
+          setShowOfertaModal(false);
+          setUndoLabel(`Oferta publicada (${slots} cupos)`);
+          setUndoSeconds(10);
+        }}
+        onCancelOffer={() => {
+          setActiveOffer(null);
+          setShowOfertaModal(false);
+          setUndoLabel("Oferta cancelada sin costo");
+          setUndoSeconds(10);
+        }}
+      />
 
       {/* Búfer de deshacer de 10s tras cobrar */}
       {undoSeconds > 0 && (

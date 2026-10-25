@@ -64,6 +64,9 @@ export class SalesRepository {
       cashFormatted: `$${(cashCents / 100).toFixed(2).replace(".", ",")}`,
       transferFormatted: `$${(transferCents / 100).toFixed(2).replace(".", ",")}`,
       lunchesServed: 28 + sales.filter((s) => s.type === "SUELTO").length,
+      cashCents,
+      transferCents,
+      totalCents,
     };
   }
 }

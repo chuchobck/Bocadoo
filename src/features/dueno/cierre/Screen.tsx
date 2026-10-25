@@ -31,9 +31,13 @@ export const CierreScreen: React.FC<CierreScreenProps> = ({
   state = "exito",
 }) => {
   const totals = salesRepository.getTodayTotals();
+  const [countedCashDollars, setCountedCashDollars] = useState<number>(totals.cashCents / 100);
   const [closed, setClosed] = useState(false);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
+
+  const diffCents = Math.round(countedCashDollars * 100) - totals.cashCents;
+  const isBalanced = diffCents === 0;
 
   const handleCloseShift = () => {
     setClosed(true);
@@ -206,12 +210,70 @@ export const CierreScreen: React.FC<CierreScreenProps> = ({
               </div>
             </div>
 
+            {/* CUADRE DE CAJA: FÍSICO VS BOCADOO */}
+            <div className="rounded-[24px] bg-[#F5F3FA] p-4 border border-[#E7E1F2] space-y-3">
+              <span className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B]">
+                Cuadre de caja física
+              </span>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-[13px] font-bold text-[#6B5B7B]">Efectivo en Bocadoo</span>
+                  <p className="text-[18px] font-black text-[#1F1135]">{totals.cashFormatted}</p>
+                </div>
+
+                <div className="text-right">
+                  <label htmlFor="counted-cash" className="block text-[13px] font-bold text-[#6B5B7B]">
+                    Efectivo en cajón
+                  </label>
+                  <div className="flex items-center gap-1 mt-0.5 justify-end">
+                    <span className="text-[16px] font-black text-[#7B2CBF]">$</span>
+                    <input
+                      id="counted-cash"
+                      type="number"
+                      step="0.5"
+                      value={countedCashDollars}
+                      onChange={(e) => setCountedCashDollars(parseFloat(e.target.value) || 0)}
+                      className="w-20 rounded-xl border border-[#E7E1F2] bg-white px-2 py-1 text-right text-[16px] font-black text-[#1F1135] focus:border-[#7B2CBF] focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Resultado del cuadre */}
+              <div
+                className={`rounded-2xl p-3 flex items-center justify-between border ${
+                  isBalanced
+                    ? "bg-[#E6F6EC] border-[#157A41]/30 text-[#157A41]"
+                    : diffCents > 0
+                    ? "bg-[#F3E8FF] border-[#7B2CBF]/30 text-[#7B2CBF]"
+                    : "bg-[#FDEBEB] border-[#C0392B]/30 text-[#C0392B]"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5 shrink-0" />
+                  <span className="text-[13px] font-bold">
+                    {isBalanced
+                      ? "Caja cuadrada exacta"
+                      : diffCents > 0
+                      ? "Sobrante en cajón"
+                      : "Faltante en cajón"}
+                  </span>
+                </div>
+                <span className="text-[14px] font-black">
+                  {isBalanced
+                    ? "$0,00"
+                    : `${diffCents > 0 ? "+" : ""}$${(diffCents / 100).toFixed(2).replace(".", ",")}`}
+                </span>
+              </div>
+            </div>
+
             {/* Botón de cierre en 1 toque */}
             <div className="pt-2">
               <button
                 type="button"
                 onClick={handleCloseShift}
-                className="w-full rounded-full bg-[#4A0E78] py-3.5 text-[15px] font-bold text-white shadow-xs active:scale-95 transition-all flex items-center justify-center gap-2"
+                className="w-full rounded-full bg-[#4A0E78] py-3.5 text-[15px] font-bold text-white shadow-xs active:scale-95 transition-all flex items-center justify-center gap-2 hover:bg-[#3D0A66]"
               >
                 <CheckCircle2 className="h-5 w-5" />
                 <span>{CIERRE_COPY.closeShiftButton}</span>
