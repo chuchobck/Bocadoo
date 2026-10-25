@@ -23,11 +23,27 @@ export interface MenuDiaScreenProps {
 const DISH_IMAGES: Record<string, string> = {
   "Locro de papa con queso": "/dishes/locro-papa.jpg",
   "Locro de papa": "/dishes/locro-papa.jpg",
+  "Sopa de lenteja": "/dishes/locro-papa.jpg",
+  "Caldo de gallina criolla": "/dishes/locro-papa.jpg",
+  "Crema de verduras": "/dishes/locro-papa.jpg",
   "Seco de pollo con maduro": "/dishes/pollo-plancha.jpg",
   "Pollo a la plancha": "/dishes/pollo-plancha.jpg",
   "Bowl de quinoa": "/dishes/bowl-quinoa.jpg",
+  "Trucha frita con ensalada": "/dishes/bowl-quinoa.jpg",
   "Higos con queso": "/dishes/higos-queso.jpg",
+  "Dulce de zapallo": "/dishes/higos-queso.jpg",
+  "Jugo de naranjilla": "/dishes/jugo-naranjilla.jpg",
+  "Jugo de mora": "/dishes/jugo-naranjilla.jpg",
 };
+
+function getDishImage(dishName: string, category: string): string {
+  if (DISH_IMAGES[dishName]) return DISH_IMAGES[dishName];
+  if (category === "Bebida") return "/dishes/jugo-naranjilla.jpg";
+  if (category === "Sopa") return "/dishes/locro-papa.jpg";
+  if (category === "Postre") return "/dishes/higos-queso.jpg";
+  if (category === "Veggie" || dishName.toLowerCase().includes("quinoa")) return "/dishes/bowl-quinoa.jpg";
+  return "/dishes/pollo-plancha.jpg";
+}
 
 const WEEK_DAYS = [
   { day: "LUN", dish: "Seco de pollo" },
@@ -62,21 +78,69 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
 
   const [activeSegment, setActiveSegment] = useState<"hoy" | "catalogo">("hoy");
   const [catalog, setCatalog] = useState<CatalogItem[]>(INITIAL_CATALOG);
-  const [activeSections, setActiveSections] = useState<string[]>(["Sopa", "Segundo"]);
+  const [activeSections, setActiveSections] = useState<string[]>(["Sopa", "Segundo", "Bebida"]);
+
+  // Los 4 componentes claros del almuerzo diario
+  const [todaySoup, setTodaySoup] = useState<string>("Locro de papa con queso");
+  const [todayMain, setTodayMain] = useState<string>("Pollo a la plancha");
+  const [todayVeggie, setTodayVeggie] = useState<string>("Bowl de quinoa");
+  const [todayBeverage, setTodayBeverage] = useState<string>("Jugo de naranjilla");
+  const [todayDessert, setTodayDessert] = useState<string>("Higos con queso");
+
   const [selectedDishes, setSelectedDishes] = useState<string[]>([
     "Locro de papa con queso",
-    "Seco de pollo con maduro",
+    "Pollo a la plancha",
+    "Bowl de quinoa",
+    "Jugo de naranjilla",
   ]);
   const [exhaustedDishes, setExhaustedDishes] = useState<string[]>([]);
-  const [beverageActive, setBeverageActive] = useState(true);
   const [published, setPublished] = useState(false);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
 
-  // Crear plato rápido (2 toques: nombre + Guardar)
+  // Modal para cambiar plato en 1 toque (Ley del mínimo esfuerzo)
+  const [selectingSlot, setSelectingSlot] = useState<"sopa" | "main" | "veggie" | "beverage" | "dessert" | null>(null);
+  const [selectingSection, setSelectingSection] = useState<"Sopa" | "Segundo" | "Bebida" | "Postre" | null>(null);
+  const [quickDishInput, setQuickDishInput] = useState<string>("");
+
+  // Modal de creación en catálogo
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDishName, setNewDishName] = useState("");
   const [newDishSection, setNewDishSection] = useState("Segundo");
+
+  const openSelector = (
+    slot: "sopa" | "main" | "veggie" | "beverage" | "dessert",
+    section: "Sopa" | "Segundo" | "Bebida" | "Postre"
+  ) => {
+    setSelectingSlot(slot);
+    setSelectingSection(section);
+    setQuickDishInput("");
+  };
+
+  const handleSelectDishForToday = (dishName: string) => {
+    if (selectingSlot === "sopa") setTodaySoup(dishName);
+    else if (selectingSlot === "main") setTodayMain(dishName);
+    else if (selectingSlot === "veggie") setTodayVeggie(dishName);
+    else if (selectingSlot === "beverage") setTodayBeverage(dishName);
+    else if (selectingSlot === "dessert") setTodayDessert(dishName);
+
+    setSelectedDishes((prev) => (prev.includes(dishName) ? prev : [...prev, dishName]));
+    setSelectingSlot(null);
+    setSelectingSection(null);
+  };
+
+  const handleCreateQuickDish = () => {
+    if (!quickDishInput.trim() || !selectingSection) return;
+    const newName = quickDishInput.trim();
+    const newItem: CatalogItem = {
+      id: `c-quick-${Date.now()}`,
+      name: newName,
+      section: selectingSection,
+    };
+    setCatalog((prev) => [...prev, newItem]);
+    handleSelectDishForToday(newName);
+    setQuickDishInput("");
+  };
 
   const handleCreateDish = () => {
     if (!newDishName.trim()) return;
@@ -86,7 +150,6 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
       section: newDishSection,
     };
     setCatalog((prev) => [...prev, newItem]);
-    // Marcar para hoy automáticamente si la sección está activa
     setSelectedDishes((prev) => [...prev, newItem.name]);
     setNewDishName("");
     setShowAddModal(false);
@@ -105,8 +168,18 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   };
 
   const handleRepeatYesterday = () => {
-    // 1 toque: Repite opciones frecuentes de ayer
-    setSelectedDishes(["Locro de papa con queso", "Seco de pollo con maduro", "Trucha frita con ensalada"]);
+    // 1 toque: Repite la combinación ganadora de ayer (Ley del mínimo esfuerzo)
+    setTodaySoup("Locro de papa con queso");
+    setTodayMain("Pollo a la plancha");
+    setTodayVeggie("Bowl de quinoa");
+    setTodayBeverage("Jugo de naranjilla");
+    setTodayDessert("Higos con queso");
+    setSelectedDishes([
+      "Locro de papa con queso",
+      "Pollo a la plancha",
+      "Bowl de quinoa",
+      "Jugo de naranjilla",
+    ]);
     setExhaustedDishes([]);
   };
 
@@ -115,35 +188,53 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
     setUndoLabel(MENU_COPY.publishedUndo);
     setUndoSeconds(10);
 
-    const firstSoup = selectedDishes.find((d) =>
-      catalog.some((c) => c.name === d && c.section === "Sopa")
-    ) || "Locro de papa con queso";
-
-    const firstMain = selectedDishes.find((d) =>
-      catalog.some((c) => c.name === d && c.section === "Segundo")
-    ) || "Seco de pollo con maduro";
-
     // Publicar al store global para sincronizar con comensal en tiempo real
     publishMenu({
       fecha: simulatedTodayKey,
       secciones: {
-        sopa: selectedDishes
-          .filter((d) => catalog.some((c) => c.name === d && c.section === "Sopa"))
-          .map((d, i) => ({ id: `s-${i}`, nombre: d, descripcion: "", agotado: exhaustedDishes.includes(d) })),
-        fuerte: selectedDishes
-          .filter((d) => catalog.some((c) => c.name === d && c.section === "Segundo"))
-          .map((d, i) => ({ id: `m-${i}`, nombre: d, descripcion: "", agotado: exhaustedDishes.includes(d) })),
-        postre: selectedDishes
-          .filter((d) => catalog.some((c) => c.name === d && c.section === "Postre"))
-          .map((d, i) => ({ id: `p-${i}`, nombre: d, descripcion: "", agotado: exhaustedDishes.includes(d) })),
-        jugo: selectedDishes
-          .filter((d) => catalog.some((c) => c.name === d && c.section === "Bebida"))
-          .map((d, i) => ({ id: `j-${i}`, nombre: d, descripcion: "", agotado: exhaustedDishes.includes(d) })),
+        sopa: [
+          {
+            id: "s-1",
+            nombre: todaySoup,
+            descripcion: "",
+            agotado: exhaustedDishes.includes(todaySoup),
+          },
+        ],
+        fuerte: [
+          {
+            id: "m-1",
+            nombre: todayMain,
+            descripcion: "",
+            agotado: exhaustedDishes.includes(todayMain),
+          },
+          {
+            id: "m-2",
+            nombre: todayVeggie,
+            descripcion: "",
+            agotado: exhaustedDishes.includes(todayVeggie),
+          },
+        ],
+        postre: [
+          {
+            id: "p-1",
+            nombre: todayDessert,
+            descripcion: "",
+            agotado: exhaustedDishes.includes(todayDessert),
+          },
+        ],
+        jugo: [
+          {
+            id: "j-1",
+            nombre: todayBeverage,
+            descripcion: "",
+            agotado: exhaustedDishes.includes(todayBeverage),
+          },
+        ],
         adicional: [],
       },
     });
 
-    onPublishMenu?.(firstSoup, firstMain);
+    onPublishMenu?.(todaySoup, todayMain);
   };
 
   const handleToggleSection = (section: string) => {
@@ -363,56 +454,69 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   </span>
                 </div>
 
-                {/* Cuadrícula de 2 columnas de platos con fotos reales (Mockup Image 4) */}
+                {/* Cuadrícula de 4 componentes del almuerzo de hoy (Sopa, Segundo, Veggie, Bebida) */}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     {
-                      name: "Locro de papa",
-                      fullName: "Locro de papa con queso",
                       category: "SOPA",
-                      image: "/dishes/locro-papa.jpg",
+                      slot: "sopa" as const,
+                      section: "Sopa" as const,
+                      name: todaySoup,
+                      image: getDishImage(todaySoup, "Sopa"),
                     },
                     {
-                      name: "Pollo a la plancha",
-                      fullName: "Seco de pollo con maduro",
                       category: "SEGUNDO",
-                      image: "/dishes/pollo-plancha.jpg",
+                      slot: "main" as const,
+                      section: "Segundo" as const,
+                      name: todayMain,
+                      image: getDishImage(todayMain, "Segundo"),
                     },
                     {
-                      name: "Bowl de quinoa",
-                      fullName: "Trucha frita con ensalada",
                       category: "OPCIÓN VEGGIE",
-                      image: "/dishes/bowl-quinoa.jpg",
+                      slot: "veggie" as const,
+                      section: "Segundo" as const,
+                      name: todayVeggie,
+                      image: getDishImage(todayVeggie, "Veggie"),
                     },
                     {
-                      name: "Higos con queso",
-                      fullName: "Higos con queso",
-                      category: "POSTRE",
-                      image: "/dishes/higos-queso.jpg",
+                      category: "BEBIDA",
+                      slot: "beverage" as const,
+                      section: "Bebida" as const,
+                      name: todayBeverage,
+                      image: getDishImage(todayBeverage, "Bebida"),
                     },
                   ].map((dish) => {
-                    const isSelected = selectedDishes.includes(dish.fullName) || selectedDishes.includes(dish.name);
-                    const isExhausted = exhaustedDishes.includes(dish.name) || exhaustedDishes.includes(dish.fullName);
+                    const isExhausted = exhaustedDishes.includes(dish.name);
 
                     return (
                       <div
-                        key={dish.name}
+                        key={dish.category}
                         className="rounded-[24px] border border-[#F0EDF5] bg-white overflow-hidden shadow-xs flex flex-col justify-between"
                       >
                         <div>
-                          {/* Foto apetitosa del plato */}
+                          {/* Foto apetitosa del plato con botón Cambiar en 1 toque */}
                           <div className="relative aspect-4/3 w-full overflow-hidden bg-[#F5F3FA]">
                             <img
                               src={dish.image}
                               alt={dish.name}
-                              className={`h-full w-full object-cover transition-transform duration-300 hover:scale-105 ${
+                              className={`h-full w-full object-cover transition-transform duration-300 ${
                                 isExhausted ? "grayscale opacity-60" : ""
                               }`}
                             />
-                            {isExhausted && (
+                            {isExhausted ? (
                               <span className="absolute top-2 right-2 rounded-full bg-[#FDEBEB] px-2 py-0.5 text-[13px] font-black uppercase text-[#C0392B]">
                                 AGOTADO
                               </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openSelector(dish.slot, dish.section)}
+                                aria-label={`Cambiar ${dish.category}`}
+                                className="absolute top-2 right-2 rounded-full bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[13px] font-bold text-[#7B2CBF] shadow-xs active:scale-95 transition-all hover:bg-white flex items-center gap-1"
+                              >
+                                <RotateCcw className="h-3 w-3 text-[#7B2CBF]" />
+                                <span>Cambiar</span>
+                              </button>
                             )}
                           </div>
 
@@ -431,10 +535,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                           {published ? (
                             <button
                               type="button"
-                              onClick={() => {
-                                handleToggleExhausted(dish.name);
-                                handleToggleExhausted(dish.fullName);
-                              }}
+                              onClick={() => handleToggleExhausted(dish.name)}
                               className={`w-full rounded-full py-1.5 text-[13px] font-bold transition-all active:scale-95 ${
                                 isExhausted
                                   ? "bg-[#C0392B] text-white shadow-xs"
@@ -447,12 +548,8 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                             <button
                               type="button"
                               aria-label={`Disponible: ${dish.name}`}
-                              onClick={() => handleToggleDishToday(dish.fullName)}
-                              className={`w-full rounded-full py-1.5 text-[13px] font-bold transition-all flex items-center justify-center gap-1 ${
-                                isSelected
-                                  ? "bg-[#F3E8FF] text-[#7B2CBF] border border-[#EBD7FC]"
-                                  : "bg-[#FAF8FC] text-[#6B5B7B] border border-[#E7E1F2]"
-                              }`}
+                              onClick={() => openSelector(dish.slot, dish.section)}
+                              className="w-full rounded-full py-1.5 text-[13px] font-bold transition-all flex items-center justify-center gap-1 bg-[#F3E8FF] text-[#7B2CBF] border border-[#EBD7FC] hover:bg-[#EBD7FC]"
                             >
                               <Check className="h-3 w-3 stroke-[3]" />
                               <span>Disponible hoy</span>
@@ -462,35 +559,6 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Tarjeta de BEBIDA DE HOY con switch iOS (Mockup Image 4) */}
-                <div className="flex items-center justify-between rounded-[24px] bg-[#F5F3FA] p-4 border border-[#E7E1F2]">
-                  <div>
-                    <span className="block text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B]">
-                      BEBIDA DE HOY
-                    </span>
-                    <h3 className="text-[15px] font-black text-[#1F1135] mt-0.5">
-                      Jugo de naranjilla
-                    </h3>
-                  </div>
-
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={beverageActive}
-                    aria-label="Disponible bebida de hoy"
-                    onClick={() => setBeverageActive((prev) => !prev)}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full p-0.5 transition-colors focus:outline-hidden ${
-                      beverageActive ? "bg-[#7B2CBF]" : "bg-[#D9D3E6]"
-                    }`}
-                  >
-                    <span
-                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                        beverageActive ? "translate-x-5" : "translate-x-0"
-                      }`}
-                    />
-                  </button>
                 </div>
 
                 {/* Sección "Menú de la semana" (Mockup Image 4) */}
@@ -557,6 +625,21 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             {/* SEGMENTO 2: AGREGAR MENÚ (Estilo exacto Mockup Image 3) */}
             {activeSegment === "catalogo" && (
               <div className="space-y-6">
+                {/* Banner educativo: Ley del mínimo esfuerzo y no-destrucción de datos */}
+                <div className="rounded-[24px] bg-[#F3E8FF] p-4 border border-[#EBD7FC] flex items-start gap-3 shadow-xs">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#7B2CBF] text-white">
+                    <Utensils className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <h3 className="text-[14px] font-black text-[#1F1135]">
+                      Tus platos nunca se pierden
+                    </h3>
+                    <p className="mt-0.5 text-[13px] font-medium text-[#6B5B7B] leading-snug">
+                      Conserva siempre el historial de ventas y favoritos. Si dejas de preparar un plato temporalmente, usa <strong>Archivar</strong> para ocultarlo del selector sin borrar su data.
+                    </p>
+                  </div>
+                </div>
+
                 {/* Configuración rápida: Secciones activas */}
                 <div className="rounded-[24px] bg-[#F5F3FA] p-3.5 border border-[#E7E1F2] space-y-2">
                   <div className="flex items-center justify-between">
@@ -633,16 +716,29 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                                     item.archived ? "opacity-50 border-[#E7E1F2]" : "border-[#E7E1F2] shadow-xs"
                                   }`}
                                 >
-                                  <span className="text-[14px] font-bold text-[#4A0E78]">
-                                    {item.name}
-                                  </span>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[14px] font-bold text-[#4A0E78]">
+                                        {item.name}
+                                      </span>
+                                      {item.id === "c-s1" || item.id === "c-m1" ? (
+                                        <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[13px] font-black text-[#D97706]">
+                                          ⭐ Más pedido
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <span className="text-[13px] font-medium text-[#6B5B7B]">
+                                      {item.archived ? "Archivado · Oculto del menú diario" : "Activo en opciones de almuerzo"}
+                                    </span>
+                                  </div>
+
                                   <div className="flex items-center gap-2">
                                     <button
                                       type="button"
                                       onClick={() => handleArchiveDish(item.id)}
                                       className="rounded-full bg-[#F5F3FA] px-2.5 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95"
                                     >
-                                      {item.archived ? "Desarchivar" : "Archivar"}
+                                      {item.archived ? "Activar" : "Archivar"}
                                     </button>
                                   </div>
                                 </div>
@@ -708,11 +804,120 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
         )}
       </main>
 
-      {/* Modal para crear plato rápido (2 toques: nombre + Guardar) */}
+      {/* Modal selector rápido de categoría (Ley del mínimo esfuerzo: 1 toque cambia el plato de hoy) */}
+      {selectingSlot && selectingSection && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Elegir ${selectingSection} del día`}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          onClick={() => {
+            setSelectingSlot(null);
+            setSelectingSection(null);
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl animate-in slide-in-from-bottom space-y-4"
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-[#F0EDF5]">
+              <div>
+                <span className="block text-[13px] font-extrabold uppercase tracking-wider text-[#7B2CBF]">
+                  Almuerzo de hoy
+                </span>
+                <h3 className="text-[17px] font-black text-[#1F1135]">
+                  Elegir {selectingSection.toLowerCase()}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectingSlot(null);
+                  setSelectingSection(null);
+                }}
+                aria-label="Cerrar selector"
+                className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Lista de opciones disponibles en 1 toque */}
+            <div className="max-h-60 overflow-y-auto space-y-2 py-1 pr-0.5">
+              {catalog
+                .filter((c) => c.section === selectingSection && !c.archived)
+                .map((item) => {
+                  const isCurrent =
+                    (selectingSlot === "sopa" && todaySoup === item.name) ||
+                    (selectingSlot === "main" && todayMain === item.name) ||
+                    (selectingSlot === "veggie" && todayVeggie === item.name) ||
+                    (selectingSlot === "beverage" && todayBeverage === item.name) ||
+                    (selectingSlot === "dessert" && todayDessert === item.name);
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectDishForToday(item.name)}
+                      className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all active:scale-[0.98] ${
+                        isCurrent
+                          ? "border-[#7B2CBF] bg-[#F3E8FF] text-[#7B2CBF] shadow-xs"
+                          : "border-[#F0EDF5] bg-[#FAF8FC] text-[#1F1135] hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-bold">{item.name}</span>
+                        {item.id === "c-s1" || item.id === "c-m1" ? (
+                          <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[13px] font-black text-[#D97706]">
+                            ⭐ Más pedido
+                          </span>
+                        ) : null}
+                      </div>
+                      {isCurrent ? (
+                        <Check className="h-4 w-4 stroke-[3]" />
+                      ) : (
+                        <span className="text-[13px] font-bold text-[#7B2CBF]">
+                          Elegir
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+            </div>
+
+            {/* Input rápido para agregar una nueva receta al vuelo si hoy cocinó algo nuevo */}
+            <div className="pt-2 border-t border-[#F0EDF5] space-y-2">
+              <label htmlFor="quick-dish-input" className="block text-[13px] font-bold text-[#6B5B7B]">
+                ¿Preparaste una nueva {selectingSection.toLowerCase()}?
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="quick-dish-input"
+                  type="text"
+                  placeholder={`Ej. ${selectingSection === "Sopa" ? "Sancocho de carne" : selectingSection === "Bebida" ? "Limonada imperial" : "Seco de chivo"}`}
+                  value={quickDishInput}
+                  onChange={(e) => setQuickDishInput(e.target.value)}
+                  className="flex-1 rounded-xl border border-[#E7E1F2] bg-[#F5F3FA] px-3 py-2 text-[14px] font-bold text-[#1F1135] focus:border-[#7B2CBF] focus:outline-hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateQuickDish}
+                  className="rounded-xl bg-[#7B2CBF] px-4 py-2 text-[13px] font-black text-white active:scale-95 transition-all shadow-xs"
+                >
+                  Agregar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para crear plato en catálogo completo */}
       {showAddModal && (
         <div
           role="dialog"
           aria-modal="true"
+          aria-label="Nuevo plato para la casa"
           className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
           onClick={() => setShowAddModal(false)}
         >
@@ -732,23 +937,24 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="new-dish-name-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
                 Nombre del plato
               </label>
               <input
+                id="new-dish-name-input"
                 type="text"
                 value={newDishName}
                 onChange={(e) => setNewDishName(e.target.value)}
                 placeholder="Ej. Seco de carne con arroz"
                 autoFocus
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-none"
+                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <span className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
                 Sección
-              </label>
+              </span>
               <div className="flex gap-2">
                 {activeSections.map((sec) => (
                   <button

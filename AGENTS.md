@@ -25,3 +25,11 @@
 - **P13 Tarjeta de sellos**: Configuración por el dueño (meta 10, premio configurable). Cada almuerzo validado por QR suma 1 sello automático con animación. Canje de premio genera venta de $0 (motivo "Premio") para cuadre de caja.
 - **P14 Feedback**: Tarjeta comensal 20 min post-consumo con etiquetas de 1 toque y nota privada. Conteos públicos agregados en ficha (eliminado puntaje fijo). Buzón privado para el dueño con respuesta directa al comensal.
 - **P15 Ofertas Flash & Comisiones**: Lanzamiento de ofertas con cupos y hora fin. Aviso transparente: "Publicar es gratis. Pagas el 7 % solo de lo que se canjee" (`COMMISSION_RATE = 0.07`). Canje en caja registra venta y asiento en `commissionLedger`. Panel "Lo que te trajo Bocadoo" para el dueño con métricas y comisiones acumuladas.
+
+## Principio Rector: Ley del Mínimo Esfuerzo (UI/UX Core Principle)
+- **Tanto para el Comensal como para el Dueño**: La aplicación debe operar bajo la ley del mínimo esfuerzo absoluto.
+  - Cero fricción cognitiva: interfaces autoexplicativas que eliminan formularios innecesarios.
+  - Máximo 3 toques por acción principal (el último ejecuta, con búfer de Deshacer de 10 s).
+  - Predeterminación inteligente: botones de 1 toque como "Repetir ayer", selección rápida desde catálogo con fotos automáticas, y asignación de platos sin tipear texto a diario.
+  - Conservación de datos: los platos del restaurante nunca se eliminan físicamente (solo se archivan o desmarcan del día), preservando el historial de ventas, estadísticas y preferencias acumuladas.
+
