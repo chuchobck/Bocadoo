@@ -19,11 +19,52 @@ import {
 import { toast } from "sonner";
 import { OccupancyChip, UndoBanner, SearchInput, BottomSheet } from "@/design-system";
 import { FichaLocalModal } from "@/components/comensal/FichaLocalModal";
+import type { FichaBreakfast, FichaOrderDetails } from "@/features/comensal/ficha-local";
 import { MesaAmigosModal } from "@/components/comensal/MesaAmigosModal";
 import { InteractiveMapModal } from "./components";
 import { DINER_ZONES } from "@/components/bocadoo/store";
 import { DONDE_COMER_COPY } from "./copy";
 import type { ComponentState } from "@/design-system";
+
+/** Oferta publicada por un local: liquidación flash de hoy o promo programada de horas muertas. */
+export interface RestaurantOffer {
+  id: string;
+  restaurantId: string;
+  modalidad: "FLASH_HOY" | "HORA_VALLE";
+  titulo: string;
+  precio?: string | undefined;
+  precioOriginal?: string | undefined;
+  /** Precio en centavos enteros; 0 = no se puede reservar desde aquí. */
+  precioCents: number;
+  cuposRestantes: number;
+  /** Texto listo para mostrar: "⚡ Flash · Quedan 5 cupos · hasta 14:00" o "📅 Promo Mar y Jue 16:00 - 18:00 · -20%". */
+  badge: string;
+  /** Se puede reservar ahora (dentro de su horario y con cupos). */
+  vigenteAhora: boolean;
+  /** Aplica hoy (para las promos programadas: hoy es uno de sus días). */
+  aplicaHoy: boolean;
+}
+
+function offersOf(r: RestaurantItem): RestaurantOffer[] {
+  if (r.offers) return r.offers;
+  if (!r.hasOffer) return [];
+  const cupos = r.offerSlotsLeft ?? 0;
+  return [
+    {
+      id: `legacy-${r.id}`,
+      restaurantId: r.id,
+      modalidad: "FLASH_HOY",
+      titulo: r.offerTitle ?? "Oferta flash activa",
+      precio: r.offerPrice,
+      precioOriginal: r.offerOriginalPrice,
+      precioCents: 0,
+      cuposRestantes: cupos,
+      badge: `⚡ Flash · Quedan ${cupos} ${cupos === 1 ? "cupo" : "cupos"}`,
+      vigenteAhora: true,
+      aplicaHoy: true,
+    },
+  ];
+}
 
 export interface RestaurantItem {
   id: string;
@@ -52,15 +93,21 @@ export interface RestaurantItem {
   mains?: Array<{ id: string; nombre: string; precio?: string; foto?: string; veggie?: boolean; agotado?: boolean }>;
   juice?: string;
   dessert?: string;
+  /** Desayunos publicados hoy por el local. */
+  breakfasts?: FichaBreakfast[];
+  /** Todas las ofertas activas del local (flash y promos programadas). */
+  offers?: RestaurantOffer[];
 }
 
 export interface DondeComerScreenProps {
   restaurants?: RestaurantItem[] | undefined;
-  onOrderSuccess?: ((orderNumber: string, details?: { soup: string; main: string; paraLlevar: boolean }) => void) | undefined;
+  onOrderSuccess?: ((orderNumber: string, details?: FichaOrderDetails) => void) | undefined;
   onRetry?: (() => void) | undefined;
   state?: ComponentState;
   selectedZone?: string | null;
   onSelectZone?: (zone: string) => void;
+  /** Reserva (preorden) de una oferta directamente desde la lista. */
+  onReserveOffer?: ((offer: RestaurantOffer) => void) | undefined;
 }
 
 export function getMonogram(name: string): string {
@@ -151,6 +198,7 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
   state = "exito",
   selectedZone = "Frente a la PUCE",
   onSelectZone,
+  onReserveOffer,
 }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCerca, setFilterCerca] = useState(false);
@@ -178,7 +226,13 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
       const matchName = r.name.toLowerCase().includes(q);
       const matchDish = r.featuredDish.toLowerCase().includes(q);
       const matchZona = r.zona?.toLowerCase().includes(q);
-      if (!matchName && !matchDish && !matchZona) return false;
+      const soldOutSoups = r.soldOutSoups ?? [];
+      const matchActiveDish =
+        (r.breakfasts ?? []).some((b) => !b.agotado && b.nombre.toLowerCase().includes(q)) ||
+        (r.soups ?? []).some((sp) => !soldOutSoups.includes(sp) && sp.toLowerCase().includes(q)) ||
+        (r.mains ?? []).some((m) => !m.agotado && m.nombre.toLowerCase().includes(q)) ||
+        offersOf(r).some((o) => o.titulo.toLowerCase().includes(q));
+      if (!matchName && !matchDish && !matchZona && !matchActiveDish) return false;
     }
     if (filterCerca && r.distanceKm >= 1.0) return false;
     if (filterConPlan && !r.hasPlan) return false;
@@ -188,7 +242,12 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
   });
 
   const planRestaurants = restaurants.filter((r) => r.hasPlan);
-  const offerRestaurants = restaurants.filter((r) => r.hasOffer);
+  // "Ofertas hoy": flash de hoy + promos programadas que aplican hoy
+  const todayOfferEntries = restaurants.flatMap((r) =>
+    offersOf(r)
+      .filter((o) => o.aplicaHoy)
+      .map((o) => ({ res: r, offer: o })),
+  );
 
   const openMesaModal = (restaurant?: RestaurantItem) => {
     setMesaRestaurant(restaurant || restaurants[0] || null);
@@ -439,55 +498,78 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
               </section>
             )}
 
-            {/* SECCIÓN 2: "Ofertas hoy" */}
-            {offerRestaurants.length > 0 && !filterConPlan && (
-              <section className="space-y-2">
+            {/* SECCIÓN 2: "Ofertas hoy" (flash de hoy y promos horas muertas) */}
+            {todayOfferEntries.length > 0 && !filterConPlan && (
+              <section className="space-y-2" data-testid="ofertas-hoy">
                 <div className="flex items-center gap-1.5">
                   <Zap className="h-4 w-4 text-primary" />
                   <h2 className="text-[15px] font-black text-foreground">Ofertas hoy</h2>
                 </div>
                 <div className="space-y-2">
-                  {offerRestaurants.map((res) => (
-                    <div
-                      key={res.id}
-                      onClick={() => setSelectedRestaurant(res)}
-                      className="rounded-[22px] border border-primary/30 bg-gradient-to-r from-background to-primary-container p-3 shadow-xs flex items-center justify-between cursor-pointer hover:border-primary active:scale-[0.99] transition-all"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {res.coverImage ? (
-                          <img
-                            src={res.coverImage}
-                            alt={res.name}
-                            className="h-12 w-12 shrink-0 rounded-2xl object-cover border border-border"
-                          />
-                        ) : (
-                          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary-container text-[16px] font-black text-foreground">
-                            {getMonogram(res.name)}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <h3 className="text-[14px] font-extrabold text-foreground truncate">
-                            {res.name}
-                          </h3>
-                          <span className="block truncate text-[12px] font-bold text-primary">
-                            ⚡ {res.offerTitle ?? "Oferta flash activa"}
-                          </span>
-                          {res.offerPrice && (
-                            <span className="block text-[12px] font-semibold text-muted-foreground">
-                              <span className="font-black text-foreground">{res.offerPrice}</span>
-                              {res.offerOriginalPrice && (
-                                <span className="ml-1 line-through">{res.offerOriginalPrice}</span>
-                              )}
-                              {res.offerSlotsLeft !== undefined && ` · quedan ${res.offerSlotsLeft}`}
-                            </span>
+                  {todayOfferEntries.map(({ res, offer }) => {
+                    const canReserve = Boolean(onReserveOffer) && offer.precioCents > 0;
+                    return (
+                      <div
+                        key={offer.id}
+                        onClick={() => setSelectedRestaurant(res)}
+                        className="rounded-[22px] border border-primary/30 bg-gradient-to-r from-background to-primary-container p-3 shadow-xs flex items-center justify-between gap-2 cursor-pointer hover:border-primary active:scale-[0.99] transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          {res.coverImage ? (
+                            <img
+                              src={res.coverImage}
+                              alt={res.name}
+                              className="h-12 w-12 shrink-0 rounded-2xl object-cover border border-border"
+                            />
+                          ) : (
+                            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary-container text-[16px] font-black text-foreground">
+                              {getMonogram(res.name)}
+                            </div>
                           )}
+                          <div className="min-w-0">
+                            <h3 className="text-[14px] font-extrabold text-foreground truncate">
+                              {res.name}
+                            </h3>
+                            <span
+                              data-testid="oferta-badge"
+                              className="block text-[13px] font-bold leading-tight text-primary"
+                            >
+                              {offer.badge}
+                            </span>
+                            <span className="block truncate text-[13px] font-semibold text-foreground">
+                              {offer.titulo}
+                            </span>
+                            {offer.precio && (
+                              <span className="block text-[13px] font-semibold text-muted-foreground">
+                                <span className="font-black text-foreground">{offer.precio}</span>
+                                {offer.precioOriginal && (
+                                  <span className="ml-1 line-through">{offer.precioOriginal}</span>
+                                )}
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        {canReserve ? (
+                          <button
+                            type="button"
+                            disabled={!offer.vigenteAhora}
+                            aria-label={`Reservar ${offer.titulo}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onReserveOffer?.(offer);
+                            }}
+                            className="rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-bold text-primary-foreground shrink-0 shadow-xs active:scale-95 disabled:cursor-not-allowed disabled:bg-border disabled:text-muted-foreground"
+                          >
+                            {offer.vigenteAhora ? "Reservar" : "Fuera de horario"}
+                          </button>
+                        ) : (
+                          <span className="rounded-full bg-primary px-3.5 py-1 text-[13px] font-bold text-primary-foreground shrink-0 shadow-xs">
+                            Ver
+                          </span>
+                        )}
                       </div>
-                      <span className="rounded-full bg-primary px-3.5 py-1 text-[12px] font-bold text-primary-foreground shrink-0 shadow-xs">
-                        Ver
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -564,6 +646,35 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
                           Hoy: {res.featuredDish}
                         </p>
 
+                        {/* Ofertas del local con su badge según modalidad */}
+                        {offersOf(res).slice(0, 2).map((offer) => (
+                          <div
+                            key={offer.id}
+                            className="flex items-center justify-between gap-2 rounded-xl bg-primary-container px-2.5 py-1.5"
+                          >
+                            <span
+                              data-testid="oferta-badge"
+                              className="text-[13px] font-extrabold leading-tight text-primary"
+                            >
+                              {offer.badge}
+                            </span>
+                            {onReserveOffer && offer.precioCents > 0 && (
+                              <button
+                                type="button"
+                                disabled={!offer.vigenteAhora}
+                                aria-label={`Reservar ${offer.titulo} en ${res.name}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onReserveOffer(offer);
+                                }}
+                                className="shrink-0 rounded-full bg-primary px-3 py-1 text-[13px] font-bold text-primary-foreground active:scale-95 disabled:cursor-not-allowed disabled:bg-border disabled:text-muted-foreground"
+                              >
+                                {offer.vigenteAhora ? "Reservar" : "Fuera de horario"}
+                              </button>
+                            )}
+                          </div>
+                        ))}
+
                         {/* Precios directos y sin ruido */}
                         <div className="flex items-center justify-between text-[12px]">
                           <div>
@@ -574,11 +685,18 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
                               (Desde {res.precioPlan || "$2,75"} con plan)
                             </span>
                           </div>
-                          {res.hasPlan && (
-                            <span className="text-[10px] font-extrabold text-primary bg-primary-container px-2 py-0.5 rounded-full">
-                              🎟️ Plan activo
-                            </span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {res.breakfasts?.some((b) => !b.agotado) && (
+                              <span className="text-[10px] font-extrabold text-primary bg-primary-container px-2 py-0.5 rounded-full">
+                                ☀️ Desayunos
+                              </span>
+                            )}
+                            {res.hasPlan && (
+                              <span className="text-[10px] font-extrabold text-primary bg-primary-container px-2 py-0.5 rounded-full">
+                                🎟️ Plan activo
+                              </span>
+                            )}
+                          </div>
                         </div>
 
                         {/* Fila de Acciones limpias: Ver Menú + Mesa + Pedir */}
@@ -660,6 +778,7 @@ export const DondeComerScreen: React.FC<DondeComerScreenProps> = ({
         mains={selectedRestaurant?.mains}
         juice={selectedRestaurant?.juice}
         dessert={selectedRestaurant?.dessert}
+        breakfasts={selectedRestaurant?.breakfasts}
         precioSuelto={selectedRestaurant?.precioSuelto}
         precioPlan={selectedRestaurant?.precioPlan}
         coverImage={selectedRestaurant?.coverImage}

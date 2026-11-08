@@ -14,7 +14,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { UndoBanner } from "@/design-system";
-import { useBocadoo, money, type PaymentMethod, type Txn } from "@/components/bocadoo/store";
+import { useBocadoo, money, isOfferLiveNow, type PaymentMethod, type Txn } from "@/components/bocadoo/store";
 
 import { useCaja } from "./hooks/useCaja";
 import { CAJA_COPY } from "./copy";
@@ -55,10 +55,10 @@ export const CajaScreen: React.FC<CajaScreenProps> = ({
   const [showVenderPlanModal, setShowVenderPlanModal] = useState(false);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
-  const { transactions, simulatedTodayKey, orders, restaurant, flashOffers } = useBocadoo();
-  // Oferta flash activa del local (la publica el dueño y la ve el comensal en "Ofertas hoy")
+  const { transactions, simulatedTodayKey, orders, restaurant, flashOffers, simulatedToday } = useBocadoo();
+  // Oferta activa del local ahora mismo (una promo programada solo cuenta dentro de su horario)
   const liveOffer = flashOffers.find(
-    (f) => f.restaurantId === restaurant?.id && f.activa && f.stockRestante > 0,
+    (f) => f.restaurantId === restaurant?.id && isOfferLiveNow(f, simulatedToday),
   );
   const activeOffer = liveOffer
     ? { slots: liveOffer.stockRestante, price: liveOffer.precioCents / 100 }

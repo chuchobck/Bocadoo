@@ -17,4 +17,22 @@ export const OFERTA_COPY = {
   errorTitle: "Error al publicar",
   errorDesc: "No se pudo lanzar la oferta.",
   offlineBadge: "Sin conexión · Se publicará al conectar",
+  modeFlashTitle: "⚡ Flash de hoy",
+  modeFlashSub: "Liquidación de excedentes",
+  modeFlashHelp:
+    "Vende hoy lo que te sobró: tu plato o combo con descuento, por pocos cupos y hasta una hora de hoy.",
+  modeValleTitle: "📅 Horas muertas",
+  modeValleSub: "Promo programada",
+  modeValleHelp:
+    "Atrae clientes en los días y horas de poco movimiento. Se repite cada semana durante 30 días.",
+  promoTitleLabel: "Título de la promo",
+  promoTitlePlaceholder: "Ej. Almuerzo ejecutivo a precio especial",
+  promoDaysLabel: "Días de la semana",
+  promoHoursLabel: "Rango horario",
+  promoFrom: "Desde",
+  promoTo: "Hasta",
+  promoPublishButton: "Publicar promo programada",
+  manualPriceLabel: "Precio especial",
+  promoPublishedToast: (when: string) => `Promo programada publicada: ${when}`,
+  promoDuration: "La promo queda vigente 30 días. Puedes cancelarla cuando quieras.",
 } as const;

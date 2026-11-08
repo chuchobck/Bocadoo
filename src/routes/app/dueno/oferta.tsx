@@ -1,16 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
+import { z } from "zod";
 
 import { OfertaFlashModal, CajaView } from "@/components/dueno";
 import { AppShell, NavBar } from "@/components/bocadoo/ui";
 
 export const Route = createFileRoute("/app/dueno/oferta")({
-  head: () => ({ meta: [{ title: "Bocadoo — Oferta flash" }] }),
+  // ?modo=valle abre directo la promo programada de horas muertas; sin parámetro abre Flash de hoy
+  validateSearch: z.object({
+    modo: z.enum(["flash", "valle"]).optional(),
+  }),
+  head: () => ({ meta: [{ title: "Bocadoo — Ofertas y promos" }] }),
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { modo } = Route.useSearch();
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -32,6 +38,7 @@ function RouteComponent() {
       </div>
       <OfertaFlashModal
         isOpen={isOpen}
+        initialMode={modo === "valle" ? "HORA_VALLE" : "FLASH_HOY"}
         onClose={() => {
           setIsOpen(false);
           navigate({ to: "/app/dueno" }).catch(() => {});

@@ -9,7 +9,13 @@ import {
   RESTAURANT_ID,
   getSimulatedDistanceKm,
   money,
+  breakfastDishes,
+  isOfferLiveNow,
+  offerBadgeLabel,
+  offerMode,
+  promoAppliesToday,
 } from "@/components/bocadoo/store";
+import type { RestaurantOffer } from "@/features/comensal/donde-comer";
 import { calculateOccupancy } from "@/domain/occupancy";
 import type { ComponentState } from "@/design-system";
 
@@ -30,6 +36,7 @@ function RouteComponent() {
     menuDays,
     flashOffers,
     simulatedTodayKey,
+    simulatedToday,
     dinerZone,
     setDinerZone,
     planTemplates,
@@ -59,10 +66,26 @@ function RouteComponent() {
         ? `${soupName.split(" ")[0]} ${soupName.split(" ")[1] || ""} · ${forteName}`
         : forteName || soupName || r.descripcionCorta || "Seco de pollo con maduro";
 
+    // Todas las ofertas activas del local: liquidación flash de hoy y promos programadas
+    const offers: RestaurantOffer[] = flashOffers
+      .filter((f) => f.restaurantId === r.id && f.activa && f.stockRestante > 0)
+      .map((f) => ({
+        id: f.id,
+        restaurantId: f.restaurantId,
+        modalidad: offerMode(f),
+        titulo: f.titulo,
+        precio: money(f.precioCents),
+        precioOriginal: money(f.precioOriginalCents),
+        precioCents: f.precioCents,
+        cuposRestantes: f.stockRestante,
+        badge: offerBadgeLabel(f),
+        vigenteAhora: isOfferLiveNow(f, simulatedToday),
+        aplicaHoy: promoAppliesToday(f, simulatedToday),
+      }));
     const liveOffer = flashOffers.find(
       (f) => f.restaurantId === r.id && f.activa && f.stockRestante > 0,
     );
-    const hasOffer = Boolean(liveOffer);
+    const hasOffer = offers.length > 0;
     const hasPlan =
       activeSubs.some((s) => {
         const tpl = planTemplates.find((t) => t.id === s.templateId);
@@ -126,6 +149,14 @@ function RouteComponent() {
       soups: soupsList,
       soldOutSoups,
       mains: mainsList,
+      offers,
+      breakfasts: breakfastDishes(todayMenu).map((b) => ({
+        id: b.id,
+        nombre: b.nombre,
+        precio: b.precioCents !== undefined ? money(b.precioCents) : undefined,
+        precioCents: b.precioCents,
+        agotado: b.agotado,
+      })),
       juice: todayMenu?.secciones?.jugo?.[0]?.nombre || "Jugo natural de temporada",
       dessert: todayMenu?.secciones?.postre?.[0]?.nombre || "Dulce de la casa",
     };
@@ -140,6 +171,31 @@ function RouteComponent() {
           <DondeComerView
             state={currentState}
             restaurants={restaurantItems}
+            onReserveOffer={(offer) => {
+              const res = createPreOrder({
+                userId: DINER_USER_ID,
+                restaurantId: offer.restaurantId,
+                tipo: "AQUI",
+                items: [
+                  {
+                    platoId: offer.id,
+                    nombre: offer.titulo,
+                    seccion: "oferta",
+                    precioCents: offer.precioCents,
+                  },
+                ],
+              });
+              if (!res.ok) {
+                toast.error(res.error ?? "No se pudo reservar la oferta.");
+                return;
+              }
+              toast.success(`Reservaste ${offer.titulo} · ${money(offer.precioCents)}`, {
+                action: {
+                  label: "Ver QR",
+                  onClick: () => navigate({ to: "/app/comensal" }),
+                },
+              });
+            }}
             selectedZone={dinerZone}
             onSelectZone={(zone) => setDinerZone(zone)}
             onOrderSuccess={(orderNum, details) => {
@@ -147,19 +203,29 @@ function RouteComponent() {
                 userId: DINER_USER_ID,
                 restaurantId: RESTAURANT_ID,
                 tipo: details?.paraLlevar ? "LLEVAR" : "AQUI",
-                items: [
-                  {
-                    platoId: "p-soup",
-                    nombre: details?.soup || "Locro de papa con queso y aguacate",
-                    seccion: "sopa",
-                  },
-                  {
-                    platoId: "p-main",
-                    nombre: details?.main || "Seco de pollo tierno con maduro frito",
-                    seccion: "fuerte",
-                    precioCents: 300,
-                  },
-                ],
+                items:
+                  details?.kind === "desayuno" && details.breakfast
+                    ? [
+                        {
+                          platoId: details.breakfast.id,
+                          nombre: details.breakfast.nombre,
+                          seccion: "desayuno",
+                          precioCents: details.breakfast.precioCents,
+                        },
+                      ]
+                    : [
+                        {
+                          platoId: "p-soup",
+                          nombre: details?.soup || "Locro de papa con queso y aguacate",
+                          seccion: "sopa",
+                        },
+                        {
+                          platoId: "p-main",
+                          nombre: details?.main || "Seco de pollo tierno con maduro frito",
+                          seccion: "fuerte",
+                          precioCents: 300,
+                        },
+                      ],
               });
               toast.success(`Pedido #${orderNum} enviado a cocina`, {
                 action: {

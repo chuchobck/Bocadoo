@@ -342,7 +342,13 @@ function RouteComponent() {
                           )}
                         </div>
                         <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
-                          {tpl.almuerzos} almuerzos · Vigencia de {tpl.vigenciaDias} días hábiles
+                          {tpl.almuerzos}{" "}
+                          {tpl.categoriaPlan === "DESAYUNO"
+                            ? "desayunos"
+                            : tpl.categoriaPlan === "MIXTO"
+                              ? "combos"
+                              : "almuerzos"}{" "}
+                          · Vigencia de {tpl.vigenciaDias} días hábiles
                         </p>
                       </div>
 

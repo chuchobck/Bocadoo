@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Utensils, Check, AlertCircle, WifiOff, Loader2, ArrowLeft, Plus, RotateCcw, Archive, Edit3, X, Calendar, Eye, Clock } from "lucide-react";
 import { ButtonPrimary, UndoBanner } from "@/design-system";
-import { useBocadoo } from "@/components/bocadoo/store";
+import { useBocadoo, breakfastDishes, money } from "@/components/bocadoo/store";
 import { MENU_COPY } from "./copy";
 import type { ComponentState } from "@/design-system";
 
@@ -10,6 +10,14 @@ export interface CatalogItem {
   name: string;
   section: string;
   extraPriceCents?: number;
+  archived?: boolean;
+}
+
+/** Desayuno de la casa; el id es el mismo que usa el menú publicado en el store. */
+export interface BreakfastItem {
+  id: string;
+  name: string;
+  priceCents: number;
   archived?: boolean;
 }
 
@@ -112,7 +120,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   const { publishMenu, toggleSoldOut, simulatedTodayKey, menuDays } = useBocadoo();
 
   const [activeSegment, setActiveSegment] = useState<"hoy" | "catalogo">("hoy");
-  const [catalogSubSegment, setCatalogSubSegment] = useState<"almuerzos" | "alacarta">("almuerzos");
+  const [catalogSubSegment, setCatalogSubSegment] = useState<"almuerzos" | "desayunos" | "alacarta">("almuerzos");
   const [catalog, setCatalog] = useState<CatalogItem[]>(INITIAL_CATALOG);
   const [aLaCarteCatalog, setALaCarteCatalog] = useState<ALaCarteItem[]>(INITIAL_A_LA_CARTE);
   const [activeSections, setActiveSections] = useState<string[]>(["Sopa", "Segundo", "Bebida"]);
@@ -133,6 +141,22 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   const [todayDesserts, setTodayDesserts] = useState<string[]>([
     "Higos con queso",
   ]);
+
+  // Desayunos: catálogo de la casa y cuáles se ofrecen hoy (parte de lo ya publicado en el store)
+  const [breakfastCatalog, setBreakfastCatalog] = useState<BreakfastItem[]>(() =>
+    breakfastDishes(menuDays[simulatedTodayKey]).map((d) => ({
+      id: d.id,
+      name: d.nombre,
+      priceCents: d.precioCents ?? 0,
+    })),
+  );
+  const [todayBreakfastIds, setTodayBreakfastIds] = useState<string[]>(() =>
+    breakfastDishes(menuDays[simulatedTodayKey]).map((d) => d.id),
+  );
+  const [showBreakfastModal, setShowBreakfastModal] = useState(false);
+  const [newBreakfastName, setNewBreakfastName] = useState("");
+  const [newBreakfastPrice, setNewBreakfastPrice] = useState("");
+  const [breakfastError, setBreakfastError] = useState("");
 
   const [exhaustedDishes, setExhaustedDishes] = useState<string[]>(() =>
     Object.values(menuDays[simulatedTodayKey]?.secciones ?? {}).flatMap((dishes) =>
@@ -237,6 +261,40 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
     setShowALaCarteModal(false);
   };
 
+  const todayBreakfasts = todayBreakfastIds
+    .map((id) => breakfastCatalog.find((b) => b.id === id))
+    .filter((b): b is BreakfastItem => Boolean(b));
+
+  const handleToggleBreakfastToday = (id: string) => {
+    setTodayBreakfastIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
+  const handleArchiveBreakfast = (id: string) => {
+    setBreakfastCatalog((prev) => prev.map((b) => (b.id === id ? { ...b, archived: !b.archived } : b)));
+    setTodayBreakfastIds((prev) => prev.filter((x) => x !== id));
+  };
+
+  const handleCreateBreakfast = () => {
+    const name = newBreakfastName.trim();
+    if (!name) {
+      setBreakfastError("Escribe el nombre del desayuno.");
+      return;
+    }
+    const priceCents = Math.round(parseFloat(newBreakfastPrice.replace(",", ".")) * 100);
+    if (!Number.isFinite(priceCents) || priceCents <= 0) {
+      setBreakfastError("Escribe un precio válido, por ejemplo 2.50.");
+      return;
+    }
+    const id = `b-${Date.now()}`;
+    setBreakfastCatalog((prev) => [...prev, { id, name, priceCents }]);
+    setTodayBreakfastIds((prev) => [...prev, id]);
+    setNewBreakfastName("");
+    setNewBreakfastPrice("");
+    setBreakfastError("");
+  };
+
   const handleToggleExhausted = (dishName: string) => {
     const willBeExhausted = !exhaustedDishes.includes(dishName);
     setExhaustedDishes((prev) =>
@@ -265,6 +323,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
     publishMenu({
       fecha: simulatedTodayKey,
       secciones: {
+        desayuno: todayBreakfasts.map((b) => ({
+          id: b.id,
+          nombre: b.name,
+          descripcion: "",
+          precioCents: b.priceCents,
+          agotado: exhaustedDishes.includes(b.name),
+        })),
         sopa: todaySoups.map((s, idx) => ({
           id: `s-${idx}`,
           nombre: s,
@@ -622,6 +687,79 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   })}
                 </div>
 
+                {/* Desayunos de hoy: cada plato es su propio interruptor de agotado */}
+                <section
+                  aria-label="Desayunos de hoy"
+                  data-testid="menu-desayunos"
+                  className="rounded-[24px] border border-border bg-surface p-3.5 shadow-xs space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] font-black uppercase tracking-wider text-primary">
+                      ☀️ Desayunos ({todayBreakfasts.length})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowBreakfastModal(true)}
+                      className="flex items-center gap-1 rounded-full bg-primary-container px-3 py-1 text-[13px] font-bold text-primary active:scale-95 transition-all hover:bg-secondary-container"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      <span>Agregar</span>
+                    </button>
+                  </div>
+                  {todayBreakfasts.length === 0 ? (
+                    <p className="py-2 text-center text-[13px] font-medium text-muted-foreground">
+                      Hoy no ofreces desayunos. Toca Agregar para sumarlos al menú.
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {todayBreakfasts.map((b) => {
+                        const isExhausted = exhaustedDishes.includes(b.name);
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => handleToggleExhausted(b.name)}
+                            aria-pressed={isExhausted}
+                            aria-label={
+                              isExhausted
+                                ? `${b.name}: se acabó. Toca si volvió a haber`
+                                : `${b.name}: hay. Toca si se acabó`
+                            }
+                            className={`flex w-full items-center justify-between gap-2 rounded-xl border px-2.5 py-1.5 text-left transition-all active:scale-[0.98] ${
+                              isExhausted ? "border-danger bg-danger-container" : "border-border bg-background"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <span
+                                className={`block truncate text-[13px] font-extrabold leading-tight ${
+                                  isExhausted ? "line-through text-muted-foreground" : "text-foreground"
+                                }`}
+                              >
+                                {b.name}
+                              </span>
+                              <span
+                                className={`mt-0.5 flex items-center gap-1 text-[13px] font-black ${
+                                  isExhausted ? "text-on-danger-container" : "text-success"
+                                }`}
+                              >
+                                {isExhausted ? (
+                                  <X className="h-3.5 w-3.5 stroke-[3]" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                )}
+                                {isExhausted ? MENU_COPY.dishSoldOut : MENU_COPY.dishAvailable}
+                              </span>
+                            </div>
+                            <span className="shrink-0 text-[13px] font-black text-foreground">
+                              {money(b.priceCents)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
+
                 {/* Sección "Menú de la semana" (Mockup Image 4) */}
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
@@ -698,7 +836,19 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Almuerzos del día
+                    Almuerzos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatalogSubSegment("desayunos")}
+                    aria-pressed={catalogSubSegment === "desayunos"}
+                    className={`flex-1 rounded-xl py-2 text-center text-[13px] font-bold transition-all ${
+                      catalogSubSegment === "desayunos"
+                        ? "bg-surface text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Desayunos
                   </button>
                   <button
                     type="button"
@@ -710,7 +860,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
-                    Platos a la carta
+                    A la carta
                   </button>
                 </div>
 
@@ -852,6 +1002,90 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                         <span>Guardar platos de la casa</span>
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* SUB-SEGMENTO: DESAYUNOS */}
+                {catalogSubSegment === "desayunos" && (
+                  <div className="space-y-4" data-testid="catalogo-desayunos">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h3 className="text-[18px] font-black text-foreground">Desayunos de la casa</h3>
+                        <p className="text-[13px] font-medium text-muted-foreground">
+                          Marca cuáles ofreces hoy y publícalos con el menú.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowBreakfastModal(true)}
+                        className="flex shrink-0 items-center gap-1 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-black text-primary-foreground active:scale-95 transition-all shadow-xs"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>Nuevo</span>
+                      </button>
+                    </div>
+
+                    {breakfastCatalog.length === 0 ? (
+                      <p className="py-3 text-center text-[13px] font-medium text-muted-foreground">
+                        Aún no hay desayunos. Agrega el primero.
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {breakfastCatalog.map((b) => {
+                          const today = todayBreakfastIds.includes(b.id);
+                          return (
+                            <div
+                              key={b.id}
+                              className={`flex items-center justify-between gap-2 rounded-2xl border bg-surface p-3 ${
+                                b.archived ? "opacity-50 border-border" : "border-border shadow-xs"
+                              }`}
+                            >
+                              <div className="min-w-0">
+                                <span className="block truncate text-[14px] font-extrabold text-foreground">
+                                  {b.name}
+                                </span>
+                                <span className="text-[13px] font-black text-success">
+                                  {money(b.priceCents)}
+                                </span>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-1.5">
+                                {!b.archived && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleBreakfastToday(b.id)}
+                                    aria-pressed={today}
+                                    className={`rounded-full px-2.5 py-1 text-[13px] font-bold active:scale-95 ${
+                                      today
+                                        ? "bg-primary text-primary-foreground"
+                                        : "border border-border bg-background text-foreground"
+                                    }`}
+                                  >
+                                    {today ? "En hoy" : "Ofrecer hoy"}
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => handleArchiveBreakfast(b.id)}
+                                  className="rounded-full border border-border bg-background px-2.5 py-1 text-[13px] font-bold text-muted-foreground active:scale-95"
+                                >
+                                  {b.archived ? "Activar" : "Archivar"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <ButtonPrimary
+                      onClick={() => {
+                        setActiveSegment("hoy");
+                        setUndoLabel("Desayunos guardados");
+                        setUndoSeconds(10);
+                      }}
+                    >
+                      Guardar desayunos
+                    </ButtonPrimary>
                   </div>
                 )}
 
@@ -1098,6 +1332,112 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 Guardar plato
               </ButtonPrimary>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de desayunos: elegir los de hoy o crear uno nuevo */}
+      {showBreakfastModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Desayunos de hoy"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          onClick={() => setShowBreakfastModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-sm space-y-4 rounded-[32px] bg-surface p-5 shadow-xl animate-in slide-in-from-bottom"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-[17px] font-black text-foreground">☀️ Desayunos de hoy</h3>
+              <button
+                type="button"
+                onClick={() => setShowBreakfastModal(false)}
+                aria-label="Cerrar desayunos"
+                className="grid h-8 w-8 place-items-center rounded-full bg-background text-muted-foreground active:scale-95"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-48 space-y-2 overflow-y-auto pr-0.5">
+              {breakfastCatalog.filter((b) => !b.archived).length === 0 && (
+                <p className="py-2 text-center text-[13px] font-medium text-muted-foreground">
+                  Aún no tienes desayunos guardados.
+                </p>
+              )}
+              {breakfastCatalog
+                .filter((b) => !b.archived)
+                .map((b) => {
+                  const on = todayBreakfastIds.includes(b.id);
+                  return (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => handleToggleBreakfastToday(b.id)}
+                      aria-pressed={on}
+                      className={`flex w-full items-center justify-between rounded-2xl border p-3 text-left transition-all active:scale-[0.98] ${
+                        on
+                          ? "border-primary bg-primary-container text-primary shadow-xs"
+                          : "border-border bg-background text-foreground"
+                      }`}
+                    >
+                      <span className="text-[14px] font-bold">
+                        {b.name} · {money(b.priceCents)}
+                      </span>
+                      {on ? <Check className="h-4 w-4 stroke-[3]" /> : <Plus className="h-4 w-4" />}
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="space-y-2 border-t border-border pt-3">
+              <label htmlFor="new-breakfast-name" className="block text-[13px] font-bold text-muted-foreground">
+                ¿Un desayuno nuevo?
+              </label>
+              <input
+                id="new-breakfast-name"
+                type="text"
+                value={newBreakfastName}
+                onChange={(e) => setNewBreakfastName(e.target.value)}
+                placeholder="Ej. Empanada de viento + Café"
+                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
+              />
+              <div className="flex gap-2">
+                <input
+                  id="new-breakfast-price"
+                  type="text"
+                  inputMode="decimal"
+                  aria-label="Precio del desayuno en dólares"
+                  value={newBreakfastPrice}
+                  onChange={(e) => setNewBreakfastPrice(e.target.value)}
+                  placeholder="Precio, ej. 2.50"
+                  className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateBreakfast}
+                  className="rounded-xl bg-primary px-4 py-2 text-[13px] font-black text-primary-foreground active:scale-95 transition-all shadow-xs"
+                >
+                  Agregar
+                </button>
+              </div>
+              {breakfastError && (
+                <p role="alert" className="text-[13px] font-bold text-danger">
+                  {breakfastError}
+                </p>
+              )}
+            </div>
+
+            <ButtonPrimary
+              onClick={() => {
+                setBreakfastError("");
+                setShowBreakfastModal(false);
+              }}
+            >
+              ✓ Listo
+            </ButtonPrimary>
           </div>
         </div>
       )}

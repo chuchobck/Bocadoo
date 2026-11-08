@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Users,
   Search,
@@ -22,9 +22,13 @@ import {
 import { ButtonPrimary, UndoBanner } from "@/design-system";
 import { CLIENTES_COPY } from "./copy";
 import { clientsRepository, type ClientRecord } from "@/data/repositories/clients.repository";
-import { plansRepository, type PlanConfig } from "@/data/repositories/plans.repository";
 import { sellPlanSubscription, type PlanTemplate } from "@/domain/plans";
-import { useBocadoo } from "@/components/bocadoo/store";
+import {
+  useBocadoo,
+  PLAN_CATEGORY_LABEL,
+  RESTAURANT_ID,
+  type PlanCategory,
+} from "@/components/bocadoo/store";
 import type { ComponentState } from "@/design-system";
 
 export interface ClientesScreenProps {
@@ -50,43 +54,30 @@ interface LocalPlanItem {
   active: boolean;
   archived?: boolean;
   salesCount: number;
+  categoria: PlanCategory;
+  visible: boolean;
+  cupos: number;
 }
 
-const INITIAL_PLANS: LocalPlanItem[] = [
-  {
-    id: "p-semanal",
-    name: "Plan semanal",
-    lunches: 5,
-    daysValidity: 7,
-    priceCents: 1500,
-    includes: ["Sopa", "Segundo", "Bebida"],
-    rules: { maxPerDay: 1, validDays: "Lun a Vie" },
-    active: true,
-    salesCount: 12,
-  },
-  {
-    id: "p-quincenal",
-    name: "Plan quincenal",
-    lunches: 10,
-    daysValidity: 18,
-    priceCents: 2800,
-    includes: ["Sopa", "Segundo", "Bebida"],
-    rules: { maxPerDay: 1, validDays: "Lun a Sáb" },
-    active: true,
-    salesCount: 19,
-  },
-  {
-    id: "p-mensual",
-    name: "Plan mensual",
-    lunches: 20,
-    daysValidity: 35,
-    priceCents: 5200,
-    includes: ["Sopa", "Segundo", "Bebida", "Postre"],
-    rules: { maxPerDay: 1, validDays: "Todos los días" },
-    active: true,
-    salesCount: 31,
-  },
-];
+const TIPO_BY_TYPE = {
+  semanal: "Semanal",
+  quincenal: "Quincenal",
+  mensual: "Mensual",
+  libre: "Libre",
+} as const;
+
+const includesFor = (c: PlanCategory): string[] =>
+  c === "DESAYUNO" ? ["Plato principal", "Bebida"] : c === "MIXTO" ? ["Desayuno", "Sopa", "Segundo"] : ["Sopa", "Segundo", "Jugo"];
+
+const includeOptionsFor = (c: PlanCategory): string[] =>
+  c === "DESAYUNO"
+    ? ["Plato principal", "Bebida", "Fruta"]
+    : c === "MIXTO"
+      ? ["Desayuno", "Sopa", "Segundo", "Jugo"]
+      : ["Sopa", "Segundo", "Jugo", "Postre"];
+
+const unitFor = (c: PlanCategory): string =>
+  c === "DESAYUNO" ? "desayunos" : c === "MIXTO" ? "combos" : "almuerzos";
 
 export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   clients,
@@ -99,7 +90,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   onRetry,
   state = "exito",
 }) => {
-  const { chargePlan } = useBocadoo();
+  const { chargePlan, planTemplates, subscriptions, addPlan, updatePlan, togglePlan } = useBocadoo();
 
   const [activeSegment, setActiveSegment] = useState<"planes" | "clientes">(initialSegment);
   const initialClients = clients ?? clientsRepository.getAll();
@@ -107,7 +98,31 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   const [selectedClient, setSelectedClient] = useState<ClientRecord | null>(null);
   const [selectedPlanToSell, setSelectedPlanToSell] = useState<LocalPlanItem | null>(null);
   const [clientList, setClientList] = useState<ClientRecord[]>(initialClients);
-  const [plansList, setPlansList] = useState<LocalPlanItem[]>(INITIAL_PLANS);
+  const [archivedIds, setArchivedIds] = useState<string[]>([]);
+  const plansList: LocalPlanItem[] = useMemo(
+    () =>
+      planTemplates
+        .filter((t) => t.restaurantId === RESTAURANT_ID)
+        .map((t) => {
+          const categoria = t.categoriaPlan ?? "ALMUERZO";
+          return {
+            id: t.id,
+            name: t.nombre,
+            lunches: t.almuerzos,
+            daysValidity: t.vigenciaDias,
+            priceCents: t.precioCents,
+            includes: t.incluye ?? includesFor(categoria),
+            rules: { maxPerDay: 1, validDays: "Todos los días" },
+            active: t.activo,
+            archived: archivedIds.includes(t.id),
+            salesCount: subscriptions.filter((sub) => sub.templateId === t.id).length,
+            categoria,
+            visible: t.visibleEnMarketplace,
+            cupos: t.cupos,
+          };
+        }),
+    [planTemplates, subscriptions, archivedIds],
+  );
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
 
@@ -121,6 +136,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   const [planPriceDollars, setPlanPriceDollars] = useState(52);
   const [planCupos, setPlanCupos] = useState(40);
   const [selectedDays, setSelectedDays] = useState<string[]>(["L", "M", "X", "J", "V"]);
+  const [planCategory, setPlanCategory] = useState<PlanCategory>("ALMUERZO");
   const [planIncludes, setPlanIncludes] = useState<string[]>(["Sopa", "Segundo", "Jugo"]);
   const [visibleInMarketplace, setVisibleInMarketplace] = useState(true);
 
@@ -129,6 +145,14 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.phone.includes(searchTerm)
   );
+
+  const unitLabel = unitFor(planCategory);
+  const unitTitle = unitLabel.charAt(0).toUpperCase() + unitLabel.slice(1);
+
+  const handleSelectCategory = (next: PlanCategory) => {
+    setPlanCategory(next);
+    setPlanIncludes(includesFor(next));
+  };
 
   const pricePerLunch = planLunches > 0 ? (planPriceDollars / planLunches).toFixed(2).replace(".", ",") : "0,00";
 
@@ -141,6 +165,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
     setPlanPriceDollars(52);
     setPlanCupos(40);
     setSelectedDays(["L", "M", "X", "J", "V"]);
+    setPlanCategory("ALMUERZO");
     setPlanIncludes(["Sopa", "Segundo", "Jugo"]);
     setVisibleInMarketplace(true);
     setIsPlanModalOpen(true);
@@ -153,7 +178,9 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
     setPlanValidityDays(plan.daysValidity);
     setPlanPriceDollars(Math.round(plan.priceCents / 100));
     setPlanIncludes(plan.includes);
-    setPlanCupos(35);
+    setPlanCategory(plan.categoria);
+    setVisibleInMarketplace(plan.visible);
+    setPlanCupos(plan.cupos);
     setPlanType(plan.lunches <= 5 ? "semanal" : plan.lunches <= 10 ? "quincenal" : "mensual");
     setIsPlanModalOpen(true);
   };
@@ -192,48 +219,34 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   const handleSavePlan = () => {
     if (!planName.trim()) return;
 
+    const fields = {
+      nombre: planName.trim(),
+      almuerzos: planLunches,
+      vigenciaDias: planValidityDays,
+      precioCents: Math.round(planPriceDollars * 100),
+      cupos: planCupos,
+      visibleEnMarketplace: visibleInMarketplace,
+      categoriaPlan: planCategory,
+      incluye: planIncludes,
+      tipo: TIPO_BY_TYPE[planType],
+    };
+
     if (editingPlanId) {
-      setPlansList((prev) =>
-        prev.map((p) =>
-          p.id === editingPlanId
-            ? {
-                ...p,
-                name: planName.trim(),
-                lunches: planLunches,
-                daysValidity: planValidityDays,
-                priceCents: Math.round(planPriceDollars * 100),
-                includes: planIncludes,
-              }
-            : p
-        )
-      );
+      updatePlan(editingPlanId, fields);
     } else {
-      const newPlan: LocalPlanItem = {
-        id: `p-${Date.now()}`,
-        name: planName.trim(),
-        lunches: planLunches,
-        daysValidity: planValidityDays,
-        priceCents: Math.round(planPriceDollars * 100),
-        includes: planIncludes,
-        rules: { maxPerDay: 1, validDays: "Todos los días" },
-        active: true,
-        salesCount: 0,
-      };
-      setPlansList((prev) => [...prev, newPlan]);
+      addPlan({ ...fields, activo: true });
     }
 
     setIsPlanModalOpen(false);
   };
 
   const handleTogglePlanActive = (planId: string) => {
-    setPlansList((prev) =>
-      prev.map((p) => (p.id === planId ? { ...p, active: !p.active } : p))
-    );
+    togglePlan(planId);
   };
 
   const handleArchivePlan = (planId: string) => {
-    setPlansList((prev) =>
-      prev.map((p) => (p.id === planId ? { ...p, archived: !p.archived } : p))
+    setArchivedIds((prev) =>
+      prev.includes(planId) ? prev.filter((id) => id !== planId) : [...prev, planId],
     );
   };
 
@@ -243,7 +256,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
   };
 
   const handleConfirmSale = (client: ClientRecord, method: "EFECTIVO" | "TRANSFERENCIA") => {
-    const plan = selectedPlanToSell || plansList[0] || INITIAL_PLANS[0];
+    const plan = selectedPlanToSell || plansList[0];
     if (!plan) return;
 
     // Dominio puro: al vender, se genera una copia inmutable congelada
@@ -263,11 +276,6 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
     if (updated) {
       setClientList(clientsRepository.getAll());
     }
-
-    // Incrementar conteo de ventas del plan
-    setPlansList((prev) =>
-      prev.map((p) => (p.id === plan.id ? { ...p, salesCount: p.salesCount + 1 } : p))
-    );
 
     // Integración de caja rápida
     chargePlan(
@@ -439,9 +447,17 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
                     >
                       {/* Fila superior: Badge de tipo y Switch iOS */}
                       <div className="flex items-center justify-between">
-                        <span className="rounded-full bg-primary-container px-3 py-1 text-[13px] font-black uppercase tracking-wider text-primary">
-                          {planTag}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="rounded-full bg-primary-container px-3 py-1 text-[13px] font-black uppercase tracking-wider text-primary">
+                            {planTag}
+                          </span>
+                          <span
+                            data-testid="plan-categoria"
+                            className="rounded-full border border-border bg-background px-2.5 py-1 text-[13px] font-bold text-muted-foreground"
+                          >
+                            {PLAN_CATEGORY_LABEL[plan.categoria]}
+                          </span>
+                        </div>
 
                         <div className="flex items-center gap-2">
                           <button
@@ -470,7 +486,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
                         className="mt-2.5 text-left w-full group"
                       >
                         <h3 className="text-[22px] font-black text-foreground group-hover:text-primary transition-colors">
-                          {plan.lunches} almuerzos
+                          {plan.lunches} {unitFor(plan.categoria)}
                         </h3>
                       </button>
 
@@ -624,10 +640,10 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-[17px] font-black text-image-foreground leading-tight">
-                    {planName || `Plan ${planLunches} almuerzos`}
+                    {planName || `Plan ${planLunches} ${unitLabel}`}
                   </h4>
                   <p className="mt-1 text-[13px] font-semibold text-image-foreground/85">
-                    {planLunches} almuerzos · vigencia {planValidityDays} días
+                    {planLunches} {unitLabel} · vigencia {planValidityDays} días
                   </p>
                 </div>
                 <div className="text-right shrink-0">
@@ -678,17 +694,46 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
               </div>
             </div>
 
+            {/* QUÉ CUBRE EL PLAN (Almuerzos, Desayunos, Combos/Mixto) */}
+            <div>
+              <label className="block text-[13px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1.5">
+                QUÉ CUBRE EL PLAN
+              </label>
+              <div
+                role="radiogroup"
+                aria-label="Qué cubre el plan"
+                className="grid grid-cols-3 gap-1 rounded-full bg-background p-1 border border-border"
+              >
+                {(["ALMUERZO", "DESAYUNO", "MIXTO"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={planCategory === c}
+                    onClick={() => handleSelectCategory(c)}
+                    className={`rounded-full py-1.5 text-center text-[13px] font-extrabold transition-all ${
+                      planCategory === c
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {PLAN_CATEGORY_LABEL[c]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Cuadrícula 2x2 de Steppers (Almuerzos, Vigencia, Precio, Cupos) */}
             <div className="grid grid-cols-2 gap-2.5">
               {/* Stepper 1: Almuerzos */}
               <div className="rounded-[20px] bg-background p-3 text-center border border-border">
                 <span className="block text-[13px] font-bold text-muted-foreground mb-2">
-                  Almuerzos
+                  {unitTitle}
                 </span>
                 <div className="flex items-center justify-between px-1">
                   <button
                     type="button"
-                    aria-label="Menos almuerzos"
+                    aria-label={`Menos ${unitLabel}`}
                     onClick={() => setPlanLunches((prev) => Math.max(1, prev - 1))}
                     className="grid h-8 w-8 place-items-center rounded-full bg-surface text-muted-foreground shadow-xs active:scale-95"
                   >
@@ -697,7 +742,7 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
                   <span className="text-[17px] font-black text-foreground">{planLunches}</span>
                   <button
                     type="button"
-                    aria-label="Más almuerzos"
+                    aria-label={`Más ${unitLabel}`}
                     onClick={() => setPlanLunches((prev) => prev + 1)}
                     className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground shadow-xs active:scale-95"
                   >
@@ -819,10 +864,14 @@ export const ClientesScreen: React.FC<ClientesScreenProps> = ({
             {/* EL ALMUERZO INCLUYE */}
             <div>
               <label className="block text-[13px] font-extrabold uppercase tracking-wider text-muted-foreground mb-1.5">
-                EL ALMUERZO INCLUYE
+                {planCategory === "DESAYUNO"
+                  ? "EL DESAYUNO INCLUYE"
+                  : planCategory === "MIXTO"
+                    ? "EL COMBO INCLUYE"
+                    : "EL ALMUERZO INCLUYE"}
               </label>
               <div className="flex flex-wrap gap-1.5">
-                {["Sopa", "Segundo", "Jugo", "Postre"].map((sec) => {
+                {includeOptionsFor(planCategory).map((sec) => {
                   const included = planIncludes.includes(sec);
                   return (
                     <button

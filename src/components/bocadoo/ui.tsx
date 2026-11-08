@@ -13,6 +13,8 @@ import {
   CreditCard,
   Home,
   Landmark,
+  Lock,
+  LockOpen,
   Menu as MenuIcon,
   Minus,
   Monitor,
@@ -136,8 +138,8 @@ export const DeviceFrame = ({
   // Modo adaptable para pantallas grandes (sin marco de plástico ni notch falso)
   if (app && responsive) {
     return (
-      <div className="relative w-full max-w-xl min-h-dvh md:my-4 md:min-h-[92vh] flex flex-col bg-background rounded-none md:rounded-3xl md:border md:border-border/80 shadow-2xl overflow-hidden transition-all duration-200">
-        <div className="flex h-full flex-col overflow-hidden">
+      <div className="relative w-full max-w-xl h-dvh min-[501px]:h-[calc(100dvh-5.75rem)] embedded:h-dvh! flex flex-col bg-background rounded-none md:rounded-3xl md:border md:border-border/80 shadow-2xl overflow-hidden transition-all duration-200">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {children}
         </div>
       </div>
@@ -160,13 +162,9 @@ export const DeviceFrame = ({
           : `phone-shell relative ${shellFixedGallery} ${shellWidth} overflow-hidden ${borderRadius} border-[7px] border-phone bg-background shadow-phone transition-all duration-200`
       }
     >
-      {/* Dynamic Island / Notch solo en iOS */}
-      {!isAndroid ? (
-        <div
-          className={`absolute left-1/2 top-2 z-30 h-[25px] w-[92px] -translate-x-1/2 rounded-full bg-phone ${
-            app ? "max-[500px]:hidden embedded:hidden" : ""
-          }`}
-        />
+      {/* Dynamic Island / Notch solo en iOS, fuera de la vista de la MVP */}
+      {!isAndroid && !app ? (
+        <div className="absolute left-1/2 top-2 z-30 h-[25px] w-[92px] -translate-x-1/2 rounded-full bg-phone" />
       ) : null}
 
       <div
@@ -218,6 +216,47 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       localStorage.setItem("bocadoo-view-mode", mode);
     }
   };
+
+  // Cada ruta monta su propio AppShell: el estado vive en localStorage para sobrevivir a la navegación.
+  const [scrollLocked, setScrollLocked] = useState(false);
+  useEffect(() => {
+    setScrollLocked(localStorage.getItem("bocadoo-scroll-lock") === "1");
+  }, []);
+  useEffect(() => {
+    if (!scrollLocked) return;
+    const html = document.documentElement;
+    const previous = html.style.overflow;
+    html.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = previous;
+    };
+  }, [scrollLocked]);
+
+  const toggleScrollLock = () => {
+    const next = !scrollLocked;
+    setScrollLocked(next);
+    localStorage.setItem("bocadoo-scroll-lock", next ? "1" : "0");
+  };
+
+  const scrollLockButton = (
+    <button
+      type="button"
+      onClick={toggleScrollLock}
+      aria-pressed={scrollLocked}
+      aria-label={scrollLocked ? "Desbloquear scroll de la página" : "Bloquear scroll de la página"}
+      title={scrollLocked ? "Scroll de la página bloqueado" : "Bloquear scroll de la página"}
+      className={`fixed bottom-4 right-4 z-50 hidden h-11 items-center justify-center gap-2 rounded-full border px-3 text-xs font-bold shadow-lg transition-colors min-[768px]:flex xl:px-4 embedded:hidden! ${
+        scrollLocked
+          ? "border-primary bg-primary text-primary-foreground"
+          : "border-border bg-background text-foreground hover:bg-muted"
+      }`}
+    >
+      {scrollLocked ? <Lock size={16} /> : <LockOpen size={16} />}
+      <span className="hidden xl:inline">
+        {scrollLocked ? "Scroll bloqueado" : "Bloquear scroll de la página"}
+      </span>
+    </button>
+  );
 
   return (
     <main className="min-h-dvh bg-showcase font-sans flex flex-col items-center justify-start max-[500px]:p-0 embedded:p-0">
@@ -333,6 +372,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {children}
         </DeviceFrame>
       </div>
+      {scrollLockButton}
     </main>
   );
 };

@@ -22,6 +22,7 @@ import { UndoBanner } from "@/design-system";
 import {
   useBocadoo,
   RESTAURANT_ID,
+  breakfastDishes,
   type MenuDish,
   type PaymentMethod,
   type SaleItem,
@@ -35,19 +36,20 @@ const LUNCH_BASE_CENTS = 300; // sopa + segundo (+ jugo/postre del día) si el p
 const SOLO_SEGUNDO_DISCOUNT_CENTS = 50; // solo segundo = precio del almuerzo - $0,50
 const SOLO_SOPA_CENTS = 125;
 const PLAN_LUNCH_VALUE_CENTS = 300; // lo que cubre el plan por almuerzo
+const PLAN_BREAKFAST_VALUE_CENTS = 250; // lo que cubre el plan por desayuno
 const NONE = "__none__"; // "Sin sopa" / "Sin segundo"
 const TAKEAWAY = "Para llevar";
 const MESAS = ["Mesa 1", "Mesa 2", "Mesa 3", "Mesa 4", "Mesa 5", "Barra", TAKEAWAY];
 const STORAGE_KEY = "bocadoo.pos.tickets.v1";
 
-type Category = "almuerzos" | "carta" | "extras" | "bebidas";
+type Category = "almuerzos" | "desayunos" | "carta" | "extras" | "bebidas";
 type PayChoice = "EFECTIVO" | "TRANSFERENCIA" | "DEUNA" | "TARJETA";
 
 type LinePart = { platoId: string; nombre: string; priceCents: number };
 
 type CartLine = {
   key: string;
-  kind: "almuerzo" | "carta" | "extra" | "bebida";
+  kind: "almuerzo" | "desayuno" | "carta" | "extra" | "bebida";
   name: string;
   detail?: string | undefined;
   unitCents: number;
@@ -181,6 +183,7 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
   const juices: MenuDish[] = todayMenu?.secciones?.jugo ?? [];
   const desserts: MenuDish[] = todayMenu?.secciones?.postre ?? [];
   const hasMenu = soups.length > 0 || mains.length > 0;
+  const breakfasts: MenuDish[] = breakfastDishes(todayMenu);
 
   // Si hay una sola opción disponible, se preselecciona (menos toques).
   const availSoups = soups.filter((s) => !s.agotado);
@@ -267,6 +270,17 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
     setMainPick(null);
   };
 
+  const addBreakfast = (dish: MenuDish) => {
+    const unit = dish.precioCents ?? PLAN_BREAKFAST_VALUE_CENTS;
+    addLine({
+      key: `des|${dish.id}`,
+      kind: "desayuno",
+      name: dish.nombre,
+      unitCents: unit,
+      parts: [{ platoId: dish.id, nombre: dish.nombre, priceCents: unit }],
+    });
+  };
+
   const pickSoup = (id: string) => {
     if (effMain) commitLunch(id, effMain);
     else setSoupPick(id);
@@ -281,8 +295,12 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
   const subtotal = cart.reduce((acc, l) => acc + l.unitCents * l.qty, 0);
   const itemsCount = cart.reduce((acc, l) => acc + l.qty, 0);
   const comboLine = cart.find((l) => l.isCombo);
+  const breakfastLine = cart.find((l) => l.kind === "desayuno");
   const planDiscount =
-    mode === "plan" && comboLine ? Math.min(PLAN_LUNCH_VALUE_CENTS, comboLine.unitCents) : 0;
+    mode === "plan"
+      ? (comboLine ? Math.min(PLAN_LUNCH_VALUE_CENTS, comboLine.unitCents) : 0) +
+        (breakfastLine ? Math.min(PLAN_BREAKFAST_VALUE_CENTS, breakfastLine.unitCents) : 0)
+      : 0;
   const total = subtotal - planDiscount;
 
   const isCash = payment === "EFECTIVO";
@@ -379,6 +397,7 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
 
   const categories: { id: Category; label: string }[] = [
     { id: "almuerzos", label: "Almuerzos" },
+    { id: "desayunos", label: "Desayunos" },
     { id: "carta", label: "A la carta" },
     { id: "extras", label: "Extras" },
     { id: "bebidas", label: "Bebidas" },
@@ -584,7 +603,10 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-black">
                 <Check className="h-4 w-4 shrink-0" />
-                <span>Descuenta 1 almuerzo del plan (-{fmt(PLAN_LUNCH_VALUE_CENTS)})</span>
+                <span>
+                  Descuenta del plan: 1 almuerzo (-{fmt(PLAN_LUNCH_VALUE_CENTS)}) o 1 desayuno (-
+                  {fmt(PLAN_BREAKFAST_VALUE_CENTS)})
+                </span>
               </div>
               {onScanPass && (
                 <button
@@ -631,14 +653,14 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
         </div>
 
         {/* Categorías (sin "Todos") */}
-        <div className="mt-2 grid grid-cols-4 gap-1.5">
+        <div className="mt-2 grid grid-cols-5 gap-1">
           {categories.map((cat) => (
             <button
               key={cat.id}
               type="button"
               onClick={() => setCategory(cat.id)}
               aria-pressed={category === cat.id}
-              className={`whitespace-nowrap rounded-full py-1.5 text-[12px] font-black transition-all ${
+              className={`whitespace-nowrap rounded-full py-1.5 text-[11px] font-black transition-all ${
                 category === cat.id
                   ? "bg-primary text-primary-foreground shadow-xs"
                   : "border border-border bg-background text-muted-foreground"
@@ -744,6 +766,69 @@ export const RegistrarConsumoScreen: React.FC<RegistrarConsumoScreenProps> = ({
                   </p>
                 )}
               </>
+            )}
+          </>
+        )}
+
+        {category === "desayunos" && (
+          <>
+            {breakfasts.length === 0 ? (
+              <div className="rounded-[24px] border border-dashed border-border bg-surface p-5 text-center">
+                <UtensilsCrossed className="mx-auto h-8 w-8 text-primary" />
+                <h2 className="mt-2 text-[16px] font-black text-foreground">
+                  Hoy no hay desayunos publicados
+                </h2>
+                <p className="mt-1 text-[13px] font-semibold text-muted-foreground">
+                  Agrégalos en el menú del día y aparecen aquí al instante.
+                </p>
+                {onOpenMenu && (
+                  <button
+                    type="button"
+                    onClick={onOpenMenu}
+                    className="mt-3 rounded-full bg-primary px-5 py-2 text-[13px] font-black text-primary-foreground active:scale-95"
+                  >
+                    Publicar desayunos
+                  </button>
+                )}
+              </div>
+            ) : (
+              <section aria-label="Desayunos del día" data-testid="pos-desayunos">
+                <div className="mb-1.5 flex items-center justify-between">
+                  <div>
+                    <span className="block text-[10px] font-black uppercase tracking-wider text-primary">
+                      ☀️ DESAYUNOS DE HOY
+                    </span>
+                    <p className="text-[12px] font-semibold text-muted-foreground">
+                      {soldOutMode
+                        ? "Toca el desayuno que se acabó."
+                        : "Toca un desayuno para agregarlo al ticket."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSoldOutMode((v) => !v)}
+                    aria-pressed={soldOutMode}
+                    className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-black transition-all active:scale-95 ${
+                      soldOutMode
+                        ? "bg-danger text-danger-foreground shadow-xs"
+                        : "border border-border bg-surface text-muted-foreground"
+                    }`}
+                  >
+                    {soldOutMode ? <Check className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                    <span>{soldOutMode ? "Listo" : "Se acabó"}</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {breakfasts.map((b) =>
+                    renderDishChip(
+                      b,
+                      qtyOf(`des|${b.id}`) > 0,
+                      () => addBreakfast(b),
+                      fmt(b.precioCents ?? PLAN_BREAKFAST_VALUE_CENTS),
+                    ),
+                  )}
+                </div>
+              </section>
             )}
           </>
         )}

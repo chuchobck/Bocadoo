@@ -2,7 +2,13 @@ import React, { useState } from "react";
 import { Plus, Minus, Check, AlertCircle, WifiOff, Loader2, ArrowLeft, Pencil } from "lucide-react";
 import { UndoBanner } from "@/design-system";
 import { PLANES_COPY } from "./copy";
-import { plansRepository, type PlanConfig } from "@/data/repositories/plans.repository";
+import type { PlanConfig } from "@/data/repositories/plans.repository";
+import {
+  useBocadoo,
+  PLAN_CATEGORY_LABEL,
+  type PlanCategory,
+  type PlanType,
+} from "@/components/bocadoo/store";
 import type { ComponentState } from "@/design-system";
 
 export interface CrearEditarPlanScreenProps {
@@ -23,6 +29,7 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
   state = "exito",
 }) => {
   const isEditing = Boolean(planToEdit);
+  const { addPlan, updatePlan, planTemplates } = useBocadoo();
 
   const [planType, setPlanType] = useState<"Semanal" | "Quincenal" | "Mensual" | "Libre">("Mensual");
   const [planName, setPlanName] = useState<string>(planToEdit?.name || "Plan mensual ejecutivo");
@@ -32,11 +39,26 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
   const [price, setPrice] = useState<number>(planToEdit?.priceCents ? planToEdit.priceCents / 100 : 52);
   const [quota, setQuota] = useState<number>(40);
   const [selectedDays, setSelectedDays] = useState<string[]>(["L", "M1", "M2", "J", "V"]);
+  const [category, setCategory] = useState<PlanCategory>("ALMUERZO");
   const [includes, setIncludes] = useState<string[]>(["Sopa", "Segundo", "Jugo"]);
   const [visibleMarketplace, setVisibleMarketplace] = useState<boolean>(true);
 
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
+
+  const unitLabel = category === "DESAYUNO" ? "desayunos" : category === "MIXTO" ? "combos" : "almuerzos";
+  const unitTitle = unitLabel.charAt(0).toUpperCase() + unitLabel.slice(1);
+
+  const handleSelectCategory = (next: PlanCategory) => {
+    setCategory(next);
+    setIncludes(
+      next === "DESAYUNO"
+        ? ["Plato principal", "Bebida"]
+        : next === "MIXTO"
+          ? ["Desayuno", "Sopa", "Segundo"]
+          : ["Sopa", "Segundo", "Jugo"],
+    );
+  };
 
   const handleSelectType = (type: "Semanal" | "Quincenal" | "Mensual" | "Libre") => {
     setPlanType(type);
@@ -87,14 +109,22 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
 
   const handleSave = () => {
     const formattedPrice = `$${price},00`;
-    plansRepository.savePlan({
-      ...(planToEdit?.id ? { id: planToEdit.id } : {}),
-      name: planName,
-      lunches,
-      priceCents: price * 100,
-      priceFormatted: formattedPrice,
-      daysValidity: days,
-    });
+    const fields = {
+      nombre: planName,
+      almuerzos: lunches,
+      precioCents: Math.round(price * 100),
+      vigenciaDias: days,
+      cupos: quota,
+      visibleEnMarketplace: visibleMarketplace,
+      categoriaPlan: category,
+      incluye: includes,
+      tipo: planType as PlanType,
+    };
+    if (planToEdit?.id && planTemplates.some((t) => t.id === planToEdit.id)) {
+      updatePlan(planToEdit.id, fields);
+    } else {
+      addPlan({ ...fields, activo: true });
+    }
     setUndoLabel(PLANES_COPY.savedUndo(planName, formattedPrice));
     setUndoSeconds(10);
     onSavePlan?.({
@@ -199,7 +229,7 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
                       {planName}
                     </h3>
                     <p className="text-[12px] font-bold text-muted-foreground">
-                      {lunches} almuerzos · vigencia {days} días
+                      {lunches} {unitLabel} · vigencia {days} días
                     </p>
                   </div>
                   <div className="text-right">
@@ -271,15 +301,44 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
               </div>
             </div>
 
+            {/* QUÉ CUBRE EL PLAN */}
+            <div>
+              <label className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-1.5">
+                QUÉ CUBRE EL PLAN
+              </label>
+              <div
+                role="radiogroup"
+                aria-label="Qué cubre el plan"
+                className="grid grid-cols-3 gap-1.5 rounded-2xl bg-background p-1 border border-border"
+              >
+                {(["ALMUERZO", "DESAYUNO", "MIXTO"] as const).map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    role="radio"
+                    aria-checked={category === c}
+                    onClick={() => handleSelectCategory(c)}
+                    className={`rounded-xl py-2 text-[12px] font-black transition-all ${
+                      category === c
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {PLAN_CATEGORY_LABEL[c]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* FILA 1: ALMUERZOS Y VIGENCIA */}
             <div className="grid grid-cols-2 gap-3">
               {/* Almuerzos */}
               <div className="rounded-2xl bg-background p-3 border border-border">
-                <span className="text-[10px] font-bold text-muted-foreground block mb-1">Almuerzos</span>
+                <span className="text-[10px] font-bold text-muted-foreground block mb-1">{unitTitle}</span>
                 <div className="flex items-center justify-between">
                   <button
                     type="button"
-                    aria-label="Disminuir un almuerzo"
+                    aria-label={`Disminuir uno de ${unitLabel}`}
                     onClick={() => setLunches((prev) => Math.max(1, prev - 1))}
                     className="grid h-7 w-7 place-items-center rounded-lg bg-surface text-foreground shadow-xs active:scale-95"
                   >
@@ -288,7 +347,7 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
                   <span className="text-[18px] font-black text-foreground">{lunches}</span>
                   <button
                     type="button"
-                    aria-label="Aumentar un almuerzo"
+                    aria-label={`Aumentar uno de ${unitLabel}`}
                     onClick={() => setLunches((prev) => prev + 1)}
                     className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-primary-foreground shadow-xs active:scale-95"
                   >
@@ -402,10 +461,15 @@ export const CrearEditarPlanScreen: React.FC<CrearEditarPlanScreenProps> = ({
             {/* EL ALMUERZO INCLUYE */}
             <div>
               <label className="block text-[10px] font-black uppercase tracking-wider text-muted-foreground mb-1.5">
-                EL ALMUERZO INCLUYE
+                {category === "DESAYUNO" ? "EL DESAYUNO INCLUYE" : category === "MIXTO" ? "EL COMBO INCLUYE" : "EL ALMUERZO INCLUYE"}
               </label>
               <div className="flex flex-wrap gap-2">
-                {(["Sopa", "Segundo", "Jugo", "Postre"] as const).map((item) => {
+                {(category === "DESAYUNO"
+                  ? ["Plato principal", "Bebida", "Fruta"]
+                  : category === "MIXTO"
+                    ? ["Desayuno", "Sopa", "Segundo", "Jugo"]
+                    : ["Sopa", "Segundo", "Jugo", "Postre"]
+                ).map((item) => {
                   const isInc = includes.includes(item);
                   return (
                     <button

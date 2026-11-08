@@ -120,9 +120,21 @@ export type Client = {
 
 export type PlanType = "Semanal" | "Quincenal" | "Mensual" | "Libre";
 
+export type PlanCategory = "ALMUERZO" | "DESAYUNO" | "MIXTO";
+
+export const PLAN_CATEGORY_LABEL: Record<PlanCategory, string> = {
+  ALMUERZO: "Almuerzos",
+  DESAYUNO: "Desayunos",
+  MIXTO: "Combos / Mixto",
+};
+
 export type PlanTemplate = {
   id: string;
   restaurantId: string;
+  /** Qué cubre el plan; si falta se asume "ALMUERZO". */
+  categoriaPlan?: PlanCategory | undefined;
+  /** Qué incluye cada canje (ej. Sopa, Segundo); solo informativo. */
+  incluye?: string[] | undefined;
   tipo: PlanType;
   nombre: string;
   almuerzos: number;
@@ -212,7 +224,13 @@ export type MenuDish = {
   foto?: string | undefined;
 };
 
-export type MenuSectionId = "jugo" | "sopa" | "fuerte" | "postre" | "adicional";
+export type MenuSectionId = "desayuno" | "jugo" | "sopa" | "fuerte" | "postre" | "adicional";
+
+/** Secciones que forman el almuerzo del día (todo menos desayunos). */
+export const LUNCH_SECTION_IDS: MenuSectionId[] = ["jugo", "sopa", "fuerte", "postre", "adicional"];
+
+/** Desayunos publicados hoy (o [] si el local no publicó ninguno). */
+export const breakfastDishes = (menu?: MenuDay): MenuDish[] => menu?.secciones?.desayuno ?? [];
 
 export type MenuDay = {
   restaurantId?: string | undefined;
@@ -387,6 +405,81 @@ export type FlashOffer = {
   expiraEn: string;
   activa: boolean;
   creadaEn: string;
+  /** Sin valor se trata como "FLASH_HOY" (ofertas guardadas antes de existir las modalidades). */
+  modalidad?: FlashOfferMode | undefined;
+  /** Solo HORA_VALLE: días en que aplica, con el nombre completo (ej. ["Martes", "Jueves"]). */
+  diasSemana?: string[] | undefined;
+  /** Solo HORA_VALLE: rango "HH:MM - HH:MM" (ej. "16:00 - 18:00"). */
+  horarioPromo?: string | undefined;
+  porcentajeDescuento?: number | undefined;
+};
+
+export type FlashOfferMode = "FLASH_HOY" | "HORA_VALLE";
+
+/** Nombres de día en el orden de Date.getDay() (0 = Domingo). */
+export const WEEK_DAYS_ES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
+/** Orden de lunes a domingo, para mostrar y guardar los días de una promo. */
+export const WEEK_DAYS_MON_FIRST = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"] as const;
+
+/** Una promo HORA_VALLE vive 30 días desde que se publica; el dueño puede cancelarla antes. */
+export const PROMO_VALLE_DURATION_MINUTES = 30 * 24 * 60;
+
+export const offerMode = (offer: Pick<FlashOffer, "modalidad">): FlashOfferMode =>
+  offer.modalidad ?? "FLASH_HOY";
+
+const offerTimeLabel = (iso: string): string => {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+/** "Mar y Jue", "Lun a Vie" o "Todos los días". */
+export const promoDaysLabel = (dias: readonly string[]): string => {
+  const ordered = WEEK_DAYS_MON_FIRST.filter((d) => dias.includes(d));
+  if (ordered.length === 0) return "";
+  if (ordered.length === 7) return "Todos los días";
+  const short = ordered.map((d) => d.slice(0, 3));
+  const idx = ordered.map((d) => WEEK_DAYS_MON_FIRST.indexOf(d));
+  const consecutive = idx.every((v, i) => i === 0 || v === (idx[i - 1] ?? 0) + 1);
+  if (ordered.length >= 3 && consecutive) return `${short[0]} a ${short[short.length - 1]}`;
+  if (short.length === 1) return short[0] ?? "";
+  return `${short.slice(0, -1).join(", ")} y ${short[short.length - 1]}`;
+};
+
+/** ¿Ahora cae dentro del día y horario de la promo? Una oferta flash siempre devuelve true. */
+export const isPromoWindowOpen = (offer: FlashOffer, now: Date): boolean => {
+  if (offerMode(offer) !== "HORA_VALLE") return true;
+  const dias = offer.diasSemana ?? [];
+  if (!dias.includes(WEEK_DAYS_ES[now.getDay()] ?? "")) return false;
+  const m = /^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/.exec(offer.horarioPromo ?? "");
+  if (!m) return false;
+  const start = Number(m[1]) * 60 + Number(m[2]);
+  const end = Number(m[3]) * 60 + Number(m[4]);
+  const current = now.getHours() * 60 + now.getMinutes();
+  return current >= start && current < end;
+};
+
+/** La promo aplica hoy (día de la semana), aunque todavía no sea su horario. */
+export const promoAppliesToday = (offer: FlashOffer, now: Date): boolean =>
+  offerMode(offer) !== "HORA_VALLE" ||
+  (offer.diasSemana ?? []).includes(WEEK_DAYS_ES[now.getDay()] ?? "");
+
+/** Se puede reservar/comprar ahora mismo: activa, con cupos, vigente y dentro de su horario. */
+export const isOfferLiveNow = (offer: FlashOffer, now: Date): boolean =>
+  offer.activa &&
+  offer.stockRestante > 0 &&
+  new Date(offer.expiraEn) >= now &&
+  isPromoWindowOpen(offer, now);
+
+/** Etiqueta que ve el comensal: "⚡ Flash · Quedan 5 cupos · hasta 14:00" o "📅 Promo Mar y Jue 16:00 - 18:00 · -20%". */
+export const offerBadgeLabel = (offer: FlashOffer): string => {
+  if (offerMode(offer) === "HORA_VALLE") {
+    const pct = offer.porcentajeDescuento;
+    return `📅 Promo ${promoDaysLabel(offer.diasSemana ?? [])} ${offer.horarioPromo ?? ""}${
+      pct !== undefined ? ` · -${pct}%` : ""
+    }`.replace(/\s+/g, " ").trim();
+  }
+  const cupos = offer.stockRestante;
+  return `⚡ Flash · Quedan ${cupos} ${cupos === 1 ? "cupo" : "cupos"} · hasta ${offerTimeLabel(offer.expiraEn)}`;
 };
 
 export type CommissionEntry = {
@@ -399,6 +492,58 @@ export type CommissionEntry = {
   comisionCents: number;
   creadoEn: string;
 };
+
+/** Venta, pago y comisión de una oferta (flash o promo) en centavos enteros. */
+function buildOfferRedemption(args: {
+  offer: FlashOffer;
+  ticket: number;
+  nowISO: string;
+  metodo: PaymentMethod;
+  staffId: string;
+  rate: number;
+}) {
+  const { offer, ticket, nowISO, metodo, staffId, rate } = args;
+  const label = offerMode(offer) === "HORA_VALLE" ? "Promo Horas Muertas" : "Oferta Flash";
+  const saleId = newId("sale");
+  const sale: Sale = {
+    id: saleId,
+    restaurantId: offer.restaurantId,
+    ticket,
+    items: [
+      {
+        platoId: offer.id,
+        nombre: `${label}: ${offer.titulo}`,
+        cant: 1,
+        precioCents: offer.precioCents,
+        isLunch: true,
+      },
+    ],
+    totalCents: offer.precioCents,
+    paraLlevar: false,
+    mesa: label,
+    creadoEn: nowISO,
+  };
+  const payment: Payment = {
+    id: newId("pay"),
+    montoCents: offer.precioCents,
+    metodo,
+    saleId,
+    cobradoPor: staffId,
+    creadoEn: nowISO,
+  };
+  const comisionCents = calculateCommission(offer.precioCents, rate);
+  const commission: CommissionEntry = {
+    id: newId("comm"),
+    tipo: "FLASH_OFFER",
+    referenciaId: offer.id,
+    restaurantId: offer.restaurantId,
+    montoVentaCents: offer.precioCents,
+    tasaPorcentaje: rate,
+    comisionCents,
+    creadoEn: nowISO,
+  };
+  return { sale, payment, commission, comisionCents };
+}
 
 // ----------------------------------------------------------------------------
 // MESA COMPARTIDA / INVITAR A AMIGOS
@@ -1090,6 +1235,32 @@ const initialMenuToday: MenuDay = {
   fecha: dateKeyToday,
   publicadoEn: new Date(baseDate.setHours(9, 30, 0, 0)).toISOString(),
   secciones: {
+    desayuno: [
+      {
+        id: "d-desa-1",
+        nombre: "Bolón mixto + Café pasado",
+        descripcion: "Bolón de verde con queso y chicharrón, café de la casa",
+        precioCents: 250,
+        agotado: false,
+        porciones: 20,
+      },
+      {
+        id: "d-desa-2",
+        nombre: "Tigrillo con huevo y queso",
+        descripcion: "Verde majado con huevo frito y queso fresco",
+        precioCents: 275,
+        agotado: false,
+        porciones: 15,
+      },
+      {
+        id: "d-desa-3",
+        nombre: "Humita + Agua aromática",
+        descripcion: "Humita tierna al vapor con agua de hierbas",
+        precioCents: 200,
+        agotado: false,
+        porciones: 12,
+      },
+    ],
     sopa: [
       {
         id: "d-sopa-1",
@@ -1165,6 +1336,7 @@ const initialMenuR2: MenuDay = {
   fecha: dateKeyToday,
   publicadoEn: new Date(baseDate.setHours(10, 15, 0, 0)).toISOString(),
   secciones: {
+    desayuno: [],
     sopa: [
       {
         id: "d-r2-sopa-1",
@@ -1207,6 +1379,7 @@ const initialMenuR3: MenuDay = {
   fecha: dateKeyToday,
   publicadoEn: new Date(baseDate.setHours(9, 45, 0, 0)).toISOString(),
   secciones: {
+    desayuno: [],
     sopa: [
       {
         id: "d-r3-sopa-1",
@@ -1249,6 +1422,7 @@ const initialMenuR4: MenuDay = {
   fecha: dateKeyToday,
   publicadoEn: new Date(baseDate.setHours(10, 0, 0, 0)).toISOString(),
   secciones: {
+    desayuno: [],
     sopa: [
       {
         id: "d-r4-sopa-1",
@@ -1278,6 +1452,26 @@ const initialMenuR4: MenuDay = {
     adicional: [],
   },
 };
+
+/** Migra menús guardados antes de existir "desayuno": agrega la sección y siembra los de r1. */
+function normalizeMenuDays(menuDays: Record<string, MenuDay>): Record<string, MenuDay> {
+  const out: Record<string, MenuDay> = {};
+  for (const [key, menu] of Object.entries(menuDays)) {
+    if (menu.secciones.desayuno) {
+      out[key] = menu;
+      continue;
+    }
+    const isR1Today = key === dateKeyToday || key === `${dateKeyToday}_${RESTAURANT_ID}`;
+    out[key] = {
+      ...menu,
+      secciones: {
+        ...menu.secciones,
+        desayuno: isR1Today ? (initialMenuToday.secciones.desayuno ?? []) : [],
+      },
+    };
+  }
+  return out;
+}
 
 const initialOrders: Order[] = [
   {
@@ -1545,7 +1739,7 @@ function useBocadooState() {
           subscriptions: parsed.subscriptions?.length
             ? [...parsed.subscriptions, ...initialSubscriptions.filter(is => !parsed.subscriptions?.some(ps => ps.id === is.id))]
             : prev.subscriptions,
-          menuDays: parsed.menuDays || prev.menuDays,
+          menuDays: parsed.menuDays ? normalizeMenuDays(parsed.menuDays) : prev.menuDays,
           orders: parsed.orders || prev.orders,
           stampConfigs: parsed.stampConfigs || prev.stampConfigs,
           stampRecords: parsed.stampRecords || prev.stampRecords,
@@ -3009,13 +3203,52 @@ function useBocadooState() {
       if (!check.allowed) {
         return { ok: false, error: check.reason };
       }
+
+      // Reserva de oferta: el precio sale del store (no del cliente) y se cuidan los cupos
+      let offerCents = 0;
+      const items: OrderItem[] = [];
+      for (const it of params.items) {
+        if (it.seccion !== "oferta") {
+          items.push(it);
+          continue;
+        }
+        const offer = state.flashOffers.find((f) => f.id === it.platoId);
+        if (!offer || !offer.activa || new Date(offer.expiraEn) < simulatedToday) {
+          return { ok: false, error: "Esa oferta ya no está disponible." };
+        }
+        if (!isPromoWindowOpen(offer, simulatedToday)) {
+          return {
+            ok: false,
+            error: `Esta promo aplica ${promoDaysLabel(offer.diasSemana ?? [])} de ${offer.horarioPromo ?? ""}.`,
+          };
+        }
+        const reserved = evaluatedOrders.filter(
+          (o) =>
+            o.estado === "EN_CAMINO" &&
+            o.items.some((x) => x.seccion === "oferta" && x.platoId === offer.id),
+        ).length;
+        if (offer.stockRestante - reserved <= 0) {
+          return { ok: false, error: "Ya no quedan cupos de esta oferta." };
+        }
+        offerCents += offer.precioCents;
+        items.push({ ...it, precioCents: offer.precioCents });
+      }
+
       const user = APP_USERS.find((u) => u.id === params.userId) || {
         id: params.userId,
         name: "Comensal Bocadoo",
       };
       const rest = state.restaurants.find((r) => r.id === params.restaurantId);
       const recargo = params.tipo === "LLEVAR" ? (rest?.recargoParaLlevarCents ?? 25) : 0;
-      const baseTotal = rest?.precioSueltoCents ?? 300;
+      // Desayunos se cobran por plato (centavos enteros); el almuerzo usa el precio suelto del local.
+      const breakfastCents = params.items
+        .filter((i) => i.seccion === "desayuno")
+        .reduce((sum, i) => sum + (i.precioCents ?? 0), 0);
+      const hasLunch =
+        params.items.length === 0 ||
+        params.items.some((i) => i.seccion !== "desayuno" && i.seccion !== "oferta");
+      const baseTotal =
+        (hasLunch ? (rest?.precioSueltoCents ?? 300) : 0) + breakfastCents + offerCents;
       const totalCents = baseTotal + recargo;
 
       const orderId = newId("ord");
@@ -3024,7 +3257,7 @@ function useBocadooState() {
         comensalId: params.userId,
         comensalNombre: user.name,
         restaurantId: params.restaurantId,
-        items: params.items,
+        items,
         tipo: params.tipo,
         totalCents,
         recargoLlevarCents: recargo,
@@ -3037,7 +3270,14 @@ function useBocadooState() {
       setState((s) => ({ ...s, orders: [order, ...s.orders] }));
       return { ok: true, order };
     },
-    [canDinerCreateOrder, state.restaurants, simulatedToday, simulatedTodayISO],
+    [
+      canDinerCreateOrder,
+      evaluatedOrders,
+      state.flashOffers,
+      state.restaurants,
+      simulatedToday,
+      simulatedTodayISO,
+    ],
   );
 
   const cancelPreOrder = useCallback((orderId: string) => {
@@ -3057,6 +3297,55 @@ function useBocadooState() {
         return { ok: false, message: "Esta orden ya expiró (más de 30 min sin canjear)." };
       if (order.estado !== "EN_CAMINO")
         return { ok: false, message: `La orden ya fue ${order.estado.toLowerCase()}.` };
+
+      // Preorden de una oferta: se cobra el precio de la oferta, no se toca el plan del comensal.
+      // Se respeta la reserva aunque la oferta ya haya vencido; solo se rechaza si el dueño la canceló.
+      const offerLine = order.items.find((it) => it.seccion === "oferta");
+      if (offerLine) {
+        const offer = state.flashOffers.find((f) => f.id === offerLine.platoId);
+        if (!offer || !offer.activa)
+          return { ok: false, message: "La oferta de esta preorden ya no está disponible." };
+        if (offer.stockRestante <= 0)
+          return { ok: false, message: "Se agotaron los cupos de esta oferta." };
+
+        const rate = state.commissionRate ?? COMMISSION_RATE;
+        const {
+          sale: offerSale,
+          payment: offerPayment,
+          commission,
+        } = buildOfferRedemption({
+          offer,
+          ticket: state.sales.length + 148,
+          nowISO: simulatedTodayISO,
+          metodo,
+          staffId,
+          rate,
+        });
+        const nextStock = offer.stockRestante - 1;
+        const redeemedOrder: Order = {
+          ...order,
+          estado: "CANJEADA",
+          canjeadaEn: simulatedTodayISO,
+          paymentIdUsed: offerPayment.id,
+        };
+        setState((s) => ({
+          ...s,
+          sales: [offerSale, ...s.sales],
+          payments: [offerPayment, ...s.payments],
+          commissionLedger: [commission, ...s.commissionLedger],
+          flashOffers: s.flashOffers.map((f) =>
+            f.id === offer.id ? { ...f, stockRestante: nextStock, activa: nextStock > 0 } : f,
+          ),
+          orders: s.orders.map((o) => (o.id === orderId ? redeemedOrder : o)),
+        }));
+        return {
+          ok: true as const,
+          order: redeemedOrder,
+          redemption: undefined,
+          payment: offerPayment,
+          message: `Cobrado ${money(offerPayment.montoCents)} de la oferta con ${metodo.toLowerCase()}.`,
+        };
+      }
 
       // Buscar comensal y planes activos
       const client =
@@ -3172,7 +3461,7 @@ function useBocadooState() {
           : `Cobrado ${money(order.totalCents)} con ${metodo.toLowerCase()}.`,
       };
     },
-    [evaluatedOrders, state.clients, state.sales.length, state.stampConfigs, state.stampRecords, activeSubsForClient, redeemLunch, simulatedTodayISO],
+    [evaluatedOrders, state.clients, state.flashOffers, state.commissionRate, state.sales.length, state.stampConfigs, state.stampRecords, activeSubsForClient, redeemLunch, simulatedTodayISO],
   );
 
   const serveOrder = useCallback((orderId: string) => {
@@ -3480,6 +3769,10 @@ function useBocadooState() {
       precioOriginalCents: number;
       stockTotal: number;
       minutosDuracion: number;
+      modalidad?: FlashOfferMode | undefined;
+      diasSemana?: string[] | undefined;
+      horarioPromo?: string | undefined;
+      porcentajeDescuento?: number | undefined;
     }) => {
       const offerId = newId("flash");
       const expiraEn = new Date(
@@ -3498,6 +3791,12 @@ function useBocadooState() {
         expiraEn,
         activa: true,
         creadaEn: simulatedTodayISO,
+        ...(params.modalidad ? { modalidad: params.modalidad } : {}),
+        ...(params.diasSemana ? { diasSemana: params.diasSemana } : {}),
+        ...(params.horarioPromo ? { horarioPromo: params.horarioPromo } : {}),
+        ...(params.porcentajeDescuento !== undefined
+          ? { porcentajeDescuento: params.porcentajeDescuento }
+          : {}),
       };
 
       setState((s) => ({ ...s, flashOffers: [offer, ...s.flashOffers] }));
@@ -3532,49 +3831,26 @@ function useBocadooState() {
       if (!offer.activa) return { ok: false, message: "Esta oferta flash ya finalizó o expiró." };
       if (offer.stockRestante <= 0)
         return { ok: false, message: "Se agotó el stock disponible de esta oferta." };
-
-      const saleId = newId("sale");
-      const newSale: Sale = {
-        id: saleId,
-        restaurantId: offer.restaurantId,
-        ticket: state.sales.length + 148,
-        items: [
-          {
-            platoId: offer.id,
-            nombre: `Oferta Flash: ${offer.titulo}`,
-            cant: 1,
-            precioCents: offer.precioCents,
-            isLunch: true,
-          },
-        ],
-        totalCents: offer.precioCents,
-        paraLlevar: false,
-        mesa: "Oferta Flash",
-        creadoEn: simulatedTodayISO,
-      };
-
-      const payId = newId("pay");
-      const newPay: Payment = {
-        id: payId,
-        montoCents: offer.precioCents,
-        metodo,
-        saleId,
-        cobradoPor: staffId,
-        creadoEn: simulatedTodayISO,
-      };
+      if (!isPromoWindowOpen(offer, simulatedToday))
+        return {
+          ok: false,
+          message: `Esta promo aplica ${promoDaysLabel(offer.diasSemana ?? [])} de ${offer.horarioPromo ?? ""}.`,
+        };
 
       const currentRate = state.commissionRate ?? COMMISSION_RATE;
-      const comisionCents = calculateCommission(offer.precioCents, currentRate);
-      const commEntry: CommissionEntry = {
-        id: newId("comm"),
-        tipo: "FLASH_OFFER",
-        referenciaId: offer.id,
-        restaurantId: offer.restaurantId,
-        montoVentaCents: offer.precioCents,
-        tasaPorcentaje: currentRate,
+      const {
+        sale: newSale,
+        payment: newPay,
+        commission: commEntry,
         comisionCents,
-        creadoEn: simulatedTodayISO,
-      };
+      } = buildOfferRedemption({
+        offer,
+        ticket: state.sales.length + 148,
+        nowISO: simulatedTodayISO,
+        metodo,
+        staffId,
+        rate: currentRate,
+      });
 
       const nextStock = offer.stockRestante - 1;
       const updatedOffers = state.flashOffers.map((f) =>
@@ -3596,7 +3872,7 @@ function useBocadooState() {
         message: `¡Oferta canjeada! Venta: ${money(offer.precioCents)} | Comisión (${Math.round(currentRate * 100)}%): ${money(comisionCents)}`,
       };
     },
-    [evaluatedFlashOffers, state.sales.length, state.flashOffers, simulatedTodayISO],
+    [evaluatedFlashOffers, state.sales.length, state.flashOffers, simulatedToday, simulatedTodayISO],
   );
 
   const getRestaurantCommissions = useCallback(

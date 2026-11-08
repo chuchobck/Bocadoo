@@ -15,6 +15,22 @@ import { BottomSheet, ButtonPrimary } from "@/design-system";
 import { FICHA_LOCAL_COPY } from "./copy";
 import type { ComponentState } from "@/design-system";
 
+export interface FichaBreakfast {
+  id: string;
+  nombre: string;
+  precio?: string | undefined;
+  precioCents?: number | undefined;
+  agotado?: boolean | undefined;
+}
+
+export interface FichaOrderDetails {
+  soup: string;
+  main: string;
+  paraLlevar: boolean;
+  kind?: "almuerzo" | "desayuno";
+  breakfast?: { id: string; nombre: string; precioCents: number };
+}
+
 export interface FichaLocalScreenProps {
   isOpen: boolean;
   onClose: () => void;
@@ -31,10 +47,12 @@ export interface FichaLocalScreenProps {
   mains?: Array<{ id: string; nombre: string; precio?: string; foto?: string; veggie?: boolean; agotado?: boolean }> | undefined;
   juice?: string | undefined;
   dessert?: string | undefined;
+  /** Desayunos que el local publicó hoy; si no hay, no se muestra la pestaña. */
+  breakfasts?: FichaBreakfast[] | undefined;
   precioSuelto?: string | undefined;
   precioPlan?: string | undefined;
   coverImage?: string | undefined;
-  onOrderSuccess?: ((orderNumber: string, orderDetails?: { soup: string; main: string; paraLlevar: boolean }) => void) | undefined;
+  onOrderSuccess?: ((orderNumber: string, orderDetails?: FichaOrderDetails) => void) | undefined;
   onOpenMesa?: (() => void) | undefined;
   onRetry?: (() => void) | undefined;
   state?: ComponentState;
@@ -74,6 +92,7 @@ export const FichaLocalScreen: React.FC<FichaLocalScreenProps> = ({
   ],
   juice = "Jugo natural de naranjilla",
   dessert = "Higos con queso fresco",
+  breakfasts = [],
   precioSuelto = "$3,00",
   precioPlan = "$2,75",
   coverImage = "/dishes/locro-papa.jpg",
@@ -91,10 +110,33 @@ export const FichaLocalScreen: React.FC<FichaLocalScreenProps> = ({
   );
   const [paraLlevar, setParaLlevar] = useState<boolean>(false);
 
+  const hasBreakfasts = breakfasts.length > 0;
+  const [mode, setMode] = useState<"almuerzo" | "desayuno">("almuerzo");
+  const [selectedBreakfastId, setSelectedBreakfastId] = useState<string | null>(
+    breakfasts.find((b) => !b.agotado)?.id ?? null,
+  );
+  const activeMode = hasBreakfasts ? mode : "almuerzo";
+  const chosenBreakfast = breakfasts.find((b) => b.id === selectedBreakfastId && !b.agotado);
+
   const handleOrder = () => {
     if (hasActiveOrderLimit) return;
     const orderNumber = "42";
-    if (onOrderSuccess) onOrderSuccess(orderNumber, { soup: selectedSoup, main: selectedMain, paraLlevar });
+    if (activeMode === "desayuno") {
+      if (!chosenBreakfast) return;
+      onOrderSuccess?.(orderNumber, {
+        soup: "",
+        main: "",
+        paraLlevar,
+        kind: "desayuno",
+        breakfast: {
+          id: chosenBreakfast.id,
+          nombre: chosenBreakfast.nombre,
+          precioCents: chosenBreakfast.precioCents ?? 0,
+        },
+      });
+    } else {
+      onOrderSuccess?.(orderNumber, { soup: selectedSoup, main: selectedMain, paraLlevar, kind: "almuerzo" });
+    }
     onClose();
   };
 
@@ -235,6 +277,84 @@ export const FichaLocalScreen: React.FC<FichaLocalScreenProps> = ({
                 </div>
               </div>
 
+              {/* Pestañas: almuerzo del día / desayunos de hoy (solo si hay desayunos publicados) */}
+              {hasBreakfasts && (
+                <div
+                  role="tablist"
+                  aria-label="Qué quieres preordenar"
+                  className="flex gap-1 rounded-2xl border border-border bg-background p-1"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeMode === "almuerzo"}
+                    onClick={() => setMode("almuerzo")}
+                    className={`flex-1 rounded-xl py-2 text-[13px] font-extrabold transition-all active:scale-95 ${
+                      activeMode === "almuerzo"
+                        ? "bg-surface text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    🍲 Almuerzo del día
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeMode === "desayuno"}
+                    onClick={() => setMode("desayuno")}
+                    className={`flex-1 rounded-xl py-2 text-[13px] font-extrabold transition-all active:scale-95 ${
+                      activeMode === "desayuno"
+                        ? "bg-surface text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    ☀️ Desayunos de hoy
+                  </button>
+                </div>
+              )}
+
+              {activeMode === "desayuno" && (
+                <div data-testid="ficha-desayunos">
+                  <span className="mb-1.5 block text-[12px] font-extrabold uppercase tracking-wider text-muted-foreground">
+                    Desayuno a elegir
+                  </span>
+                  <div className="space-y-1.5">
+                    {breakfasts.map((b) => (
+                      <button
+                        key={b.id}
+                        type="button"
+                        onClick={() => setSelectedBreakfastId(b.id)}
+                        aria-pressed={selectedBreakfastId === b.id}
+                        disabled={b.agotado}
+                        className={`flex w-full items-center justify-between gap-2 rounded-2xl p-3 text-left text-[13px] font-bold transition-all active:scale-[0.99] ${
+                          b.agotado
+                            ? "cursor-not-allowed border border-border bg-background text-muted-foreground"
+                            : selectedBreakfastId === b.id
+                              ? "border border-primary bg-primary-container text-foreground shadow-xs"
+                              : "border border-border bg-background text-muted-foreground"
+                        }`}
+                      >
+                        <div className={`min-w-0 ${b.agotado ? "opacity-60" : ""}`}>
+                          <span className={`block truncate text-foreground ${b.agotado ? "line-through" : ""}`}>
+                            {b.nombre}
+                          </span>
+                          {b.precio && <span className="text-[11px] font-bold text-primary">{b.precio}</span>}
+                        </div>
+                        {b.agotado ? (
+                          <span className="shrink-0 rounded-full bg-danger-container px-2 py-0.5 text-[13px] font-black text-on-danger-container">
+                            {FICHA_LOCAL_COPY.soldOut}
+                          </span>
+                        ) : (
+                          selectedBreakfastId === b.id && <Check className="h-4 w-4 shrink-0 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {activeMode === "almuerzo" && (
+              <>
               {/* Sección Sopa */}
               <div>
                 <span className="text-[12px] font-extrabold text-muted-foreground uppercase tracking-wider block mb-1.5">
@@ -336,6 +456,9 @@ export const FichaLocalScreen: React.FC<FichaLocalScreenProps> = ({
                 </p>
               </div>
 
+              </>
+              )}
+
               {/* Selector Aquí vs Para llevar */}
               <div className="flex gap-2">
                 <button
@@ -364,8 +487,11 @@ export const FichaLocalScreen: React.FC<FichaLocalScreenProps> = ({
 
               {/* Botón de Preordenar en 1 toque */}
               <div className="pt-2">
-                <ButtonPrimary onClick={handleOrder} disabled={hasActiveOrderLimit}>
-                  {FICHA_LOCAL_COPY.orderButton}
+                <ButtonPrimary
+                  onClick={handleOrder}
+                  disabled={hasActiveOrderLimit || (activeMode === "desayuno" && !chosenBreakfast)}
+                >
+                  {activeMode === "desayuno" ? "Preordenar desayuno" : FICHA_LOCAL_COPY.orderButton}
                 </ButtonPrimary>
                 {hasActiveOrderLimit && (
                   <p className="mt-2 text-center text-[13px] font-bold text-danger">

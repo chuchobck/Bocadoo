@@ -1,9 +1,19 @@
 import React, { useState } from "react";
 import { toast } from "sonner";
-import { Zap, AlertCircle, WifiOff, Loader2, X, Clock, Check } from "lucide-react";
+import { Zap, CalendarClock, AlertCircle, WifiOff, Loader2, X, Clock } from "lucide-react";
 import { ButtonPrimary, UndoBanner } from "@/design-system";
 import { DEFAULT_COMMISSION_RATE, calculateCommission } from "@/domain/money";
-import { useBocadoo, RESTAURANT_ID, money, parseMoneyToCents } from "@/components/bocadoo/store";
+import {
+  useBocadoo,
+  RESTAURANT_ID,
+  money,
+  parseMoneyToCents,
+  offerMode,
+  promoDaysLabel,
+  WEEK_DAYS_MON_FIRST,
+  PROMO_VALLE_DURATION_MINUTES,
+  type FlashOfferMode,
+} from "@/components/bocadoo/store";
 import { OFERTA_COPY } from "./copy";
 import type { ComponentState } from "@/design-system";
 
@@ -12,6 +22,7 @@ export interface OfertaFlashScreenProps {
   onClose: () => void;
   commissionRate?: number;
   initialPublished?: boolean;
+  initialMode?: FlashOfferMode;
   onPublishOffer?: (slots: number, endTime: string, price: number) => void;
   onCancelOffer?: () => void;
   onRetry?: () => void;
@@ -19,50 +30,112 @@ export interface OfertaFlashScreenProps {
   catalogDishes?: string[];
 }
 
+const chipClass = (selected: boolean, alt = "bg-primary-container text-foreground") =>
+  `rounded-2xl py-2.5 px-3 text-[14px] font-bold transition-all active:scale-95 ${
+    selected ? "bg-primary text-primary-foreground shadow-xs" : alt
+  }`;
+
 export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
   isOpen,
   onClose,
   commissionRate = DEFAULT_COMMISSION_RATE,
   initialPublished = false,
+  initialMode = "FLASH_HOY",
   onPublishOffer,
   onCancelOffer,
   onRetry,
   state = "exito",
   catalogDishes = ["Seco de pollo", "Locro de papa", "Trucha frita"],
 }) => {
+  const [modalidad, setModalidad] = useState<FlashOfferMode>(initialMode);
   const [offerItem, setOfferItem] = useState<string>("Menú de hoy");
   const [customDish, setCustomDish] = useState<string>(catalogDishes[0] || "Seco de pollo");
-  const [discountPercent, setDiscountPercent] = useState<number>(10);
-  const [customPrice, setCustomPrice] = useState<number>(2.5);
+  const [flashDiscount, setFlashDiscount] = useState<number>(10);
+  const [valleDiscount, setValleDiscount] = useState<number>(20);
+  const [manualPriceText, setManualPriceText] = useState<string>("2.50");
   const [slots, setSlots] = useState<number>(10);
+  const [valleSlots, setValleSlots] = useState<number>(20);
   const [endTime, setEndTime] = useState<string>("14:00");
+  const [promoTitle, setPromoTitle] = useState<string>("");
+  const [promoDays, setPromoDays] = useState<string[]>(["Martes", "Jueves"]);
+  const [promoStart, setPromoStart] = useState<string>("16:00");
+  const [promoEnd, setPromoEnd] = useState<string>("18:00");
+  const [submitted, setSubmitted] = useState(false);
   const { restaurant, flashOffers, launchFlashOffer, cancelFlashOffer, restoreFlashOffer, simulatedToday } = useBocadoo();
-  // La oferta publicada vive en el store: el comensal la ve en "Ofertas hoy" al instante
+
+  const isValle = modalidad === "HORA_VALLE";
+
+  // La oferta publicada vive en el store: el comensal la ve al instante. Cada modalidad tiene la suya.
   const storeOffer = flashOffers.find(
-    (f) => f.restaurantId === RESTAURANT_ID && f.activa && f.stockRestante > 0,
+    (f) =>
+      f.restaurantId === RESTAURANT_ID &&
+      f.activa &&
+      f.stockRestante > 0 &&
+      offerMode(f) === modalidad,
   );
   const [cancelledOfferId, setCancelledOfferId] = useState<string | null>(null);
   const [localPublished, setLocalPublished] = useState<boolean>(initialPublished);
-  const isPublished = Boolean(storeOffer) || localPublished;
+  const isPublished = Boolean(storeOffer) || (localPublished && !isValle);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
 
-  const basePrice = (restaurant?.precioSueltoCents ?? 300) / 100;
-  const currentPrice =
-    discountPercent === 0
-      ? customPrice
-      : Math.round(basePrice * (1 - discountPercent / 100) * 100) / 100;
+  // Todo en centavos enteros
+  const baseCents = restaurant?.precioSueltoCents ?? 300;
+  const discountPercent = isValle ? valleDiscount : flashDiscount;
+  const manualCents = parseMoneyToCents(manualPriceText);
+  const manualValid = manualCents > 0 && manualCents < baseCents;
+  const priceCents =
+    discountPercent === 0 ? manualCents : Math.round((baseCents * (100 - discountPercent)) / 100);
+  const effectivePercent =
+    discountPercent !== 0
+      ? discountPercent
+      : Math.max(0, Math.round((1 - manualCents / baseCents) * 100));
+  const commissionCents = calculateCommission(priceCents, commissionRate);
+  const netReceivedFormatted = money(priceCents - commissionCents);
 
-  const amountCents = Math.round(currentPrice * 100);
-  const commissionCents = calculateCommission(amountCents, commissionRate);
-  const netCents = amountCents - commissionCents;
-  const netReceivedFormatted = `$${(netCents / 100).toFixed(2).replace(".", ",")}`;
-
-  const slotOptions = [5, 10, 15];
+  const slotOptions = isValle ? [10, 20, 30] : [5, 10, 15];
+  const discountOptions = isValle ? [10, 20, 30, 0] : [10, 20, 0];
   const timeOptions = ["13:30", "14:00", "14:30"];
   const commPercent = Math.round(commissionRate * 100);
 
+  const errors: string[] = [];
+  if (isValle) {
+    if (!promoTitle.trim()) errors.push("Escribe el título de la promo.");
+    if (promoDays.length === 0) errors.push("Elige al menos un día.");
+    if (promoEnd <= promoStart) errors.push("La hora final debe ser después de la inicial.");
+  }
+  if (discountPercent === 0 && !manualValid) {
+    errors.push(`El precio especial debe ser mayor a $0,00 y menor a ${money(baseCents)}.`);
+  }
+
   const handlePublish = () => {
+    if (errors.length > 0) {
+      setSubmitted(true);
+      return;
+    }
+    setSubmitted(false);
+
+    if (isValle) {
+      const dias = WEEK_DAYS_MON_FIRST.filter((d) => promoDays.includes(d));
+      const horario = `${promoStart} - ${promoEnd}`;
+      launchFlashOffer({
+        restaurantId: RESTAURANT_ID,
+        titulo: promoTitle.trim(),
+        descripcion: `${promoDaysLabel(dias)} ${horario} · ${valleSlots} cupos`,
+        precioCents: priceCents,
+        precioOriginalCents: baseCents,
+        stockTotal: valleSlots,
+        minutosDuracion: PROMO_VALLE_DURATION_MINUTES,
+        modalidad: "HORA_VALLE",
+        diasSemana: [...dias],
+        horarioPromo: horario,
+        porcentajeDescuento: effectivePercent,
+      });
+      toast.success(OFERTA_COPY.promoPublishedToast(`${promoDaysLabel(dias)} ${horario}`));
+      onPublishOffer?.(valleSlots, promoEnd, priceCents / 100);
+      return;
+    }
+
     // Minutos hasta la hora de fin elegida; si ya pasó hoy, dura 1 hora
     const [hh = 14, mm = 0] = endTime.split(":").map(Number);
     const end = new Date(simulatedToday);
@@ -74,13 +147,15 @@ export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
       restaurantId: RESTAURANT_ID,
       titulo: dishName,
       descripcion: `${slots} cupos hasta las ${endTime}`,
-      precioCents: parseMoneyToCents(currentPrice),
-      precioOriginalCents: restaurant?.precioSueltoCents ?? parseMoneyToCents(basePrice),
+      precioCents: priceCents,
+      precioOriginalCents: baseCents,
       stockTotal: slots,
       minutosDuracion: diffMin > 0 ? diffMin : 60,
+      modalidad: "FLASH_HOY",
+      porcentajeDescuento: effectivePercent,
     });
     toast.success(`Oferta flash publicada: ${slots} cupos`);
-    onPublishOffer?.(slots, endTime, currentPrice);
+    onPublishOffer?.(slots, endTime, priceCents / 100);
   };
 
   const handleCancelOffer = () => {
@@ -93,6 +168,9 @@ export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
     setUndoSeconds(10);
     onCancelOffer?.();
   };
+
+  const toggleDay = (day: string) =>
+    setPromoDays((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
 
   if (!isOpen) return null;
 
@@ -118,7 +196,7 @@ export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
 
         <div className="flex items-center gap-2">
           <div className="grid h-8 w-8 place-items-center rounded-full bg-primary-container text-primary">
-            <Zap className="h-4 w-4" />
+            {isValle ? <CalendarClock className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
           </div>
           <h2 className="text-[20px] font-black text-foreground">
             {isPublished ? OFERTA_COPY.activeTitle : OFERTA_COPY.title}
@@ -172,35 +250,77 @@ export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
 
         {(state === "exito" || state === "offline") && (
           <div className="mt-4 space-y-4">
+            {/* Modalidad: Flash de hoy (liquidación) o Promo horas muertas (programada) */}
+            <div>
+              <div
+                role="tablist"
+                aria-label="Modalidad de la oferta"
+                className="grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-background p-1"
+              >
+                {(
+                  [
+                    { id: "FLASH_HOY", title: OFERTA_COPY.modeFlashTitle, sub: OFERTA_COPY.modeFlashSub },
+                    { id: "HORA_VALLE", title: OFERTA_COPY.modeValleTitle, sub: OFERTA_COPY.modeValleSub },
+                  ] as const
+                ).map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={modalidad === m.id}
+                    onClick={() => {
+                      setModalidad(m.id);
+                      setSubmitted(false);
+                    }}
+                    className={`rounded-xl px-2 py-2 text-center transition-all active:scale-95 ${
+                      modalidad === m.id
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="block text-[14px] font-black leading-tight">{m.title}</span>
+                    <span className="block text-[13px] font-semibold leading-tight opacity-90">{m.sub}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[13px] font-semibold text-muted-foreground">
+                {isValle ? OFERTA_COPY.modeValleHelp : OFERTA_COPY.modeFlashHelp}
+              </p>
+            </div>
+
             {isPublished ? (
               /* Vista post-publicación: Oferta activa con botón de cancelar en 1 toque */
               <div className="space-y-4">
                 <div className="rounded-[24px] bg-background p-4 border border-border space-y-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="text-[14px] font-bold text-foreground">
                       {storeOffer
                         ? `${storeOffer.stockRestante} cupos · ${storeOffer.titulo}`
                         : `${slots} cupos · ${offerItem === "Menú de hoy" ? "Menú de hoy" : customDish}`}
                     </span>
-                    <span className="rounded-full bg-success-container px-2.5 py-0.5 text-[13px] font-bold text-success">
+                    <span className="shrink-0 rounded-full bg-success-container px-2.5 py-0.5 text-[13px] font-bold text-success">
                       Activa
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[13px] font-semibold text-muted-foreground">
+                  <div className="flex items-center justify-between gap-2 text-[13px] font-semibold text-muted-foreground">
                     <div className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-4 w-4 shrink-0" />
                       <span>
-                        Hasta{" "}
-                        {storeOffer
-                          ? new Date(storeOffer.expiraEn).toLocaleTimeString("es-EC", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : endTime}
+                        {storeOffer && isValle
+                          ? `${promoDaysLabel(storeOffer.diasSemana ?? [])} ${storeOffer.horarioPromo ?? ""}`
+                          : `Hasta ${
+                              storeOffer
+                                ? new Date(storeOffer.expiraEn).toLocaleTimeString("es-EC", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  })
+                                : endTime
+                            }`}
                       </span>
                     </div>
-                    <span className="font-bold text-primary">
-                      {storeOffer ? money(storeOffer.precioCents) : `$${currentPrice.toFixed(2).replace(".", ",")}`}
+                    <span className="shrink-0 font-bold text-primary">
+                      {storeOffer ? money(storeOffer.precioCents) : money(priceCents)}
+                      {storeOffer?.porcentajeDescuento !== undefined && ` · -${storeOffer.porcentajeDescuento}%`}
                     </span>
                   </div>
                 </div>
@@ -219,83 +339,172 @@ export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
                 </button>
               </div>
             ) : (
-              /* Vista pre-publicación: Configuración de cupos, hora fin y precio */
+              /* Vista pre-publicación */
               <>
-                {/* Qué ofreces: por defecto Menú de hoy, opcional plato de catálogo */}
-                <div>
-                  <label className="block text-[13px] font-bold text-muted-foreground mb-1.5">
-                    {OFERTA_COPY.offerItemLabel}
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setOfferItem("Menú de hoy")}
-                      aria-pressed={offerItem === "Menú de hoy"}
-                      className={`rounded-2xl py-2.5 px-3 text-[14px] font-bold transition-all active:scale-95 ${
-                        offerItem === "Menú de hoy"
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "bg-primary-container text-foreground"
-                      }`}
-                    >
-                      Menú de hoy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setOfferItem("Plato")}
-                      aria-pressed={offerItem === "Plato"}
-                      className={`rounded-2xl py-2.5 px-3 text-[14px] font-bold transition-all active:scale-95 ${
-                        offerItem === "Plato"
-                          ? "bg-primary text-primary-foreground shadow-xs"
-                          : "bg-primary-container text-foreground"
-                      }`}
-                    >
-                      Plato suelto
-                    </button>
-                  </div>
-                  {offerItem === "Plato" && (
-                    <div className="mt-2">
-                      <select
-                        value={customDish}
-                        onChange={(e) => setCustomDish(e.target.value)}
-                        className="w-full rounded-xl border border-border bg-background p-2 text-[13px] font-bold text-foreground focus:outline-none focus:border-primary"
+                {isValle ? (
+                  <>
+                    {/* Título de la promo */}
+                    <div>
+                      <label
+                        htmlFor="promo-title"
+                        className="block text-[13px] font-bold text-muted-foreground mb-1.5"
                       >
-                        {catalogDishes.map((dish) => (
-                          <option key={dish} value={dish}>
-                            {dish}
-                          </option>
-                        ))}
-                      </select>
+                        {OFERTA_COPY.promoTitleLabel}
+                      </label>
+                      <input
+                        id="promo-title"
+                        type="text"
+                        value={promoTitle}
+                        onChange={(e) => setPromoTitle(e.target.value)}
+                        placeholder={OFERTA_COPY.promoTitlePlaceholder}
+                        className="w-full rounded-2xl border border-border bg-background p-3 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
+                      />
                     </div>
-                  )}
-                </div>
 
-                {/* Precio con chips de descuento (-10 %, -20 %, personalizado) y lo que recibe el dueño */}
+                    {/* Días de la semana */}
+                    <div>
+                      <span className="block text-[13px] font-bold text-muted-foreground mb-1.5">
+                        {OFERTA_COPY.promoDaysLabel}
+                      </span>
+                      <div className="grid grid-cols-7 gap-1">
+                        {WEEK_DAYS_MON_FIRST.map((day) => {
+                          const on = promoDays.includes(day);
+                          return (
+                            <button
+                              key={day}
+                              type="button"
+                              onClick={() => toggleDay(day)}
+                              aria-pressed={on}
+                              aria-label={day}
+                              className={`rounded-xl py-2.5 text-center text-[13px] font-bold transition-all active:scale-95 ${
+                                on
+                                  ? "bg-primary text-primary-foreground shadow-xs"
+                                  : "bg-background text-foreground border border-border"
+                              }`}
+                            >
+                              {day.slice(0, 3)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Rango horario */}
+                    <div>
+                      <span className="block text-[13px] font-bold text-muted-foreground mb-1.5">
+                        {OFERTA_COPY.promoHoursLabel}
+                      </span>
+                      <div className="grid grid-cols-2 gap-2">
+                        <label className="block text-[13px] font-semibold text-muted-foreground">
+                          {OFERTA_COPY.promoFrom}
+                          <input
+                            type="time"
+                            value={promoStart}
+                            onChange={(e) => setPromoStart(e.target.value)}
+                            className="mt-1 w-full rounded-2xl border border-border bg-background p-2.5 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
+                          />
+                        </label>
+                        <label className="block text-[13px] font-semibold text-muted-foreground">
+                          {OFERTA_COPY.promoTo}
+                          <input
+                            type="time"
+                            value={promoEnd}
+                            onChange={(e) => setPromoEnd(e.target.value)}
+                            className="mt-1 w-full rounded-2xl border border-border bg-background p-2.5 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Qué ofreces: por defecto Menú de hoy, opcional plato de catálogo */
+                  <div>
+                    <label className="block text-[13px] font-bold text-muted-foreground mb-1.5">
+                      {OFERTA_COPY.offerItemLabel}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setOfferItem("Menú de hoy")}
+                        aria-pressed={offerItem === "Menú de hoy"}
+                        className={chipClass(offerItem === "Menú de hoy")}
+                      >
+                        Menú de hoy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setOfferItem("Plato")}
+                        aria-pressed={offerItem === "Plato"}
+                        className={chipClass(offerItem === "Plato")}
+                      >
+                        Plato suelto
+                      </button>
+                    </div>
+                    {offerItem === "Plato" && (
+                      <div className="mt-2">
+                        <select
+                          aria-label="Plato de la oferta"
+                          value={customDish}
+                          onChange={(e) => setCustomDish(e.target.value)}
+                          className="w-full rounded-xl border border-border bg-background p-2 text-[13px] font-bold text-foreground focus:outline-none focus:border-primary"
+                        >
+                          {catalogDishes.map((dish) => (
+                            <option key={dish} value={dish}>
+                              {dish}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Precio normal vs. precio de oferta, con chips de descuento */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-[13px] font-bold text-muted-foreground">
                       {OFERTA_COPY.discountLabel}
                     </label>
                     <span className="text-[13px] font-bold text-primary">
-                      ${currentPrice.toFixed(2).replace(".", ",")}
+                      <span className="mr-1.5 font-semibold text-muted-foreground line-through">
+                        {money(baseCents)}
+                      </span>
+                      {money(priceCents)}
+                      {effectivePercent > 0 && ` · -${effectivePercent}%`}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[10, 20, 0].map((d) => (
+                  <div className={`grid gap-2 ${discountOptions.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}>
+                    {discountOptions.map((d) => (
                       <button
                         key={d}
                         type="button"
-                        onClick={() => setDiscountPercent(d)}
+                        onClick={() => (isValle ? setValleDiscount(d) : setFlashDiscount(d))}
                         aria-pressed={discountPercent === d}
-                        className={`rounded-2xl py-2.5 text-[14px] font-bold transition-all active:scale-95 ${
-                          discountPercent === d
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-primary-container text-foreground"
-                        }`}
+                        className={chipClass(discountPercent === d)}
                       >
                         {d === 0 ? "Manual" : `-${d} %`}
                       </button>
                     ))}
                   </div>
+
+                  {discountPercent === 0 && (
+                    <div className="mt-2">
+                      <label
+                        htmlFor="oferta-precio-manual"
+                        className="block text-[13px] font-semibold text-muted-foreground mb-1"
+                      >
+                        {OFERTA_COPY.manualPriceLabel} (en dólares)
+                      </label>
+                      <input
+                        id="oferta-precio-manual"
+                        type="text"
+                        inputMode="decimal"
+                        value={manualPriceText}
+                        onChange={(e) => setManualPriceText(e.target.value.replace(/[^0-9.,]/g, ""))}
+                        className="w-full rounded-2xl border border-border bg-background p-3 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
+                      />
+                    </div>
+                  )}
 
                   {/* Recibes $X por venta */}
                   <div className="mt-2 rounded-xl bg-background px-3 py-2 border border-border text-center">
@@ -305,63 +514,85 @@ export const OfertaFlashScreen: React.FC<OfertaFlashScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Cupos disponibles en 1 toque (mismo morado `primary` al seleccionar) */}
+                {/* Cupos disponibles en 1 toque */}
                 <div>
                   <label className="block text-[13px] font-bold text-muted-foreground mb-1.5">
                     {OFERTA_COPY.slotsLabel}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {slotOptions.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setSlots(s)}
-                        aria-pressed={slots === s}
-                        className={`rounded-2xl py-3 text-[14px] font-bold transition-all active:scale-95 ${
-                          slots === s
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-primary-container text-foreground"
-                        }`}
-                      >
-                        {s} cupos
-                      </button>
-                    ))}
+                    {slotOptions.map((s) => {
+                      const selected = (isValle ? valleSlots : slots) === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => (isValle ? setValleSlots(s) : setSlots(s))}
+                          aria-pressed={selected}
+                          className={`rounded-2xl py-3 text-[14px] font-bold transition-all active:scale-95 ${
+                            selected
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "bg-primary-container text-foreground"
+                          }`}
+                        >
+                          {s} cupos
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Hora fin en 1 toque (mismo morado `primary` al seleccionar) */}
-                <div>
-                  <label className="block text-[13px] font-bold text-muted-foreground mb-1.5">
-                    {OFERTA_COPY.timeLabel}
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {timeOptions.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => setEndTime(t)}
-                        aria-pressed={endTime === t}
-                        className={`rounded-2xl py-3 text-[14px] font-bold transition-all active:scale-95 ${
-                          endTime === t
-                            ? "bg-primary text-primary-foreground shadow-xs"
-                            : "bg-background text-foreground border border-border"
-                        }`}
-                      >
-                        {t}
-                      </button>
-                    ))}
+                {/* Hora fin de hoy (solo liquidación flash) */}
+                {!isValle && (
+                  <div>
+                    <label className="block text-[13px] font-bold text-muted-foreground mb-1.5">
+                      {OFERTA_COPY.timeLabel}
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {timeOptions.map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setEndTime(t)}
+                          aria-pressed={endTime === t}
+                          className={`rounded-2xl py-3 text-[14px] font-bold transition-all active:scale-95 ${
+                            endTime === t
+                              ? "bg-primary text-primary-foreground shadow-xs"
+                              : "bg-background text-foreground border border-border"
+                          }`}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {isValle && (
+                  <p className="rounded-2xl bg-background p-3 border border-border text-[13px] font-semibold text-muted-foreground">
+                    {OFERTA_COPY.promoDuration}
+                  </p>
+                )}
 
                 {/* Aviso transparente de comisión */}
                 <div className="rounded-2xl bg-background p-3 border border-border text-[13px] font-semibold text-muted-foreground">
                   {OFERTA_COPY.commissionInfo(commPercent)}
                 </div>
 
+                {submitted && errors.length > 0 && (
+                  <ul role="alert" className="space-y-1 rounded-2xl bg-danger-container p-3 text-[13px] font-bold text-on-danger-container">
+                    {errors.map((e) => (
+                      <li key={e} className="flex items-start gap-1.5">
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>{e}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
                 {/* Publicar en 1 toque */}
                 <div className="pt-1">
                   <ButtonPrimary onClick={handlePublish}>
-                    {OFERTA_COPY.publishButton}
+                    {isValle ? OFERTA_COPY.promoPublishButton : OFERTA_COPY.publishButton}
                   </ButtonPrimary>
                 </div>
               </>
