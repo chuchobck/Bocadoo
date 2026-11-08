@@ -1,6 +1,7 @@
 export const PERFIL_COPY = {
   title: "Mi cuenta",
   activePlanSection: "Tu plan habitual",
+  themeLabel: "Apariencia",
   helpButton: "Ayuda por WhatsApp",
   emptyTitle: "Sin perfil",
   emptyDesc: "Inicia sesión para ver tus datos.",

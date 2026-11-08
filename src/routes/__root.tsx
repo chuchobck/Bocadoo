@@ -14,6 +14,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { BocadooProvider } from "@/components/bocadoo/store";
 import { Toaster } from "@/components/ui/sonner";
 import { DevPanel } from "@/dev/DevPanel";
+import { useTheme } from "@/hooks/use-theme";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 function NotFoundComponent() {
   const router = useRouter();
@@ -108,6 +110,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "color-scheme", content: "light dark" },
       { title: "Bocadoo · Tus planes de almuerzo, con QR" },
       {
         name: "description",
@@ -164,6 +167,8 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="es" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: EMBED_SCRIPT }} />
+        {/* Fija <html class="dark"> antes del primer render para que no haya parpadeo. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <HeadContent />
       </head>
       <body>
@@ -176,6 +181,9 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Mantiene escuchando los cambios de tema en toda la app: así también el prototipo embebido
+  // en la landing (iframe) sigue los cambios de tema hechos en la página padre.
+  useTheme();
 
   return (
     <QueryClientProvider client={queryClient}>

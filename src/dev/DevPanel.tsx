@@ -110,44 +110,40 @@ export function DevPanel() {
             <button
               type="button"
               onClick={() => setActiveTab("platform")}
-              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-                activeTab === "platform"
+              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${activeTab === "platform"
                   ? "bg-card text-primary font-black shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               📱 Dispositivo
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("roles")}
-              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-                activeTab === "roles"
+              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${activeTab === "roles"
                   ? "bg-card text-primary font-black shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               👥 Roles
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("scanner")}
-              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-                activeTab === "scanner"
+              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${activeTab === "scanner"
                   ? "bg-card text-primary font-black shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               📷 Escenarios
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("time")}
-              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${
-                activeTab === "time"
+              className={`flex-1 py-1.5 rounded-lg text-center transition-all ${activeTab === "time"
                   ? "bg-card text-primary font-black shadow-xs"
                   : "text-muted-foreground hover:text-foreground"
-              }`}
+                }`}
             >
               ⏱️ Tiempo
             </button>
@@ -169,11 +165,10 @@ export function DevPanel() {
                         description: "Notch Dynamic Island, reloj 9:41 y barra inferior activos.",
                       });
                     }}
-                    className={`flex flex-col items-center justify-center gap-1 rounded-2xl p-3 border-2 transition-all ${
-                      isIos
+                    className={`flex flex-col items-center justify-center gap-1 rounded-2xl p-3 border-2 transition-all ${isIos
                         ? "border-primary bg-accent/70 text-primary shadow-sm"
                         : "border-border bg-card text-muted-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <span className="text-base font-black">🍏 iOS</span>
                     <span className="text-[11px] font-semibold">390 × 844 pt</span>
@@ -188,11 +183,10 @@ export function DevPanel() {
                         description: "Reloj a la izquierda, iconos Material y sin Dynamic Island.",
                       });
                     }}
-                    className={`flex flex-col items-center justify-center gap-1 rounded-2xl p-3 border-2 transition-all ${
-                      isAndroid
+                    className={`flex flex-col items-center justify-center gap-1 rounded-2xl p-3 border-2 transition-all ${isAndroid
                         ? "border-primary bg-accent/70 text-primary shadow-sm"
                         : "border-border bg-card text-muted-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <span className="text-base font-black">🤖 Android</span>
                     <span className="text-[11px] font-semibold">412 × 915 dp</span>
@@ -218,11 +212,10 @@ export function DevPanel() {
                         setCommissionRate(rate);
                         toast.success(`Comisión actualizada al ${Math.round(rate * 100)} %`);
                       }}
-                      className={`flex-1 rounded-lg py-1 text-xs font-bold transition-all ${
-                        commissionRate === rate
+                      className={`flex-1 rounded-lg py-1 text-xs font-bold transition-all ${commissionRate === rate
                           ? "bg-primary text-primary-foreground"
                           : "bg-card text-foreground border border-border hover:bg-muted"
-                      }`}
+                        }`}
                     >
                       {Math.round(rate * 100)} %
                     </button>
@@ -259,11 +252,10 @@ export function DevPanel() {
                       navigate({ to: "/app/dueno" });
                       toast.info("Rol Dueña (María) activado");
                     }}
-                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-2.5 text-xs font-black transition-all active:scale-95 ${
-                      activeRole === "OWNER"
+                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-2.5 text-xs font-black transition-all active:scale-95 ${activeRole === "OWNER"
                         ? "border-primary bg-accent text-primary"
                         : "border-border bg-card text-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <Layers size={16} className="text-primary" />
                     <span>Dueña</span>
@@ -276,11 +268,10 @@ export function DevPanel() {
                       navigate({ to: "/app/dueno" });
                       toast.info("Rol Ayudante Caja activado");
                     }}
-                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-2.5 text-xs font-black transition-all active:scale-95 ${
-                      activeRole === "CASHIER"
+                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-2.5 text-xs font-black transition-all active:scale-95 ${activeRole === "CASHIER"
                         ? "border-primary bg-accent text-primary"
                         : "border-border bg-card text-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     <Laptop size={16} className="text-primary" />
                     <span>Cajero</span>
@@ -371,11 +362,10 @@ export function DevPanel() {
                           toast.success(`Escenario seleccionado: ${s.label}`);
                         }
                       }}
-                      className={`rounded-xl p-2 text-left border text-xs transition-all ${
-                        on
+                      className={`rounded-xl p-2 text-left border text-xs transition-all ${on
                           ? "border-primary bg-accent text-primary font-black shadow-xs"
                           : "border-border bg-card text-foreground hover:bg-muted"
-                      }`}
+                        }`}
                     >
                       <p className="truncate font-black">{s.label}</p>
                       <p className="text-[10px] text-muted-foreground truncate">{s.desc}</p>

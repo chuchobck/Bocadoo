@@ -1,6 +1,10 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent, type MouseEvent } from "react";
 
 import "./landing.css";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { QR_BACKGROUND, QR_FOREGROUND } from "@/lib/qr-colors";
+import { buildLeadWhatsAppUrl, saveLead, type CapturedLead } from "./leads";
 
 type View = "dueno" | "comensal";
 
@@ -12,6 +16,7 @@ export function LandingPage() {
   const [view, setView] = useState<View>("dueno");
   const [frameKey, setFrameKey] = useState(0);
   const [sent, setSent] = useState(false);
+  const [waUrl, setWaUrl] = useState<string | null>(null);
 
   // Aparecer suave al hacer scroll
   useEffect(() => {
@@ -47,19 +52,31 @@ export function LandingPage() {
     setFrameKey((k) => k + 1);
   };
 
-  // Formulario (sin envío real todavía)
+  // Formulario: respaldo local de cada lead (para las entrevistas en la calle) + atajo a WhatsApp
   const handleSubmit = (ev: FormEvent<HTMLFormElement>) => {
     ev.preventDefault();
+    const form = ev.currentTarget;
     let ok = true;
-    ev.currentTarget.querySelectorAll<HTMLInputElement>("input[required]").forEach((i) => {
+    form.querySelectorAll<HTMLInputElement>("input[required]").forEach((i) => {
       const empty = !i.value.trim();
-      i.style.borderColor = empty ? "#c0392b" : "";
+      i.style.borderColor = empty ? "var(--danger)" : "";
       if (empty && ok) {
         i.focus();
         ok = false;
       }
     });
-    if (ok) setSent(true);
+    if (!ok) return;
+
+    const data = new FormData(form);
+    const lead: CapturedLead = {
+      nombre: String(data.get("nombre") ?? "").trim(),
+      restaurante: String(data.get("restaurante") ?? "").trim(),
+      whatsapp: String(data.get("whatsapp") ?? "").trim(),
+      timestamp: new Date().toISOString(),
+    };
+    saveLead(lead);
+    setWaUrl(buildLeadWhatsAppUrl(lead));
+    setSent(true);
   };
 
   return (
@@ -68,11 +85,11 @@ export function LandingPage() {
       <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
         <defs>
           <symbol id="logo" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="8.5" fill="#fff" />
-            <circle cx="12" cy="12" r="5" fill="#7B2CBF" />
+            <circle cx="12" cy="12" r="8.5" style={{ fill: "var(--primary-foreground)" }} />
+            <circle cx="12" cy="12" r="5" style={{ fill: "var(--primary)" }} />
             <path
               d="M17.5 4.2a3 3 0 0 1 2.4 2.4 1.5 1.5 0 0 1-2.9.6 1.5 1.5 0 0 1 .5-3z"
-              fill="#E0AAFF"
+              style={{ fill: "var(--footer-accent)" }}
             />
           </symbol>
         </defs>
@@ -115,10 +132,14 @@ export function LandingPage() {
               <a href="#prototipo">Prototipo</a>
             </li>
             <li>
+              <Link to="/flujos">Flujos</Link>
+            </li>
+            <li>
               <a href="#precios">Precios</a>
             </li>
           </ul>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <ThemeToggle variant="icon" className="theme-btn" />
             <a href="#prototipo" className="btn btn-primary btn-desktop">
               Probar el prototipo
             </a>
@@ -328,7 +349,7 @@ export function LandingPage() {
                   <small
                     style={{
                       fontSize: "12px",
-                      color: "var(--text-soft)",
+                      color: "var(--muted-foreground)",
                       display: "block",
                       marginTop: "8px",
                     }}
@@ -476,7 +497,7 @@ export function LandingPage() {
                     <div>
                       ¿Le quedan almuerzos?
                       <br />
-                      <span style={{ color: "var(--text-soft)", fontWeight: "500" }}>
+                      <span style={{ color: "var(--muted-foreground)", fontWeight: "500" }}>
                         Nadie lo sabe con certeza
                       </span>
                     </div>
@@ -626,9 +647,9 @@ export function LandingPage() {
                     style={{
                       marginTop: "10px",
                       borderStyle: "solid",
-                      background: "var(--purple)",
-                      color: "#fff",
-                      borderColor: "var(--purple)",
+                      background: "var(--primary)",
+                      color: "var(--primary-foreground)",
+                      borderColor: "var(--primary)",
                     }}
                   >
                     Activar plan
@@ -657,14 +678,14 @@ export function LandingPage() {
                   <div className="qr-wrap">
                     <div className="qr-box">
                       <svg viewBox="0 0 21 21" shapeRendering="crispEdges">
-                        <rect width="21" height="21" fill="#fff" />
-                        <g fill="#4A0E78">
+                        <rect width="21" height="21" fill={QR_BACKGROUND} />
+                        <g fill={QR_FOREGROUND}>
                           <path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" />
                         </g>
-                        <g fill="#fff">
+                        <g fill={QR_BACKGROUND}>
                           <path d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z" />
                         </g>
-                        <g fill="#4A0E78">
+                        <g fill={QR_FOREGROUND}>
                           <path d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2z" />
                           <path d="M8 0h1v1H8zM10 1h2v1h-2zM9 3h1v2H9zM11 4h2v1h-2zM8 6h1v1H8zM12 6h1v2h-1zM8 8h3v1H8zM0 8h2v1H0zM3 9h2v1H3zM5 8h1v2H5zM14 8h2v1h-2zM17 9h2v1h-2zM20 8h1v2h-1zM9 10h1v2H9zM11 10h2v1h-2zM14 11h1v2h-1zM16 11h3v1h-3zM0 11h1v2H0zM2 12h3v1H2zM6 11h1v2H6zM8 13h2v1H8zM11 12h1v3h-1zM13 14h2v1h-2zM16 13h1v2h-1zM18 14h3v1h-3zM8 16h1v2H8zM10 17h2v1h-2zM13 16h3v1h-3zM17 17h1v2h-1zM19 16h1v1h-1zM9 19h3v1H9zM13 19h1v2h-1zM15 18h1v2h-1zM19 19h2v1h-2zM8 20h1v1H8zM17 20h1v1h-1z" />
                         </g>
@@ -839,11 +860,11 @@ export function LandingPage() {
                   <span className="qr-mini">
                     <svg viewBox="0 0 7 7" shapeRendering="crispEdges">
                       <path
-                        fill="#4A0E78"
+                        fill={QR_FOREGROUND}
                         d="M0 0h3v3H0zM4 0h3v3H4zM0 4h3v3H0zM4 4h1v1H4zM6 4h1v1H6zM5 5h1v1H5zM4 6h1v1H4zM6 6h1v1H6z"
                       />
                       <path
-                        fill="#fff"
+                        fill={QR_BACKGROUND}
                         d="M.75.75h1.5v1.5H.75zM4.75.75h1.5v1.5h-1.5zM.75 4.75h1.5v1.5H.75z"
                       />
                     </svg>
@@ -1033,6 +1054,9 @@ export function LandingPage() {
                   </svg>
                   Es un prototipo: los datos son de ejemplo.
                 </p>
+                <Link to="/flujos" className="btn btn-secondary">
+                  Ver todos los flujos
+                </Link>
               </div>
 
               <div className="device reveal d1">
@@ -1273,6 +1297,17 @@ export function LandingPage() {
                 </span>
                 <h3>¡Gracias! Te escribimos pronto.</h3>
                 <p>Revisa tu WhatsApp en los próximos días.</p>
+                {waUrl && (
+                  <a
+                    className="btn btn-secondary"
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ marginTop: "16px" }}
+                  >
+                    Confirmar por WhatsApp
+                  </a>
+                )}
               </div>
             </form>
           </div>
@@ -1287,11 +1322,11 @@ export function LandingPage() {
               <a href="#inicio" className="logo">
                 <span className="logo-mark">
                   <svg viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="8.5" fill="#7B2CBF" />
-                    <circle cx="12" cy="12" r="5" fill="#fff" />
+                    <circle cx="12" cy="12" r="8.5" style={{ fill: "var(--hero-2)" }} />
+                    <circle cx="12" cy="12" r="5" style={{ fill: "var(--image-foreground)" }} />
                     <path
                       d="M17.5 4.2a3 3 0 0 1 2.4 2.4 1.5 1.5 0 0 1-2.9.6 1.5 1.5 0 0 1 .5-3z"
-                      fill="#E0AAFF"
+                      style={{ fill: "var(--footer-accent)" }}
                     />
                   </svg>
                 </span>

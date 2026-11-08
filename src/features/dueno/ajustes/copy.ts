@@ -1,6 +1,7 @@
 export const AJUSTES_COPY = {
   title: "Ajustes",
   roleLabel: "Rol del dispositivo",
+  themeLabel: "Apariencia",
   ownerRole: "Dueño (Todo)",
   cashierRole: "Cajero / Ayudante",
   cashierScope: "El cajero solo ve Caja, Cobrar, Vender y Pedidos en camino.",

@@ -9,7 +9,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 /**
  * 1. ButtonPrimary — Botón principal de la pantalla (máximo uno relleno por vista).
- * Color: #7B2CBF (Primary) con hover #6A22A9. Radio cápsula completo.
+ * Color: token `primary` con hover `primary-hover` (texto `primary-foreground`). Radio cápsula completo.
  */
 export const ButtonPrimary: React.FC<ButtonProps> = ({
   children,
@@ -21,14 +21,14 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const heightClass = cajaMode ? "h-16" : "h-14";
-  const baseClasses = `relative inline-flex w-full items-center justify-center gap-2 rounded-full font-bold text-[17px] text-white shadow-[0_8px_20px_rgba(123,44,191,0.25)] transition-all duration-200 active:scale-[0.98] ${heightClass} ${className}`;
+  const baseClasses = `relative inline-flex w-full items-center justify-center gap-2 rounded-full font-bold text-[17px] shadow-brand transition-all duration-200 active:scale-[0.98] ${heightClass} ${className}`;
 
   if (state === "cargando") {
     return (
       <button
         disabled
         aria-busy="true"
-        className={`${baseClasses} bg-[#7B2CBF] opacity-90 cursor-wait`}
+        className={`${baseClasses} bg-primary text-primary-foreground opacity-90 cursor-wait`}
         {...props}
       >
         <Loader2 className="h-5 w-5 animate-spin" />
@@ -41,7 +41,7 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({
     return (
       <button
         disabled
-        className={`${baseClasses} border-2 border-dashed border-[#E7E1F2] bg-[#F5F3FA] text-[#6B5B7B] shadow-none cursor-not-allowed`}
+        className={`${baseClasses} border-2 border-dashed border-border bg-background text-muted-foreground shadow-none cursor-not-allowed`}
         {...props}
       >
         <span>Sin acción</span>
@@ -52,7 +52,7 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({
   if (state === "error") {
     return (
       <button
-        className={`${baseClasses} bg-[#C0392B] text-white hover:bg-[#A93226] shadow-[0_8px_20px_rgba(192,57,43,0.25)]`}
+        className={`${baseClasses} bg-danger text-danger-foreground hover:bg-danger/90 shadow-sm`}
         {...props}
       >
         <AlertCircle className="h-5 w-5" />
@@ -65,7 +65,7 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({
     return (
       <button
         disabled
-        className={`${baseClasses} bg-[#6B5B7B] opacity-75 shadow-none cursor-not-allowed`}
+        className={`${baseClasses} bg-muted-foreground text-background opacity-75 shadow-none cursor-not-allowed`}
         {...props}
       >
         <WifiOff className="h-5 w-5" />
@@ -78,7 +78,7 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({
   return (
     <button
       disabled={disabled}
-      className={`${baseClasses} bg-[#7B2CBF] hover:bg-[#6A22A9] disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`${baseClasses} bg-primary text-primary-foreground hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed`}
       {...props}
     >
       {icon}
@@ -89,7 +89,7 @@ export const ButtonPrimary: React.FC<ButtonProps> = ({
 
 /**
  * 2. ButtonSecondary — Botón secundario en lila suave o blanco con borde.
- * Color: Fondo #F3E8FF con texto #4A0E78 o blanco con borde #E7E1F2.
+ * Color: fondo `primary-container` con texto `foreground`, o `surface` con borde `border`.
  */
 export const ButtonSecondary: React.FC<ButtonProps> = ({
   children,
@@ -101,17 +101,17 @@ export const ButtonSecondary: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const heightClass = cajaMode ? "h-16" : "h-14";
-  const baseClasses = `relative inline-flex w-full items-center justify-center gap-2 rounded-full font-bold text-[17px] border border-[#E7E1F2] transition-all duration-200 active:scale-[0.98] ${heightClass} ${className}`;
+  const baseClasses = `relative inline-flex w-full items-center justify-center gap-2 rounded-full font-bold text-[17px] border border-border transition-all duration-200 active:scale-[0.98] ${heightClass} ${className}`;
 
   if (state === "cargando") {
     return (
       <button
         disabled
         aria-busy="true"
-        className={`${baseClasses} bg-[#F3E8FF] text-[#4A0E78] opacity-80 cursor-wait`}
+        className={`${baseClasses} bg-primary-container text-foreground opacity-80 cursor-wait`}
         {...props}
       >
-        <Loader2 className="h-5 w-5 animate-spin text-[#7B2CBF]" />
+        <Loader2 className="h-5 w-5 animate-spin text-primary" />
         <span>Cargando</span>
       </button>
     );
@@ -121,7 +121,7 @@ export const ButtonSecondary: React.FC<ButtonProps> = ({
     return (
       <button
         disabled
-        className={`${baseClasses} bg-white text-[#6B5B7B] opacity-50 cursor-not-allowed`}
+        className={`${baseClasses} bg-surface text-muted-foreground opacity-50 cursor-not-allowed`}
         {...props}
       >
         <span>No disponible</span>
@@ -132,7 +132,7 @@ export const ButtonSecondary: React.FC<ButtonProps> = ({
   if (state === "error") {
     return (
       <button
-        className={`${baseClasses} bg-[#FDEBEB] border-[#C0392B] text-[#C0392B] hover:bg-[#FADBD8]`}
+        className={`${baseClasses} bg-danger-container border-danger text-on-danger-container hover:bg-danger-container`}
         {...props}
       >
         <AlertCircle className="h-5 w-5" />
@@ -145,7 +145,7 @@ export const ButtonSecondary: React.FC<ButtonProps> = ({
     return (
       <button
         disabled
-        className={`${baseClasses} bg-[#F5F3FA] text-[#6B5B7B] opacity-60 cursor-not-allowed`}
+        className={`${baseClasses} bg-background text-muted-foreground opacity-60 cursor-not-allowed`}
         {...props}
       >
         <WifiOff className="h-5 w-5" />
@@ -157,7 +157,7 @@ export const ButtonSecondary: React.FC<ButtonProps> = ({
   return (
     <button
       disabled={disabled}
-      className={`${baseClasses} bg-[#F3E8FF] text-[#4A0E78] hover:bg-[#EBD7FC] hover:border-[#E0AAFF] disabled:opacity-50 disabled:cursor-not-allowed`}
+      className={`${baseClasses} bg-primary-container text-foreground hover:bg-secondary-container hover:border-primary/50 disabled:opacity-50 disabled:cursor-not-allowed`}
       {...props}
     >
       {icon}
@@ -181,8 +181,8 @@ export const ButtonGhost: React.FC<ButtonProps> = ({
 
   if (state === "cargando") {
     return (
-      <button disabled className={`${baseClasses} text-[#6B5B7B] opacity-60 cursor-wait`} {...props}>
-        <Loader2 className="h-4 w-4 animate-spin text-[#7B2CBF]" />
+      <button disabled className={`${baseClasses} text-muted-foreground opacity-60 cursor-wait`} {...props}>
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
         <span>Espere</span>
       </button>
     );
@@ -190,7 +190,7 @@ export const ButtonGhost: React.FC<ButtonProps> = ({
 
   if (state === "vacio") {
     return (
-      <button disabled className={`${baseClasses} text-[#6B5B7B] opacity-40`} {...props}>
+      <button disabled className={`${baseClasses} text-muted-foreground opacity-40`} {...props}>
         <span>Vacío</span>
       </button>
     );
@@ -198,7 +198,7 @@ export const ButtonGhost: React.FC<ButtonProps> = ({
 
   if (state === "error") {
     return (
-      <button className={`${baseClasses} text-[#C0392B] hover:bg-[#FDEBEB]`} {...props}>
+      <button className={`${baseClasses} text-danger hover:bg-danger-container`} {...props}>
         <AlertCircle className="h-4 w-4" />
         <span>{children || "Revisar"}</span>
       </button>
@@ -207,7 +207,7 @@ export const ButtonGhost: React.FC<ButtonProps> = ({
 
   if (state === "offline") {
     return (
-      <button disabled className={`${baseClasses} text-[#6B5B7B] opacity-50`} {...props}>
+      <button disabled className={`${baseClasses} text-muted-foreground opacity-50`} {...props}>
         <WifiOff className="h-4 w-4" />
         <span>Modo local</span>
       </button>
@@ -217,7 +217,7 @@ export const ButtonGhost: React.FC<ButtonProps> = ({
   return (
     <button
       disabled={disabled}
-      className={`${baseClasses} text-[#6B5B7B] hover:bg-[#F3E8FF] hover:text-[#4A0E78] active:bg-[#EBD7FC]`}
+      className={`${baseClasses} text-muted-foreground hover:bg-primary-container hover:text-foreground active:bg-secondary-container`}
       {...props}
     >
       {icon}

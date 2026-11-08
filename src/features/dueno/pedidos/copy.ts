@@ -2,6 +2,7 @@ export const PEDIDOS_COPY = {
   title: "Pedidos en camino",
   activeCount: (count: number) => `${count} activos`,
   deliverButton: "Entregar",
+  validated: "Validado",
   orderDelivered: (number: string) => `Pedido #${number} entregado`,
   emptyTitle: "Sin pedidos pendientes",
   emptyDesc: "Todos los almuerzos fueron despachados.",

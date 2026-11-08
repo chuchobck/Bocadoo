@@ -9,6 +9,7 @@ export const CAJA_COPY = {
   modalTitle: (price: string) => `Cobro suelto: ${price}`,
   cash: "Efectivo",
   transfer: "Transferencia",
+  deuna: "Deuna",
   cancel: "Cancelar",
   undoSingle: (price: string, method: string) => `Cobro ${price} (${method})`,
 };

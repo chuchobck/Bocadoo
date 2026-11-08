@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import React, { useState } from "react";
 
-import { CajaView, CobrarPaseModal } from "@/components/dueno";
+import { CajaView, CobrarPaseLive } from "@/components/dueno";
 import { AppShell, NavBar } from "@/components/bocadoo/ui";
 
 export const Route = createFileRoute("/app/dueno/descontar")({
@@ -21,15 +21,12 @@ function RouteComponent() {
         </div>
         <NavBar active="Caja" owner />
       </div>
-      <CobrarPaseModal
+      <CobrarPaseLive
         isOpen={isOpen}
         onClose={() => {
           setIsOpen(false);
           navigate({ to: "/app/dueno" }).catch(() => {});
         }}
-        outcome="VERDE"
-        dinerName="Carlos Mejía"
-        remainingLunches={13}
       />
     </AppShell>
   );

@@ -89,6 +89,7 @@ export type Restaurant = {
   tags?: string[] | undefined;
   manualBusyUntil?: string | undefined; // ISO timestamp: cuando el dueño activa "Local lleno" (dura 20 min)
   logoUrl?: string | null | undefined;
+  direccion?: string | undefined;
 };
 
 export type Staff = {
@@ -159,7 +160,13 @@ export type Redemption = {
   revierteA?: string | undefined; // ID de redención que anula
 };
 
-export type PaymentMethod = "EFECTIVO" | "TRANSFERENCIA";
+export type PaymentMethod = "EFECTIVO" | "TRANSFERENCIA" | "DEUNA";
+
+export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {
+  EFECTIVO: "Efectivo",
+  TRANSFERENCIA: "Transferencia",
+  DEUNA: "Deuna",
+};
 
 export type Payment = {
   id: string;
@@ -191,6 +198,8 @@ export type Sale = {
   mesa?: string | undefined;
   creadoEn: string; // ISO
   revierteA?: string | undefined;
+  /** Sellos sumados con esta venta (tarjeta "por plato"), para poder revertirlos al deshacer. */
+  sellos?: { clientId: string; cant: number } | undefined;
 };
 
 export type MenuDish = {
@@ -327,7 +336,17 @@ export type StampCardConfig = {
   activa: boolean;
   meta: number; // Por defecto 10
   premio: string; // "Almuerzo gratis" | "Postre de la casa"
+  /** Nombre que ve el comensal en su tarjeta ("Club La Cuchara"). Opcional por datos guardados antes. */
+  nombre?: string | undefined;
+  /**
+   * Qué suma sellos. "almuerzo": 1 por almuerzo (plan, preorden o mesa).
+   * "plato": además, cada plato cobrado en caja (almuerzo suelto o a la carta) suma 1
+   * si el dueño elige al cliente al cobrar. Sin valor = "almuerzo".
+   */
+  cuenta?: StampCountMode | undefined;
 };
+
+export type StampCountMode = "almuerzo" | "plato";
 
 export type StampRecord = {
   clientId: string;
@@ -380,6 +399,62 @@ export type CommissionEntry = {
   comisionCents: number;
   creadoEn: string;
 };
+
+// ----------------------------------------------------------------------------
+// MESA COMPARTIDA / INVITAR A AMIGOS
+// ----------------------------------------------------------------------------
+export type SharedTableMember = {
+  id: string;
+  nombre: string;
+  esAnfitrion: boolean;
+  sopa?: string | undefined;
+  fuerte?: string | undefined;
+  paraLlevar?: boolean | undefined;
+  unidoEn: string;
+};
+
+export type SharedTable = {
+  id: string; // ej: "m1234"
+  restaurantId: string;
+  restaurantNombre: string;
+  anfitrionNombre: string;
+  anfitrionUserId: string;
+  hora: string; // ej: "13:00"
+  creadaEn: string;
+  miembros: SharedTableMember[];
+  estado: "ABIERTA" | "EN_CAMINO" | "EN_MESA" | "FINALIZADA";
+  // CADA_UNO: cada comensal usa lo suyo. INVITO_YO: el anfitrión paga con su plan todos los almuerzos.
+  modo?: SharedTableMode | undefined;
+  validadaEn?: string | undefined;
+};
+
+export type SharedTableMode = "CADA_UNO" | "INVITO_YO";
+
+/** Número corto del pedido que ven comensal y cocina (#042). Mismo cálculo en ambas vistas. */
+export const orderDisplayNumber = (orderId: string): string =>
+  orderId.replace(/\D/g, "").padStart(2, "0").slice(-3) || "42";
+
+/** Preorden abierta: falta validar su QR o falta entregarla. */
+export const isOrderOpen = (o: { estado: OrderStatus }): boolean =>
+  o.estado === "EN_CAMINO" || o.estado === "CANJEADA";
+
+/** Preorden ya validada en caja (descontada del plan o cobrada), pendiente de entregar. */
+export const isOrderValidated = (o: { estado: OrderStatus }): boolean => o.estado === "CANJEADA";
+
+export const SHARED_TABLE_QR_PREFIX = "BCD-MESA-";
+export const SHARED_TABLE_LUNCH_CENTS = 300;
+
+export type SharedTableLine = {
+  memberId: string;
+  nombre: string;
+  plato: string;
+  via: "PLAN" | "PLAN_ANFITRION" | "SUELTO";
+  montoCents: number;
+};
+
+export type SharedTablePreview =
+  | { ok: true; lines: SharedTableLine[]; totalSueltoCents: number; sellos: Array<{ nombre: string; cant: number }> }
+  | { ok: false; message: string };
 
 // ----------------------------------------------------------------------------
 // USUARIOS DE LA APP (COMENSALES REGISTRADOS)
@@ -468,6 +543,7 @@ export type State = {
   scannerDemoScenario: string;
   dinerHasPlanOverride: boolean | null;
   dismissedFeedbackIds: string[];
+  sharedTables: SharedTable[];
 };
 
 // ----------------------------------------------------------------------------
@@ -514,6 +590,7 @@ const initialRestaurants: Restaurant[] = [
     horario: "11:30 - 15:30",
     abierto: true,
     descripcionCorta: "Comida casera tradicional frente a la PUCE",
+    direccion: "Av. 12 de Octubre N24-110 y La Católica",
     tags: ["Comida casera", "Sazón quiteña", "Opción vegetariana"],
   },
   {
@@ -529,6 +606,7 @@ const initialRestaurants: Restaurant[] = [
     horario: "12:00 - 15:30",
     abierto: true,
     descripcionCorta: "Almuerzos saludables y ensaladas en La Floresta",
+    direccion: "Calle Madrid 1159 y Coruña, La Floresta",
     tags: ["Saludable", "Ensaladas frescas", "Céntrico"],
   },
   {
@@ -544,6 +622,7 @@ const initialRestaurants: Restaurant[] = [
     horario: "11:30 - 16:00",
     abierto: true,
     descripcionCorta: "Especialidad en mariscos y sazón manaba tradicional",
+    direccion: "Av. Amazonas N22-48 y Calle Mariscal Foch",
     tags: ["Mariscos frescos", "Plátano verde", "Porción generosa"],
   },
   {
@@ -559,6 +638,7 @@ const initialRestaurants: Restaurant[] = [
     horario: "12:00 - 16:00",
     abierto: true,
     descripcionCorta: "Almuerzo ejecutivo universitario junto a la USFQ",
+    direccion: "Av. Pampite y Vía Interoceánica, edif. Platinum Plaza",
     tags: ["Almuerzos ejecutivos", "Ambiente universitario", "Rápido"],
   },
   {
@@ -574,6 +654,7 @@ const initialRestaurants: Restaurant[] = [
     horario: "11:00 - 14:30",
     abierto: false,
     descripcionCorta: "El almuerzo rendidor y económico del sur de Quito",
+    direccion: "Av. Rodrigo de Chávez OE1-24 y 5 de Junio",
     tags: ["Económico", "Sopa criolla"],
   },
 ];
@@ -710,6 +791,14 @@ const initialClients: Client[] = [
     correo: "carlos.mejia@email.com",
   },
   {
+    id: "c1-r2",
+    restaurantId: "r2",
+    userId: "u1", // Carlos Mejía en Verde Limón
+    nombre: "Carlos Mejía",
+    telefono: "0991234567",
+    correo: "carlos.mejia@email.com",
+  },
+  {
     id: "c2",
     restaurantId: RESTAURANT_ID,
     userId: "u2", // Valentina Ortiz
@@ -732,18 +821,85 @@ const initialClients: Client[] = [
     telefono: "0987654321",
     correo: "diego.salazar@gmail.com",
   },
+  {
+    id: "c5",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Laura Méndez",
+    telefono: "0981223344",
+    correo: "laura.mendez@gmail.com",
+  },
+  {
+    id: "c6",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Diego Ramos",
+    telefono: "0998877665",
+    correo: "diego.ramos@outlook.com",
+  },
+  {
+    id: "c7",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Sofía Cruz",
+    telefono: "0981122334",
+    correo: "sofia.cruz@gmail.com",
+  },
+  {
+    id: "c8",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Juan Pérez",
+    telefono: "0993344556",
+    correo: "juan.perez@empresa.ec",
+  },
+  {
+    id: "c9",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Andrea Villacís",
+    telefono: "0994455667",
+    correo: "andrea.villacis@outlook.com",
+  },
+  {
+    id: "c10",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Mateo Cárdenas",
+    telefono: "0985566778",
+    correo: "mateo.cardenas@gmail.com",
+  },
+  {
+    id: "c11",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Gabriela Morales",
+    telefono: "0976677889",
+    correo: "gabriela.morales@empresa.ec",
+  },
+  {
+    id: "c12",
+    restaurantId: RESTAURANT_ID,
+    nombre: "Fernando Paredes",
+    telefono: "0997788990",
+    correo: "fernando.paredes@yahoo.es",
+  },
 ];
 
 const initialSubscriptions: Subscription[] = [
   {
     id: "sub-1",
-    clientId: "c1", // Carlos
+    clientId: "c1", // Carlos en La Cuchara de San Blas
     templateId: "p-mensual",
     origen: "VENTA",
     almuerzosTotales: 20,
     almuerzosRestantes: 14,
     compradaEn: addDays(baseDate, -6).toISOString(),
     venceEn: addDays(baseDate, 29).toISOString(),
+    estado: "ACTIVA",
+  },
+  {
+    id: "sub-r2-1",
+    clientId: "c1-r2", // Carlos en Verde Limón
+    templateId: "p-r2-semanal",
+    origen: "VENTA",
+    almuerzosTotales: 5,
+    almuerzosRestantes: 4,
+    compradaEn: addDays(baseDate, -2).toISOString(),
+    venceEn: addDays(baseDate, 5).toISOString(),
     estado: "ACTIVA",
   },
   {
@@ -780,6 +936,50 @@ const initialSubscriptions: Subscription[] = [
     estado: "ACTIVA",
     anotacion: "Cartulina física #12",
   },
+  {
+    id: "sub-5",
+    clientId: "c5", // Laura Méndez
+    templateId: "p-mensual",
+    origen: "VENTA",
+    almuerzosTotales: 20,
+    almuerzosRestantes: 18,
+    compradaEn: addDays(baseDate, -4).toISOString(),
+    venceEn: addDays(baseDate, 31).toISOString(),
+    estado: "ACTIVA",
+  },
+  {
+    id: "sub-6",
+    clientId: "c6", // Diego Ramos
+    templateId: "p-semanal",
+    origen: "VENTA",
+    almuerzosTotales: 5,
+    almuerzosRestantes: 4,
+    compradaEn: addDays(baseDate, -2).toISOString(),
+    venceEn: addDays(baseDate, 8).toISOString(),
+    estado: "ACTIVA",
+  },
+  {
+    id: "sub-7",
+    clientId: "c7", // Sofía Cruz
+    templateId: "p-quincenal",
+    origen: "VENTA",
+    almuerzosTotales: 10,
+    almuerzosRestantes: 8,
+    compradaEn: addDays(baseDate, -5).toISOString(),
+    venceEn: addDays(baseDate, 14).toISOString(),
+    estado: "ACTIVA",
+  },
+  {
+    id: "sub-8",
+    clientId: "c8", // Juan Pérez
+    templateId: "p-semanal",
+    origen: "VENTA",
+    almuerzosTotales: 5,
+    almuerzosRestantes: 2,
+    compradaEn: addDays(baseDate, -3).toISOString(),
+    venceEn: addDays(baseDate, 7).toISOString(),
+    estado: "ACTIVA",
+  },
 ];
 
 const initialPayments: Payment[] = [
@@ -814,6 +1014,38 @@ const initialPayments: Payment[] = [
     saleId: "sale-init-1",
     cobradoPor: "st1",
     creadoEn: new Date(baseDate.getTime() - 15 * 60000).toISOString(),
+  },
+  {
+    id: "pay-5",
+    montoCents: 5500,
+    metodo: "TRANSFERENCIA",
+    subscriptionId: "sub-5",
+    cobradoPor: "st1",
+    creadoEn: addDays(baseDate, -4).toISOString(),
+  },
+  {
+    id: "pay-6",
+    montoCents: 1750,
+    metodo: "EFECTIVO",
+    subscriptionId: "sub-6",
+    cobradoPor: "st1",
+    creadoEn: addDays(baseDate, -2).toISOString(),
+  },
+  {
+    id: "pay-7",
+    montoCents: 2800,
+    metodo: "TRANSFERENCIA",
+    subscriptionId: "sub-7",
+    cobradoPor: "st1",
+    creadoEn: addDays(baseDate, -5).toISOString(),
+  },
+  {
+    id: "pay-8",
+    montoCents: 1750,
+    metodo: "EFECTIVO",
+    subscriptionId: "sub-8",
+    cobradoPor: "st1",
+    creadoEn: addDays(baseDate, -3).toISOString(),
   },
 ];
 
@@ -1089,7 +1321,8 @@ const initialStampConfigs: Record<string, StampCardConfig> = {
     restaurantId: RESTAURANT_ID,
     activa: true,
     meta: 10,
-    premio: "Almuerzo gratis o postre de la casa",
+    premio: "Almuerzo gratis",
+    nombre: "Club La Cuchara",
   },
   r2: {
     restaurantId: "r2",
@@ -1112,7 +1345,8 @@ const initialStampConfigs: Record<string, StampCardConfig> = {
 };
 
 const initialStampRecords: Record<string, StampRecord> = {
-  [`${RESTAURANT_ID}_c1`]: {
+  // Misma clave que getClientStampRecord: `${clientId}_${restaurantId}`
+  [`c1_${RESTAURANT_ID}`]: {
     clientId: "c1", // Carlos Mejía
     restaurantId: RESTAURANT_ID,
     sellos: 7, // 7 de 10 sellos acumulados
@@ -1156,7 +1390,8 @@ const initialFlashOffers: FlashOffer[] = [
     stockTotal: 8,
     stockRestante: 5,
     expiraEn: new Date(baseDate.getTime() + 90 * 60000).toISOString(),
-    activa: true,
+    // Inactiva de fábrica: solo hay oferta cuando el dueño la publica
+    activa: false,
     creadaEn: baseDate.toISOString(),
   },
 ];
@@ -1226,6 +1461,29 @@ export const initialState: State = {
   scannerDemoScenario: "NORMAL",
   dinerHasPlanOverride: null,
   dismissedFeedbackIds: [],
+  sharedTables: [
+    {
+      id: "m1234",
+      restaurantId: RESTAURANT_ID,
+      restaurantNombre: "La Cuchara de San Blas",
+      anfitrionNombre: "Carlos Mejía",
+      anfitrionUserId: "u1",
+      hora: "13:00",
+      creadaEn: new Date(baseDate.getTime() - 10 * 60000).toISOString(),
+      miembros: [
+        {
+          id: "mem-1",
+          nombre: "Carlos Mejía",
+          esAnfitrion: true,
+          sopa: "Locro de papa con queso y aguacate",
+          fuerte: "Seco de pollo tierno con maduro frito",
+          paraLlevar: false,
+          unidoEn: new Date(baseDate.getTime() - 10 * 60000).toISOString(),
+        },
+      ],
+      estado: "ABIERTA",
+    },
+  ],
 };
 
 // ----------------------------------------------------------------------------
@@ -1281,7 +1539,12 @@ function useBocadooState() {
           restaurants: parsed.restaurants?.length ? parsed.restaurants : prev.restaurants,
           staff: parsed.staff?.length ? parsed.staff : prev.staff,
           planTemplates: parsed.planTemplates?.length ? parsed.planTemplates : prev.planTemplates,
-          clients: parsed.clients?.length ? parsed.clients : prev.clients,
+          clients: parsed.clients?.length
+            ? [...parsed.clients, ...initialClients.filter(ic => !parsed.clients?.some(pc => pc.id === ic.id))]
+            : prev.clients,
+          subscriptions: parsed.subscriptions?.length
+            ? [...parsed.subscriptions, ...initialSubscriptions.filter(is => !parsed.subscriptions?.some(ps => ps.id === is.id))]
+            : prev.subscriptions,
           menuDays: parsed.menuDays || prev.menuDays,
           orders: parsed.orders || prev.orders,
           stampConfigs: parsed.stampConfigs || prev.stampConfigs,
@@ -1289,6 +1552,7 @@ function useBocadooState() {
           feedbackList: parsed.feedbackList || prev.feedbackList,
           flashOffers: parsed.flashOffers || prev.flashOffers,
           commissionLedger: parsed.commissionLedger || prev.commissionLedger,
+          sharedTables: parsed.sharedTables || prev.sharedTables,
           simulatedMinutesOffset: parsed.simulatedMinutesOffset ?? prev.simulatedMinutesOffset,
         }));
       }
@@ -1584,7 +1848,7 @@ function useBocadooState() {
           id: p.id,
           icon: "bag",
           name: "La Cuchara de San Blas",
-          detail: `Compra de plan · ${p.metodo === "TRANSFERENCIA" ? "Transferencia" : "Efectivo"}`,
+          detail: `Compra de plan · ${PAYMENT_METHOD_LABEL[p.metodo]}`,
           value: money(p.montoCents),
           positive: false,
           timestamp: p.creadoEn,
@@ -2105,10 +2369,18 @@ function useBocadooState() {
       mesa?: string | undefined;
       metodo: PaymentMethod;
       staffId?: string | undefined;
+      /** Tarjeta "por plato": cliente al que se le suman sellos y cuántos platos lleva. */
+      stamps?: { clientId: string; cant: number } | undefined;
     }) => {
       const { items, totalCents, paraLlevar, mesa, metodo, staffId = "st1" } = params;
       const saleId = newId("sale");
       const nextTicket = state.sales.length + 148;
+
+      const stampCfg = state.stampConfigs[RESTAURANT_ID];
+      const stamps =
+        stampCfg?.activa && stampCfg.cuenta === "plato" && params.stamps && params.stamps.cant > 0
+          ? params.stamps
+          : undefined;
 
       const newSale: Sale = {
         id: saleId,
@@ -2119,7 +2391,30 @@ function useBocadooState() {
         paraLlevar,
         mesa,
         creadoEn: simulatedTodayISO,
+        sellos: stamps,
       };
+
+      // Sumar sellos: al llegar a la meta se gana un premio y la tarjeta vuelve a empezar
+      let updatedStampRecords = state.stampRecords;
+      if (stamps && stampCfg) {
+        const key = `${stamps.clientId}_${RESTAURANT_ID}`;
+        const current = updatedStampRecords[key] || {
+          clientId: stamps.clientId,
+          restaurantId: RESTAURANT_ID,
+          sellos: 0,
+          premiosDisponibles: 0,
+          historiaCanjes: [],
+        };
+        const total = current.sellos + stamps.cant;
+        updatedStampRecords = {
+          ...updatedStampRecords,
+          [key]: {
+            ...current,
+            sellos: total % stampCfg.meta,
+            premiosDisponibles: current.premiosDisponibles + Math.floor(total / stampCfg.meta),
+          },
+        };
+      }
 
       const newPayment: Payment = {
         id: newId("pay"),
@@ -2134,7 +2429,10 @@ function useBocadooState() {
       const todayMenu = state.menuDays[simulatedTodayKey];
       let updatedMenuDays = state.menuDays;
       if (todayMenu) {
-        const itemQtyMap = new Map(items.map((it) => [it.platoId, it.cant]));
+        const itemQtyMap = new Map<string, number>();
+        items.forEach((it) =>
+          itemQtyMap.set(it.platoId, (itemQtyMap.get(it.platoId) ?? 0) + it.cant),
+        );
         const updatedSections = { ...todayMenu.secciones };
         (Object.keys(updatedSections) as MenuSectionId[]).forEach((sec) => {
           updatedSections[sec] = updatedSections[sec].map((d) => {
@@ -2157,11 +2455,19 @@ function useBocadooState() {
         sales: [newSale, ...s.sales],
         payments: [newPayment, ...s.payments],
         menuDays: updatedMenuDays,
+        stampRecords: updatedStampRecords,
       }));
 
       return { sale: newSale, payment: newPayment };
     },
-    [state.sales, state.menuDays, simulatedTodayKey, simulatedTodayISO],
+    [
+      state.sales,
+      state.menuDays,
+      state.stampConfigs,
+      state.stampRecords,
+      simulatedTodayKey,
+      simulatedTodayISO,
+    ],
   );
 
   // Deshacer venta POS (10 s)
@@ -2193,15 +2499,29 @@ function useBocadooState() {
         revierteA: sale.id,
       };
 
+      // Si la venta sumó sellos, se quitan (sin bajar de 0 ni tocar premios ya ganados)
+      let updatedStampRecords = state.stampRecords;
+      if (sale.sellos) {
+        const key = `${sale.sellos.clientId}_${sale.restaurantId}`;
+        const current = updatedStampRecords[key];
+        if (current) {
+          updatedStampRecords = {
+            ...updatedStampRecords,
+            [key]: { ...current, sellos: Math.max(0, current.sellos - sale.sellos.cant) },
+          };
+        }
+      }
+
       setState((s) => ({
         ...s,
         sales: [reversalSale, ...s.sales],
         payments: [reversalPayment, ...s.payments],
+        stampRecords: updatedStampRecords,
       }));
 
       return true;
     },
-    [state.sales, simulatedTodayISO],
+    [state.sales, state.stampRecords, simulatedTodayISO],
   );
 
   // P7: Menú del día
@@ -2268,13 +2588,16 @@ function useBocadooState() {
   // P4 Comensal: Solicitar plan desde la app
   const requestPlan = useCallback(
     (templateId: string, userId = DINER_USER_ID) => {
-      let client = state.clients.find((c) => c.userId === userId);
+      const template = state.planTemplates.find((t) => t.id === templateId);
+      const targetRestId = template?.restaurantId || RESTAURANT_ID;
+
+      let client = state.clients.find((c) => c.userId === userId && c.restaurantId === targetRestId);
       let newClients = [...state.clients];
       if (!client) {
         const u = APP_USERS.find((user) => user.id === userId);
         client = {
           id: newId("c"),
-          restaurantId: RESTAURANT_ID,
+          restaurantId: targetRestId,
           userId,
           nombre: u?.name || "Carlos Mejía",
           telefono: u?.phone || "0991234567",
@@ -2300,7 +2623,21 @@ function useBocadooState() {
 
       return newReq;
     },
-    [state.clients, simulatedTodayISO],
+    [state.clients, state.planTemplates, simulatedTodayISO],
+  );
+
+  const getActiveSubsForUserAndRestaurant = useCallback(
+    (userId: string, restaurantId: string) => {
+      const userClients = state.clients.filter((c) => c.userId === userId);
+      const clientIds = new Set(userClients.map((c) => c.id));
+      return evaluatedSubscriptions.filter((s) => {
+        if (!clientIds.has(s.clientId)) return false;
+        if (s.estado !== "ACTIVA" || s.almuerzosRestantes <= 0) return false;
+        const tpl = state.planTemplates.find((t) => t.id === s.templateId);
+        return tpl?.restaurantId === restaurantId;
+      });
+    },
+    [state.clients, evaluatedSubscriptions, state.planTemplates],
   );
 
   const confirmPlanRequest = useCallback(
@@ -2418,7 +2755,7 @@ function useBocadooState() {
         .reduce((sum, p) => sum + p.montoCents, 0);
 
       const transferenciasCents = todayPayments
-        .filter((p) => p.metodo === "TRANSFERENCIA")
+        .filter((p) => p.metodo === "TRANSFERENCIA" || p.metodo === "DEUNA")
         .reduce((sum, p) => sum + p.montoCents, 0);
 
       const planesCents = todayPayments
@@ -2500,9 +2837,9 @@ function useBocadooState() {
             status: "LLENO",
             label: "Lleno",
             detail: "Lleno ahora. Pídelo para llevar",
-            colorClass: "text-rose-600 dark:text-rose-400",
-            bgClass: "bg-rose-500/10 border-rose-500/30",
-            badgeClass: "bg-rose-600 text-white",
+            colorClass: "text-danger",
+            bgClass: "bg-danger/10 border-danger/30",
+            badgeClass: "bg-danger text-danger-foreground",
             ratio: 0.95,
             isManual: true,
             manualMinutesLeft: minutesLeft,
@@ -2539,9 +2876,9 @@ function useBocadooState() {
           status: "FLUIDO",
           label: "Fluido",
           detail: "Llegas y te sientas",
-          colorClass: "text-emerald-600 dark:text-emerald-400",
-          bgClass: "bg-emerald-500/10 border-emerald-500/30",
-          badgeClass: "bg-emerald-600 text-white",
+          colorClass: "text-success",
+          bgClass: "bg-success/10 border-success/30",
+          badgeClass: "bg-success text-success-foreground",
           ratio,
           isManual: false,
         };
@@ -2551,9 +2888,9 @@ function useBocadooState() {
           status: "MOVIDO",
           label: "Movido",
           detail: "Hora pico: quizá compartas mesa",
-          colorClass: "text-amber-600 dark:text-amber-400",
-          bgClass: "bg-amber-500/10 border-amber-500/30",
-          badgeClass: "bg-amber-600 text-slate-900",
+          colorClass: "text-primary",
+          bgClass: "bg-primary/10 border-primary/30",
+          badgeClass: "bg-primary text-primary-foreground",
           ratio,
           isManual: false,
         };
@@ -2562,9 +2899,9 @@ function useBocadooState() {
         status: "LLENO",
         label: "Lleno",
         detail: "Lleno ahora. Pídelo para llevar",
-        colorClass: "text-rose-600 dark:text-rose-400",
-        bgClass: "bg-rose-500/10 border-rose-500/30",
-        badgeClass: "bg-rose-600 text-white",
+        colorClass: "text-danger",
+        bgClass: "bg-danger/10 border-danger/30",
+        badgeClass: "bg-danger text-danger-foreground",
         ratio,
         isManual: false,
       };
@@ -2846,23 +3183,88 @@ function useBocadooState() {
     return true;
   }, []);
 
+  // Deshacer "entregado": la orden vuelve a CANJEADA (validada, pendiente de entregar)
+  const undoServeOrder = useCallback((orderId: string) => {
+    setState((s) => ({
+      ...s,
+      orders: s.orders.map((o) =>
+        o.id === orderId && o.estado === "SERVIDA" ? { ...o, estado: "CANJEADA" } : o,
+      ),
+    }));
+    return true;
+  }, []);
+
+  // Deshacer la validación de una orden pagada con plan: revierte el canje (y su sello) y
+  // devuelve la orden a EN_CAMINO. Las órdenes cobradas sueltas no se pueden deshacer aquí.
+  const undoScanOrder = useCallback(
+    (orderId: string, staffId = "st1") => {
+      const order = state.orders.find((o) => o.id === orderId);
+      if (!order || order.estado !== "CANJEADA" || !order.subscriptionIdUsed) return false;
+      const red = state.redemptions.find(
+        (r) =>
+          !r.revierteA &&
+          r.subscriptionId === order.subscriptionIdUsed &&
+          r.creadoEn === order.canjeadaEn &&
+          !state.redemptions.some((x) => x.revierteA === r.id),
+      );
+      if (!red) return false;
+      if (!undoRedemption(red.id, staffId)) return false;
+      setState((s) => ({
+        ...s,
+        orders: s.orders.map((o) => {
+          if (o.id !== orderId) return o;
+          const next: Order = { ...o, estado: "EN_CAMINO" };
+          delete next.canjeadaEn;
+          delete next.subscriptionIdUsed;
+          return next;
+        }),
+      }));
+      return true;
+    },
+    [state.orders, state.redemptions, undoRedemption],
+  );
+
   // --------------------------------------------------------------------------
   // P13: TARJETA DE SELLOS
   // --------------------------------------------------------------------------
   const configureStampCard = useCallback(
     (restaurantId: string, config: Partial<StampCardConfig>) => {
-      setState((s) => ({
-        ...s,
-        stampConfigs: {
-          ...s.stampConfigs,
-          [restaurantId]: {
-            restaurantId,
-            activa: config.activa ?? s.stampConfigs[restaurantId]?.activa ?? true,
-            meta: config.meta ?? s.stampConfigs[restaurantId]?.meta ?? 10,
-            premio: config.premio ?? s.stampConfigs[restaurantId]?.premio ?? "Almuerzo gratis",
+      setState((s) => {
+        const meta = config.meta ?? s.stampConfigs[restaurantId]?.meta ?? 10;
+
+        // Si el dueño baja la meta, quien ya tenga esos sellos gana su premio en ese momento
+        // y la tarjeta sigue con los sellos que sobran.
+        const stampRecords = Object.fromEntries(
+          Object.entries(s.stampRecords).map(([key, r]) =>
+            r.restaurantId === restaurantId && r.sellos >= meta
+              ? [
+                  key,
+                  {
+                    ...r,
+                    sellos: r.sellos % meta,
+                    premiosDisponibles: r.premiosDisponibles + Math.floor(r.sellos / meta),
+                  },
+                ]
+              : [key, r],
+          ),
+        );
+
+        return {
+          ...s,
+          stampRecords,
+          stampConfigs: {
+            ...s.stampConfigs,
+            [restaurantId]: {
+              restaurantId,
+              activa: config.activa ?? s.stampConfigs[restaurantId]?.activa ?? true,
+              meta,
+              premio: config.premio ?? s.stampConfigs[restaurantId]?.premio ?? "Almuerzo gratis",
+              nombre: config.nombre ?? s.stampConfigs[restaurantId]?.nombre,
+              cuenta: config.cuenta ?? s.stampConfigs[restaurantId]?.cuenta,
+            },
           },
-        },
-      }));
+        };
+      });
     },
     [],
   );
@@ -3104,6 +3506,24 @@ function useBocadooState() {
     [simulatedToday, simulatedTodayISO],
   );
 
+  // El dueño cancela su oferta flash: deja de verse en "Ofertas hoy" del comensal
+  const cancelFlashOffer = useCallback((offerId: string) => {
+    setState((s) => ({
+      ...s,
+      flashOffers: s.flashOffers.map((f) => (f.id === offerId ? { ...f, activa: false } : f)),
+    }));
+    return true;
+  }, []);
+
+  // Deshacer la cancelación (búfer de 10 s)
+  const restoreFlashOffer = useCallback((offerId: string) => {
+    setState((s) => ({
+      ...s,
+      flashOffers: s.flashOffers.map((f) => (f.id === offerId ? { ...f, activa: true } : f)),
+    }));
+    return true;
+  }, []);
+
   const redeemFlashOffer = useCallback(
     (offerId: string, params: { metodo: PaymentMethod; staffId?: string } = { metodo: "EFECTIVO" }) => {
       const { metodo = "EFECTIVO", staffId = "st1" } = params;
@@ -3260,6 +3680,351 @@ function useBocadooState() {
     [state.clients],
   );
 
+  const createSharedTable = useCallback(
+    (params: {
+      restaurantId: string;
+      restaurantNombre: string;
+      anfitrionNombre?: string;
+      anfitrionUserId?: string;
+      hora: string;
+      sopa?: string;
+      fuerte?: string;
+      paraLlevar?: boolean;
+    }) => {
+      const mesaId = "m" + Date.now().toString().slice(-4);
+      const hostName = params.anfitrionNombre || "Carlos Mejía";
+      const hostId = params.anfitrionUserId || DINER_USER_ID;
+      const newTable: SharedTable = {
+        id: mesaId,
+        restaurantId: params.restaurantId,
+        restaurantNombre: params.restaurantNombre,
+        anfitrionNombre: hostName,
+        anfitrionUserId: hostId,
+        hora: params.hora,
+        creadaEn: simulatedTodayISO,
+        miembros: [
+          {
+            id: newId("mem"),
+            nombre: hostName,
+            esAnfitrion: true,
+            sopa: params.sopa,
+            fuerte: params.fuerte,
+            paraLlevar: params.paraLlevar || false,
+            unidoEn: simulatedTodayISO,
+          },
+        ],
+        estado: "ABIERTA",
+      };
+
+      setState((s) => ({
+        ...s,
+        sharedTables: [newTable, ...(s.sharedTables || [])],
+      }));
+
+      return newTable;
+    },
+    [simulatedTodayISO],
+  );
+
+  const joinSharedTable = useCallback(
+    (params: {
+      mesaId: string;
+      nombre: string;
+      sopa?: string;
+      fuerte?: string;
+      paraLlevar?: boolean;
+    }) => {
+      const newMember: SharedTableMember = {
+        id: newId("mem"),
+        nombre: params.nombre || "Amigo",
+        esAnfitrion: false,
+        sopa: params.sopa,
+        fuerte: params.fuerte,
+        paraLlevar: params.paraLlevar || false,
+        unidoEn: simulatedTodayISO,
+      };
+
+      setState((s) => {
+        const existing = (s.sharedTables || []).find((t) => t.id === params.mesaId);
+        if (!existing) {
+          const fallbackTable: SharedTable = {
+            id: params.mesaId,
+            restaurantId: RESTAURANT_ID,
+            restaurantNombre: "La Cuchara de San Blas",
+            anfitrionNombre: "Carlos Mejía",
+            anfitrionUserId: "u1",
+            hora: "13:00",
+            creadaEn: simulatedTodayISO,
+            miembros: [
+              {
+                id: newId("mem-host"),
+                nombre: "Carlos Mejía",
+                esAnfitrion: true,
+                sopa: "Locro de papa con queso y aguacate",
+                fuerte: "Seco de pollo tierno con maduro frito",
+                paraLlevar: false,
+                unidoEn: simulatedTodayISO,
+              },
+              newMember,
+            ],
+            estado: "ABIERTA",
+          };
+          return {
+            ...s,
+            sharedTables: [fallbackTable, ...(s.sharedTables || [])],
+          };
+        }
+
+        return {
+          ...s,
+          sharedTables: s.sharedTables.map((t) =>
+            t.id === params.mesaId
+              ? {
+                  ...t,
+                  miembros: [...t.miembros.filter((m) => m.nombre !== params.nombre), newMember],
+                }
+              : t,
+          ),
+        };
+      });
+
+      return newMember;
+    },
+    [simulatedTodayISO],
+  );
+
+  const notifyKitchenForTable = useCallback((mesaId: string) => {
+    setState((s) => ({
+      ...s,
+      sharedTables: (s.sharedTables || []).map((t) =>
+        t.id === mesaId ? { ...t, estado: "EN_CAMINO" } : t,
+      ),
+    }));
+  }, []);
+
+  const setSharedTableMode = useCallback((mesaId: string, modo: SharedTableMode) => {
+    setState((s) => ({
+      ...s,
+      sharedTables: (s.sharedTables || []).map((t) => (t.id === mesaId ? { ...t, modo } : t)),
+    }));
+  }, []);
+
+  // Resuelve quién paga qué en una mesa (QR maestro). No modifica el estado.
+  const previewSharedTable = useCallback(
+    (mesaId: string): SharedTablePreview => {
+      const table = (state.sharedTables || []).find((t) => t.id === mesaId);
+      if (!table) return { ok: false, message: "Mesa no encontrada." };
+      if (table.estado === "FINALIZADA") return { ok: false, message: "Esta mesa ya fue validada." };
+
+      const modo = table.modo ?? "CADA_UNO";
+      const clientOf = (m: SharedTableMember) => {
+        if (m.esAnfitrion) {
+          return state.clients.find((c) => c.userId === table.anfitrionUserId && c.restaurantId === table.restaurantId);
+        }
+        return state.clients.find(
+          (c) =>
+            c.restaurantId === table.restaurantId &&
+            c.nombre.trim().toLowerCase() === m.nombre.trim().toLowerCase(),
+        );
+      };
+
+      const lines: SharedTableLine[] = [];
+      const sellosPor = new Map<string, number>();
+      const addSello = (nombre: string) => sellosPor.set(nombre, (sellosPor.get(nombre) ?? 0) + 1);
+
+      if (modo === "INVITO_YO") {
+        const host = table.miembros.find((m) => m.esAnfitrion);
+        const hostClient = host ? clientOf(host) : undefined;
+        const balance = hostClient
+          ? activeSubsForClient(hostClient.id).reduce((sum, s) => sum + s.almuerzosRestantes, 0)
+          : 0;
+        if (!host || !hostClient || balance < table.miembros.length) {
+          return {
+            ok: false,
+            message: `El plan del anfitrión no alcanza para ${table.miembros.length} almuerzos (tiene ${balance}).`,
+          };
+        }
+        for (const m of table.miembros) {
+          lines.push({
+            memberId: m.id,
+            nombre: m.nombre,
+            plato: m.fuerte || "Almuerzo",
+            via: "PLAN_ANFITRION",
+            montoCents: 0,
+          });
+          addSello(host.nombre);
+        }
+      } else {
+        for (const m of table.miembros) {
+          const client = clientOf(m);
+          const hasPlan = !!client && activeSubsForClient(client.id).length > 0;
+          lines.push({
+            memberId: m.id,
+            nombre: m.nombre,
+            plato: m.fuerte || "Almuerzo",
+            via: hasPlan ? "PLAN" : "SUELTO",
+            montoCents: hasPlan ? 0 : SHARED_TABLE_LUNCH_CENTS + (m.paraLlevar ? 25 : 0),
+          });
+          if (client) addSello(m.nombre);
+        }
+      }
+
+      return {
+        ok: true,
+        lines,
+        totalSueltoCents: lines.reduce((sum, l) => sum + l.montoCents, 0),
+        sellos: [...sellosPor].map(([nombre, cant]) => ({ nombre, cant })),
+      };
+    },
+    [state.sharedTables, state.clients, activeSubsForClient],
+  );
+
+  // 1 toque en caja: descuenta planes, cobra sueltos y reparte sellos a toda la mesa.
+  const validateSharedTable = useCallback(
+    (mesaId: string, params: { metodo?: PaymentMethod; staffId?: string } = {}) => {
+      const { metodo = "EFECTIVO", staffId = "st1" } = params;
+      const table = (state.sharedTables || []).find((t) => t.id === mesaId);
+      const preview = previewSharedTable(mesaId);
+      if (!table || !preview.ok) {
+        return { ok: false as const, message: preview.ok ? "Mesa no encontrada." : preview.message };
+      }
+
+      const modo = table.modo ?? "CADA_UNO";
+      const clientOf = (m: SharedTableMember) =>
+        m.esAnfitrion
+          ? state.clients.find((c) => c.userId === table.anfitrionUserId && c.restaurantId === table.restaurantId)
+          : state.clients.find(
+              (c) =>
+                c.restaurantId === table.restaurantId &&
+                c.nombre.trim().toLowerCase() === m.nombre.trim().toLowerCase(),
+            );
+
+      const subs = state.subscriptions.map((s) => ({ ...s }));
+      const newRedemptions: Redemption[] = [];
+      let stamps = state.stampRecords;
+      const stampCfg = state.stampConfigs[table.restaurantId];
+
+      const takeFromPlan = (clientId: string): boolean => {
+        const sub = subs
+          .filter((s) => s.clientId === clientId && s.estado === "ACTIVA" && s.almuerzosRestantes > 0)
+          .sort((a, b) => new Date(a.venceEn).getTime() - new Date(b.venceEn).getTime())[0];
+        if (!sub) return false;
+        sub.almuerzosRestantes -= 1;
+        if (sub.almuerzosRestantes <= 0) sub.estado = "AGOTADA";
+        newRedemptions.push({
+          id: newId("red"),
+          subscriptionId: sub.id,
+          restaurantId: table.restaurantId,
+          staffId,
+          creadoEn: simulatedTodayISO,
+          paraLlevar: false,
+          idempotencyKey: `mesa-${mesaId}-${newRedemptions.length}`,
+        });
+        return true;
+      };
+
+      const giveStamp = (clientId: string) => {
+        if (!stampCfg || !stampCfg.activa) return;
+        const key = `${clientId}_${table.restaurantId}`;
+        const cur = stamps[key] || {
+          clientId,
+          restaurantId: table.restaurantId,
+          sellos: 0,
+          premiosDisponibles: 0,
+          historiaCanjes: [],
+        };
+        const next = cur.sellos + 1;
+        const reached = next >= stampCfg.meta;
+        stamps = {
+          ...stamps,
+          [key]: {
+            ...cur,
+            sellos: reached ? next - stampCfg.meta : next,
+            premiosDisponibles: reached ? cur.premiosDisponibles + 1 : cur.premiosDisponibles,
+            historiaCanjes: [{ fecha: simulatedTodayISO, motivo: `Mesa compartida #${mesaId}` }, ...cur.historiaCanjes],
+          },
+        };
+      };
+
+      const hostMember = table.miembros.find((m) => m.esAnfitrion);
+      const hostClient = hostMember ? clientOf(hostMember) : undefined;
+      const sueltos = preview.lines.filter((l) => l.via === "SUELTO");
+
+      for (const line of preview.lines) {
+        if (line.via === "PLAN_ANFITRION" && hostClient) {
+          takeFromPlan(hostClient.id);
+          giveStamp(hostClient.id);
+        } else if (line.via === "PLAN") {
+          const member = table.miembros.find((m) => m.id === line.memberId);
+          const client = member ? clientOf(member) : undefined;
+          if (client) {
+            takeFromPlan(client.id);
+            giveStamp(client.id);
+          }
+        } else {
+          const member = table.miembros.find((m) => m.id === line.memberId);
+          const client = member ? clientOf(member) : undefined;
+          if (client) giveStamp(client.id);
+        }
+      }
+
+      const newPayments: Payment[] = [];
+      let newSale: Sale | undefined;
+      if (sueltos.length > 0) {
+        const saleId = newId("sale");
+        newSale = {
+          id: saleId,
+          restaurantId: table.restaurantId,
+          ticket: state.sales.length + 148,
+          items: sueltos.map((l) => ({
+            platoId: l.memberId,
+            nombre: l.plato,
+            cant: 1,
+            precioCents: l.montoCents,
+            isLunch: true,
+          })),
+          totalCents: preview.totalSueltoCents,
+          paraLlevar: false,
+          mesa: `Mesa ${mesaId.toUpperCase()}`,
+          creadoEn: simulatedTodayISO,
+        };
+        newPayments.push({
+          id: newId("pay"),
+          montoCents: preview.totalSueltoCents,
+          metodo,
+          saleId,
+          cobradoPor: staffId,
+          creadoEn: simulatedTodayISO,
+        });
+      }
+
+      setState((s) => ({
+        ...s,
+        subscriptions: subs,
+        redemptions: [...newRedemptions, ...s.redemptions],
+        stampRecords: stamps,
+        sales: newSale ? [newSale, ...s.sales] : s.sales,
+        payments: [...newPayments, ...s.payments],
+        sharedTables: (s.sharedTables || []).map((t) =>
+          t.id === mesaId ? { ...t, estado: "FINALIZADA", validadaEn: simulatedTodayISO } : t,
+        ),
+      }));
+
+      return {
+        ok: true as const,
+        modo,
+        lines: preview.lines,
+        totalSueltoCents: preview.totalSueltoCents,
+        sellos: preview.sellos,
+        message:
+          modo === "INVITO_YO"
+            ? `Mesa validada: ${preview.lines.length} almuerzos del plan del anfitrión.`
+            : `Mesa validada: ${preview.lines.length} comensales.`,
+      };
+    },
+    [state.sharedTables, state.clients, state.subscriptions, state.stampRecords, state.stampConfigs, state.sales.length, previewSharedTable, simulatedTodayISO],
+  );
+
   // chargePlan retrocompatible que traduce al nuevo sellPlan
   const chargePlan = useCallback(
     (target: ChargeTarget, plan: { id: string }) => {
@@ -3313,6 +4078,7 @@ function useBocadooState() {
     findContact,
     clientForUser,
     activeSubsForClient,
+    getActiveSubsForUserAndRestaurant,
     // Acciones completas
     updateRestaurant,
     migrateCard,
@@ -3348,6 +4114,8 @@ function useBocadooState() {
     cancelPreOrder,
     scanOrder,
     serveOrder,
+    undoServeOrder,
+    undoScanOrder,
     // P13 Sellos
     configureStampCard,
     getClientStampRecord,
@@ -3362,6 +4130,8 @@ function useBocadooState() {
     // P15 Ofertas Flash & Comisiones
     flashOffers: evaluatedFlashOffers,
     launchFlashOffer,
+    cancelFlashOffer,
+    restoreFlashOffer,
     redeemFlashOffer,
     getRestaurantCommissions,
     commissionRate: state.commissionRate ?? COMMISSION_RATE,
@@ -3377,6 +4147,13 @@ function useBocadooState() {
     plans: legacyPlans,
     rawClients: state.clients,
     clients: legacyClients,
+    sharedTables: state.sharedTables || [],
+    createSharedTable,
+    joinSharedTable,
+    notifyKitchenForTable,
+    setSharedTableMode,
+    previewSharedTable,
+    validateSharedTable,
     addContact,
     linkUser,
     chargePlan,

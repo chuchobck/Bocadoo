@@ -1,23 +1,26 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
 
-@custom-variant dark (&:is(.dark *));
+/* Modo oscuro por clase: <html class="dark"> (ver THEME_SCRIPT en __root.tsx y src/lib/theme.ts). */
+@custom-variant dark (&:where(.dark, .dark *));
 /* Prototipo dentro del iframe de la landing (ver EMBED_SCRIPT en __root.tsx). */
 @custom-variant embedded (&:where(.embedded *));
 
 /*
- * Design system definition.
+ * Design system definition — FUENTE ÚNICA DE VERDAD DE COLOR.
  *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
+ * Paleta Material Design 3 generada desde la semilla #7B2CBF (primario oficial #8234C6).
+ * Detalle y reglas de uso: docs/IDENTIDAD_BOCADOO.md.
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
+ * - :root define el modo claro y .dark el oscuro. Los valores son hex, tal cual.
+ * - @theme inline expone cada variable como utilidad de Tailwind
+ *   (--color-primary-container -> bg-primary-container, text-primary-container, ...).
+ * - landing.css y el resto del código leen estas mismas variables: NO se escriben hex
+ *   fuera de este archivo (la única excepción son los colores del QR, ver src/lib/qr-colors.ts).
  *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
+ * Para añadir un color semántico: variable en :root y en .dark, y registro en @theme inline.
  */
 
 @theme inline {
@@ -29,26 +32,70 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Tokens de marca */
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-nav: var(--surface-nav);
   --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-border: var(--border);
+  --color-outline: var(--outline);
+  --color-input-bg: var(--input-bg);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-container: var(--success-container);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-danger-container: var(--danger-container);
+  --color-on-danger-container: var(--on-danger-container);
+  --color-footer-bg: var(--footer-bg);
+  --color-footer-accent: var(--footer-accent);
+  --color-scrim: var(--scrim);
+  --color-image-foreground: var(--image-foreground);
+  --color-qr-fg: var(--qr-fg);
+  --color-qr-bg: var(--qr-bg);
+  --background-image-hero-gradient: var(--hero-gradient);
+
+  /* Alias shadcn/Tailwind: siguen funcionando sin renombrar clases */
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --color-lavender: var(--lavender);
+  --color-card-dark: var(--card-dark);
+  --color-card-dark-foreground: var(--card-dark-foreground);
+  --color-card-dark-muted: var(--card-dark-muted);
+  --color-primary-soft: var(--primary-soft);
+  --color-danger-soft: var(--danger-soft);
+  --color-phone: var(--phone);
+  --color-showcase: var(--showcase);
+  --color-showcase-foreground: var(--showcase-foreground);
+  --color-showcase-muted: var(--showcase-muted);
+  --color-showcase-border: var(--showcase-border);
+  --color-showcase-pill: var(--showcase-pill);
+  --color-google: var(--google);
+  --color-google-blue: var(--google-blue);
+  --color-google-green: var(--google-green);
+  --color-google-yellow: var(--google-yellow);
+  --color-google-red: var(--google-red);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -62,118 +109,174 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --color-lavender: var(--lavender);
-  --color-primary-soft: var(--primary-soft);
-  --color-phone: var(--phone);
-  --color-showcase: var(--showcase);
-  --color-showcase-foreground: var(--showcase-foreground);
-  --color-showcase-muted: var(--showcase-muted);
-  --color-showcase-border: var(--showcase-border);
-  --color-showcase-pill: var(--showcase-pill);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
-  --color-danger-soft: var(--danger-soft);
-  --color-google: var(--google);
-  --color-image-foreground: var(--image-foreground);
-  --shadow-phone: var(--shadow-phone);
-  --shadow-card: var(--shadow-card);
-  --shadow-soft: var(--shadow-soft);
+
+  /* Sombras: la escala de Tailwind se apoya en los 3 niveles de marca */
+  --shadow-2xs: var(--shadow-sm);
+  --shadow-xs: var(--shadow-sm);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-lg);
+  --shadow-2xl: var(--shadow-lg);
+  --shadow-phone: var(--shadow-lg);
+  --shadow-card: var(--shadow);
+  --shadow-soft: var(--shadow-sm);
   --shadow-brand: var(--shadow-brand);
 }
 
 :root {
+  color-scheme: light;
   --radius: 0.875rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.49 0.23 303.5);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.94 0.02 303.5);
-  --secondary-foreground: oklch(0 0 0);
-  --muted: oklch(0.93 0 0);
-  --muted-foreground: oklch(0.48 0.01 303.5);
-  --accent: oklch(0.9 0.09 311.5);
-  --accent-foreground: oklch(0 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.89 0.01 303.5);
-  --input: oklch(0.93 0 0);
-  --ring: oklch(0.49 0.23 303.5);
-  --lavender: oklch(0.82 0.13 311.5);
-  --primary-soft: oklch(0.91 0.09 311.5);
-  --phone: oklch(0 0 0);
-  --showcase: oklch(0.905 0 0);
-  --showcase-foreground: oklch(0.12 0.01 303.5);
-  --showcase-muted: oklch(0.42 0.01 303.5);
-  --showcase-border: oklch(0.81 0 0);
-  --showcase-pill: oklch(0.86 0 0);
-  --success: oklch(0.55 0.16 154);
-  --danger: oklch(0.58 0.22 27);
-  --danger-soft: oklch(0.94 0.04 27);
-  --google: oklch(0.58 0.2 28);
-  --image-foreground: oklch(1 0 0);
-  --shadow-phone:
-    0 28px 70px color-mix(in oklab, var(--phone) 22%, transparent),
-    0 4px 16px color-mix(in oklab, var(--phone) 12%, transparent);
-  --shadow-card: 0 16px 36px color-mix(in oklab, var(--phone) 10%, transparent);
-  --shadow-soft: 0 5px 16px color-mix(in oklab, var(--phone) 7%, transparent);
-  --shadow-brand: 0 10px 24px color-mix(in oklab, var(--primary) 30%, transparent);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+
+  /* ---- Tokens de marca · CLARO ---- */
+  --background: #f5ecff;
+  --surface: #ffffff;
+  --surface-nav: #ffffff;
+  --foreground: #2d0050;
+  --muted-foreground: #635c65;
+  --primary: #8234c6;
+  --primary-foreground: #ffffff;
+  --primary-hover: #680eac;
+  --primary-container: #f1dbff;
+  --on-primary-container: #2d0050;
+  --secondary-container: #edddf6;
+  --on-secondary-container: #211829;
+  --border: #cdc4ce;
+  --outline: #7c757e;
+  --input-bg: #ffffff;
+  --success: #157a41;
+  --success-container: #e6f6ec;
+  --danger: #ba1a1a;
+  --danger-container: #ffdad6;
+  --on-danger-container: #410002;
+  --footer-bg: #2d0050;
+  --footer-accent: #deb7ff;
+
+  /* Degradado de hero (solo gama morada). Las paradas se exponen para componer tarjetas. */
+  --hero-1: #9c51e1;
+  --hero-2: #8234c6;
+  --hero-3: #680eac;
+  --hero-gradient: linear-gradient(160deg, var(--hero-1) 0%, var(--hero-2) 45%, var(--hero-3) 100%);
+
+  --shadow-sm: 0 2px 8px rgba(74, 14, 120, 0.06);
+  --shadow: 0 12px 40px rgba(74, 14, 120, 0.1);
+  --shadow-lg: 0 30px 80px rgba(74, 14, 120, 0.18);
+  --shadow-brand: 0 10px 24px rgba(130, 52, 198, 0.35);
+
+  /* ---- Derivados de la paleta (decisión de implementación; ver IDENTIDAD §3) ---- */
+  --success-foreground: #ffffff; /* texto sobre success sólido */
+  --danger-foreground: #ffffff; /* texto sobre danger sólido */
+  --image-foreground: #ffffff; /* texto sobre fotos y sobre el degradado de hero */
+  --scrim: var(--footer-bg); /* telón de modales: bg-scrim/40 */
+
+  /* QR: SIEMPRE puntos #2D0050 sobre blanco, también en oscuro (si no, no se escanea). */
+  --qr-fg: #2d0050;
+  --qr-bg: #ffffff;
+
+  /* ---- Alias shadcn / tokens heredados -> tabla de marca ---- */
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --secondary: var(--secondary-container);
+  --secondary-foreground: var(--on-secondary-container);
+  --muted: var(--secondary-container);
+  --accent: var(--primary-container);
+  --accent-foreground: var(--on-primary-container);
+  --destructive: var(--danger);
+  --destructive-foreground: var(--danger-foreground);
+  --input: var(--outline);
+  --ring: var(--primary);
+  --lavender: var(--primary-container);
+  --primary-soft: var(--primary-container);
+  --danger-soft: var(--danger-container);
+  /* Bloques oscuros permanentes (claro y oscuro): apuntan a footer-bg */
+  --card-dark: var(--footer-bg);
+  --card-dark-foreground: var(--image-foreground);
+  --card-dark-muted: var(--footer-accent);
+  /* Marco del celular: morado profundo (nunca negro puro) */
+  --phone: var(--footer-bg);
+  /* Fondo detrás del celular en escritorio */
+  --showcase: color-mix(in oklab, var(--background) 92%, var(--foreground));
+  --showcase-foreground: var(--foreground);
+  --showcase-muted: var(--muted-foreground);
+  --showcase-border: var(--border);
+  --showcase-pill: var(--secondary-container);
+  --chart-1: var(--primary);
+  --chart-2: var(--success);
+  --chart-3: var(--danger);
+  --chart-4: var(--primary-hover);
+  --chart-5: var(--muted-foreground);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--primary-container);
+  --sidebar-accent-foreground: var(--on-primary-container);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+
+  /* Logotipo oficial de Google (guía de marca: colores exactos, no se tematizan) */
+  --google: var(--google-red);
+  --google-blue: #4285f4;
+  --google-green: #34a853;
+  --google-yellow: #fbbc05;
+  --google-red: #ea4335;
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  color-scheme: dark;
+
+  /* ---- Tokens de marca · OSCURO ---- */
+  --background: #1c1127;
+  --surface: #2a1b3a;
+  --surface-nav: #24172f;
+  --foreground: #f1dbff;
+  --muted-foreground: #cdb8e0;
+  --primary: #deb7ff;
+  --primary-foreground: #4a007f;
+  --primary-hover: #f1dbff;
+  --primary-container: #680eac;
+  --on-primary-container: #f1dbff;
+  --secondary-container: #4a007f;
+  --on-secondary-container: #f1dbff;
+  --border: #4a454d;
+  --outline: #968e98;
+  --input-bg: #2a1b3a;
+  --success: #7fdc9f;
+  --success-container: #0f3d22;
+  --danger: #ffb4ab;
+  --danger-container: #93000a;
+  --on-danger-container: #ffb4ab;
+  --footer-bg: #120a1a;
+  --footer-accent: #deb7ff;
+
+  --hero-1: #8234c6;
+  --hero-2: #680eac;
+  --hero-3: #2d0050;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.45);
+  /* "none": se usa una sombra nula válida para que componga bien con ring-* en Tailwind */
+  --shadow-brand: 0 0 0 0 transparent;
+
+  --success-foreground: #0f3d22;
+  --danger-foreground: #690005;
+
+  --card-dark: var(--footer-bg);
+  --card-dark-foreground: var(--image-foreground);
+  --card-dark-muted: var(--footer-accent);
+  --lavender: var(--footer-accent);
 }
 
 @layer base {
   * {
     border-color: var(--color-border);
+  }
+
+  html {
+    background-color: var(--color-background);
   }
 
   body {
@@ -182,12 +285,39 @@
     font-family: var(--font-sans);
     letter-spacing: 0;
   }
+
+  /* Cambio de tema suave en el cuerpo y en las superficies (se apaga con reduced-motion). */
+  body,
+  [class*="bg-background"],
+  [class*="bg-surface"],
+  [class*="bg-card"],
+  [class*="bg-muted"],
+  [class*="bg-primary-container"],
+  [class*="bg-secondary-container"],
+  [class*="bg-input-bg"] {
+    transition:
+      background-color 0.2s,
+      color 0.2s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body,
+    [class*="bg-background"],
+    [class*="bg-surface"],
+    [class*="bg-card"],
+    [class*="bg-muted"],
+    [class*="bg-primary-container"],
+    [class*="bg-secondary-container"],
+    [class*="bg-input-bg"] {
+      transition: none;
+    }
+  }
 }
 
 @utility bg-image-overlay {
   background: linear-gradient(
     to top,
-    color-mix(in oklab, var(--phone) 78%, transparent),
+    color-mix(in oklab, var(--scrim) 78%, transparent),
     transparent 72%
   );
 }
@@ -208,4 +338,16 @@
   .phone-shell:hover {
     transform: translateY(-5px);
   }
+}
+
+/* ThemeToggle (variante ícono): el ícono visible depende de <html class="dark">, no de JS.
+   El selector doble gana a `.landing svg { display: block }` en landing.css. */
+.theme-toggle .theme-toggle-icon--sun {
+  display: none;
+}
+.dark .theme-toggle .theme-toggle-icon--sun {
+  display: block;
+}
+.dark .theme-toggle .theme-toggle-icon--moon {
+  display: none;
 }

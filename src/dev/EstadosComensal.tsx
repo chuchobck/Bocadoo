@@ -3,7 +3,6 @@ import {
   MiPaseView,
   DondeComerView,
   FichaLocalModal,
-  SellosModal,
   MesaAmigosModal,
   UnirmeMesaView,
   EstadoPedidoModal,
@@ -62,13 +61,13 @@ export default function EstadosComensal({
       data-testid="estados-comensal-ready"
       className={
         showChrome
-          ? "min-h-screen bg-[#F5F3FA] p-4 font-sans"
-          : "h-screen w-screen overflow-hidden bg-white"
+          ? "min-h-screen bg-background p-4 font-sans"
+          : "h-screen w-screen overflow-hidden bg-surface"
       }
     >
       {showChrome && (
-        <div className="mx-auto max-w-lg mb-6 rounded-2xl bg-white p-4 shadow-xs border border-[#E7E1F2]">
-          <h2 className="text-[17px] font-black text-[#4A0E78] mb-2">
+        <div className="mx-auto max-w-lg mb-6 rounded-2xl bg-surface p-4 shadow-xs border border-border">
+          <h2 className="text-[17px] font-black text-foreground mb-2">
             Visor de Estados (Solo Dev)
           </h2>
 
@@ -81,8 +80,8 @@ export default function EstadosComensal({
                 onClick={() => setSelectedScreen(sc.id)}
                 className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
                   selectedScreen === sc.id
-                    ? "bg-[#7B2CBF] text-white"
-                    : "bg-[#F3E8FF] text-[#4A0E78]"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary-container text-foreground"
                 }`}
               >
                 {sc.name}
@@ -99,8 +98,8 @@ export default function EstadosComensal({
                 onClick={() => setSelectedState(st)}
                 className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
                   selectedState === st
-                    ? "bg-[#4A0E78] text-white"
-                    : "bg-[#F5F3FA] text-[#6B5B7B] border border-[#E7E1F2]"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground border border-border"
                 }`}
               >
                 {st}
@@ -113,7 +112,7 @@ export default function EstadosComensal({
       {/* Visor en marco de celular */}
       <div className={showChrome ? "mx-auto flex justify-center" : "h-full w-full"}>
         <AppShell>
-          <div className="flex h-full flex-col bg-white">
+          <div className="flex h-full flex-col bg-surface">
             {selectedScreen === "pase" && <MiPaseView state={selectedState} />}
 
             {selectedScreen === "comer" && (
@@ -135,12 +134,7 @@ export default function EstadosComensal({
             {/* 4. Mis sellos abierta en contexto sobre Mi pase */}
             {selectedScreen === "sellos" && (
               <div className="relative h-full overflow-hidden">
-                <MiPaseView state="exito" />
-                <SellosModal
-                  isOpen={true}
-                  onClose={() => {}}
-                  state={selectedState}
-                />
+                <MiPaseView state={selectedState} />
               </div>
             )}
 

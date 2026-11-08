@@ -1,0 +1,189 @@
+/*
+ * Página /flujos: escala de los celulares, animaciones y estados.
+ * El resto del estilo sale de clases Tailwind con los tokens de marca (sin hex).
+ */
+
+/* La pantalla se dibuja a 390×844 como la app real y se escala para que quepan dos */
+.flj-phone {
+  --flj-s: 0.82;
+  transition:
+    opacity 0.3s ease,
+    filter 0.3s ease;
+}
+@media (min-width: 768px) {
+  .flj-phone {
+    --flj-s: 0.6;
+  }
+}
+@media (min-width: 1100px) {
+  .flj-phone {
+    --flj-s: 0.68;
+  }
+}
+/* En escritorio el escenario completo (celulares + paso + Siguiente) cabe sin hacer scroll */
+@media (min-width: 768px) and (max-height: 1000px) {
+  .flj-phone {
+    --flj-s: 0.6;
+  }
+}
+@media (min-width: 768px) and (max-height: 880px) {
+  .flj-phone {
+    --flj-s: 0.54;
+  }
+}
+@media (min-width: 768px) and (max-height: 760px) {
+  .flj-phone {
+    --flj-s: 0.48;
+  }
+}
+.flj-viewport {
+  width: calc(390px * var(--flj-s));
+  height: calc(844px * var(--flj-s));
+}
+.flj-screen {
+  width: 390px;
+  height: 844px;
+  transform: scale(var(--flj-s));
+  transform-origin: 0 0;
+}
+
+/* Celular que no actúa en este paso: se atenúa para dirigir la mirada */
+.flj-phone[data-active="false"] {
+  opacity: 0.55;
+  filter: saturate(0.6);
+}
+
+/* Aro que marca "toca aquí": solo se ve en el celular activo */
+.flj-tap {
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  pointer-events: none;
+  display: none;
+  animation: flj-ping 1.5s ease-out infinite;
+}
+.flj-phone[data-active="true"] .flj-tap {
+  display: block;
+}
+@keyframes flj-ping {
+  0% {
+    box-shadow:
+      0 0 0 3px var(--primary),
+      0 0 0 3px color-mix(in srgb, var(--primary) 50%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow:
+      0 0 0 3px var(--primary),
+      0 0 0 20px color-mix(in srgb, var(--primary) 0%, transparent);
+  }
+}
+
+/* Cada paso entra con un fundido corto; las hojas suben desde abajo */
+.flj-in {
+  animation: flj-in 0.35s ease both;
+}
+@keyframes flj-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.flj-sheet {
+  animation: flj-sheet 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes flj-sheet {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+
+/* Línea del escáner */
+.flj-scan-line {
+  animation: flj-scan 2s ease-in-out infinite alternate;
+}
+@keyframes flj-scan {
+  from {
+    top: 8%;
+  }
+  to {
+    top: 90%;
+  }
+}
+
+/* Puente entre celulares: el punto viaja de quien envía a quien recibe */
+.flj-bridge-line {
+  position: relative;
+  height: 2px;
+  width: 100%;
+  background-image: linear-gradient(90deg, var(--primary) 50%, transparent 50%);
+  background-size: 10px 2px;
+}
+.flj-bridge-line[data-tone="off"] {
+  background-image: linear-gradient(90deg, var(--danger) 40%, transparent 40%);
+  background-size: 14px 2px;
+}
+.flj-bridge-dot {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border-radius: 999px;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+[data-dir="toDueno"] .flj-bridge-dot {
+  animation: flj-run-r 1.6s ease-in-out infinite;
+}
+[data-dir="toComensal"] .flj-bridge-dot {
+  animation: flj-run-l 1.6s ease-in-out infinite;
+}
+[data-dir="both"] .flj-bridge-dot {
+  animation: flj-run-r 1.6s ease-in-out infinite alternate;
+}
+@keyframes flj-run-r {
+  from {
+    left: 0;
+  }
+  to {
+    left: calc(100% - 12px);
+  }
+}
+@keyframes flj-run-l {
+  from {
+    left: calc(100% - 12px);
+  }
+  to {
+    left: 0;
+  }
+}
+
+/* Barra de progreso del envío en el modo offline */
+.flj-progress {
+  animation: flj-fill 1.6s ease-out both;
+}
+@keyframes flj-fill {
+  from {
+    width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flj-tap,
+  .flj-in,
+  .flj-sheet,
+  .flj-scan-line,
+  .flj-progress,
+  .flj-bridge-dot {
+    animation: none;
+  }
+  .flj-phone {
+    transition: none;
+  }
+}

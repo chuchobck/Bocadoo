@@ -6,7 +6,7 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   use: {
-    baseURL: "http://localhost:8080",
+    baseURL: "http://localhost:5173",
     trace: "on-first-retry",
     viewport: { width: 412, height: 915 },
   },
@@ -18,7 +18,7 @@ export default defineConfig({
   ],
   webServer: {
     command: "npm run dev",
-    url: "http://localhost:8080",
+    url: "http://localhost:5173",
     reuseExistingServer: true,
     timeout: 120000,
   },

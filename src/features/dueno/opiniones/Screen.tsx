@@ -67,23 +67,23 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
     <div
       tabIndex={0}
       aria-label="Buzón de opiniones"
-      className="flex h-full flex-col bg-white overflow-y-auto no-scrollbar focus:outline-hidden"
+      className="flex h-full flex-col bg-surface overflow-y-auto no-scrollbar focus:outline-hidden"
     >
-      <header className="px-4 py-3 border-b border-[#E7E1F2] bg-white sticky top-0 z-10 flex items-center justify-between">
+      <header className="px-4 py-3 border-b border-border bg-surface sticky top-0 z-10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
               aria-label="Volver a caja"
-              className="grid h-9 w-9 place-items-center rounded-full bg-[#F5F3FA] text-[#4A0E78] active:scale-95"
+              className="grid h-9 w-9 place-items-center rounded-full bg-background text-foreground active:scale-95"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <h1 className="text-[22px] font-black text-[#4A0E78]">{OPINIONES_COPY.title}</h1>
+          <h1 className="text-[22px] font-black text-foreground">{OPINIONES_COPY.title}</h1>
         </div>
-        <span className="text-[13px] font-bold text-[#6B5B7B]">
+        <span className="text-[13px] font-bold text-muted-foreground">
           {opinions.filter((o) => !o.resolved).length} pendientes
         </span>
       </header>
@@ -91,28 +91,28 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
       <main className="flex-1 p-4">
         {state === "cargando" && (
           <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-[#7B2CBF]" />
-            <h2 className="mt-3 text-[17px] font-extrabold text-[#4A0E78]">{OPINIONES_COPY.loadingTitle}</h2>
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <h2 className="mt-3 text-[17px] font-extrabold text-foreground">{OPINIONES_COPY.loadingTitle}</h2>
           </div>
         )}
 
         {state === "vacio" && (
           <div className="py-16 text-center">
-            <MessageSquare className="mx-auto h-12 w-12 text-[#6B5B7B] mb-2" />
-            <h2 className="text-[17px] font-extrabold text-[#4A0E78]">{OPINIONES_COPY.emptyTitle}</h2>
-            <p className="mt-1 text-[13px] font-semibold text-[#6B5B7B]">{OPINIONES_COPY.emptyDesc}</p>
+            <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+            <h2 className="text-[17px] font-extrabold text-foreground">{OPINIONES_COPY.emptyTitle}</h2>
+            <p className="mt-1 text-[13px] font-semibold text-muted-foreground">{OPINIONES_COPY.emptyDesc}</p>
           </div>
         )}
 
         {state === "error" && (
-          <div className="rounded-[28px] bg-[#FDEBEB] p-6 text-center text-[#C0392B] border border-[#C0392B]">
+          <div className="rounded-[28px] bg-danger-container p-6 text-center text-on-danger-container border border-danger">
             <AlertCircle className="mx-auto h-10 w-10 mb-2" />
             <h2 className="text-[17px] font-extrabold">{OPINIONES_COPY.errorTitle}</h2>
             <p className="mt-1 text-[13px] font-semibold">{OPINIONES_COPY.errorDesc}</p>
             <button
               type="button"
               onClick={onRetry || (() => window.location.reload())}
-              className="mt-4 rounded-full bg-[#C0392B] px-5 py-2 text-[13px] font-bold text-white active:scale-95"
+              className="mt-4 rounded-full bg-danger px-5 py-2 text-[13px] font-bold text-danger-foreground active:scale-95"
             >
               Reintentar
             </button>
@@ -120,7 +120,7 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
         )}
 
         {state === "offline" && (
-          <div className="mb-4 flex items-center justify-center gap-1.5 rounded-full bg-[#F5F3FA] py-1 text-[13px] font-bold text-[#6B5B7B]">
+          <div className="mb-4 flex items-center justify-center gap-1.5 rounded-full bg-background py-1 text-[13px] font-bold text-muted-foreground">
             <WifiOff className="h-3.5 w-3.5" />
             <span>{OPINIONES_COPY.offlineBadge}</span>
           </div>
@@ -132,19 +132,19 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
               <div
                 key={op.id}
                 onClick={() => setSelectedOpinion(op)}
-                className="rounded-[24px] border border-[#E7E1F2] bg-white p-4 shadow-xs cursor-pointer hover:border-[#7B2CBF] transition-all"
+                className="rounded-[24px] border border-border bg-surface p-4 shadow-xs cursor-pointer hover:border-primary transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-[17px] font-extrabold text-[#4A0E78]">{op.dinerName}</h3>
-                    <span className="rounded-full bg-[#F3E8FF] px-2.5 py-0.5 text-[13px] font-bold text-[#7B2CBF]">
+                    <h3 className="text-[17px] font-extrabold text-foreground">{op.dinerName}</h3>
+                    <span className="rounded-full bg-primary-container px-2.5 py-0.5 text-[13px] font-bold text-primary">
                       {op.tag}
                     </span>
                   </div>
-                  <span className="text-[13px] font-bold text-[#6B5B7B]">{op.timeAgo}</span>
+                  <span className="text-[13px] font-bold text-muted-foreground">{op.timeAgo}</span>
                 </div>
 
-                <p className="mt-2 text-[14px] font-medium text-[#4A0E78] bg-[#F5F3FA] p-3 rounded-2xl">
+                <p className="mt-2 text-[14px] font-medium text-foreground bg-background p-3 rounded-2xl">
                   "{op.comment}"
                 </p>
 
@@ -152,7 +152,7 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
                   <button
                     type="button"
                     onClick={() => setSelectedOpinion(op)}
-                    className="rounded-full bg-[#7B2CBF] px-4 py-1.5 text-[13px] font-bold text-white active:scale-95 transition-all"
+                    className="rounded-full bg-primary px-4 py-1.5 text-[13px] font-bold text-primary-foreground active:scale-95 transition-all"
                   >
                     {OPINIONES_COPY.respondButton}
                   </button>
@@ -168,14 +168,14 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/40 backdrop-blur-[4px] p-4 animate-in fade-in"
           onClick={() => setSelectedOpinion(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-xl animate-in slide-in-from-bottom"
+            className="w-full max-w-sm rounded-[32px] bg-surface p-6 shadow-xl animate-in slide-in-from-bottom"
           >
-            <h3 className="text-[17px] font-extrabold text-[#4A0E78] text-center">
+            <h3 className="text-[17px] font-extrabold text-foreground text-center">
               {OPINIONES_COPY.solutionModalTitle(selectedOpinion.dinerName)}
             </h3>
 
@@ -185,10 +185,10 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
                   key={sol}
                   type="button"
                   onClick={() => handleSendSolution(sol)}
-                  className="w-full rounded-2xl bg-[#F5F3FA] p-4 text-left font-bold text-[#4A0E78] border border-[#E7E1F2] hover:border-[#7B2CBF] active:scale-98 transition-all flex items-center justify-between"
+                  className="w-full rounded-2xl bg-background p-4 text-left font-bold text-foreground border border-border hover:border-primary active:scale-98 transition-all flex items-center justify-between"
                 >
                   <span>{sol}</span>
-                  <Check className="h-4 w-4 text-[#7B2CBF]" />
+                  <Check className="h-4 w-4 text-primary" />
                 </button>
               ))}
             </div>
@@ -196,7 +196,7 @@ export const OpinionesScreen: React.FC<OpinionesScreenProps> = ({
             <button
               type="button"
               onClick={() => setSelectedOpinion(null)}
-              className="mt-4 w-full rounded-full py-2 text-[13px] font-bold text-[#6B5B7B]"
+              className="mt-4 w-full rounded-full py-2 text-[13px] font-bold text-muted-foreground"
             >
               {OPINIONES_COPY.cancel}
             </button>

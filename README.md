@@ -1,3 +1,11 @@
+## Antes de tocar la UI
+
+1. Lee **COMPLETO** [`docs/IDENTIDAD_BOCADOO.md`](docs/IDENTIDAD_BOCADOO.md): paleta (claro y oscuro), tipografía, formas y tono.
+2. Usa **solo los tokens de `src/styles.css`** (`bg-surface`, `text-foreground`, `bg-primary-container`, `shadow-brand`…). **Nunca hex sueltos**, `rgb()`, `bg-white` ni `text-black`; la única excepción son los colores del QR (`src/lib/qr-colors.ts`). `npm run lint:brand` lo verifica.
+3. **Prueba cada cambio en modo claro y oscuro** (Ajustes → Apariencia, o el botón sol/luna de la landing). Comprueba que todo texto tenga contraste ≥ 4,5:1 y los bordes de inputs ≥ 3:1.
+
+---
+
 # Inspo Palette Creation
 
 te paso la inspo en fotos, y vamos a usar esa paleta de colores que te mandé, ahora si crea

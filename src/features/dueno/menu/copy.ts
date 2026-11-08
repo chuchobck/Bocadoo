@@ -12,4 +12,7 @@ export const MENU_COPY = {
   errorDesc: "No se pudo actualizar el menú de hoy.",
   offlineBadge: "Sin conexión · Se publicará al conectar",
   publishedUndo: "Menú publicado con éxito",
+  soldOutHint: "¿Se acabó un plato? Tócalo y solo ese deja de ofrecerse. Los demás siguen.",
+  dishAvailable: "Hay",
+  dishSoldOut: "Se acabó",
 } as const;

@@ -27,6 +27,7 @@ import {
   WalletCards,
   X,
   Zap,
+  BarChart3,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -423,13 +424,15 @@ export function useGoBack(fallback: AppPath) {
 const NAV_ITEMS: Record<"diner" | "owner" | "cashier", Array<[string, IconType, AppPath]>> = {
   diner: [
     ["Pase", QrCode, "/app/comensal"],
-    ["Comer", Store, "/app/comensal/restaurantes"],
+    ["Restaurantes", Store, "/app/comensal/restaurantes"],
+    ["Planes", WalletCards, "/app/comensal/planes"],
     ["Yo", UserRound, "/app/comensal/ajustes"],
   ],
   owner: [
     ["Caja", QrCode, "/app/dueno"],
     ["Menú", Utensils, "/app/dueno/menu"],
     ["Planes", WalletCards, "/app/dueno/planes"],
+    ["Métricas", BarChart3, "/app/dueno/metricas"],
     ["Ajustes", Settings, "/app/dueno/ajustes"],
   ],
   cashier: [
@@ -451,13 +454,14 @@ export const NavBar = ({
   const items = cashier ? NAV_ITEMS.cashier : NAV_ITEMS[owner ? "owner" : "diner"];
   return (
     <nav
-      className="mt-auto grid min-h-[76px] shrink-0 border-t border-border bg-background/95 px-2 pb-6 pt-2 backdrop-blur-md z-20 shadow-[0_-4px_16px_rgba(74,14,120,0.04)]"
+      className="mt-auto grid min-h-[76px] shrink-0 border-t border-border bg-surface-nav px-2 pb-6 pt-2 z-20 shadow-sm"
       style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       aria-label={cashier ? "Navegación del cajero" : owner ? "Navegación del dueño" : "Navegación del comensal"}
     >
       {items.map(([label, Icon, to]) => {
         const selected =
           active.toLowerCase() === label.toLowerCase() ||
+          (label === "Restaurantes" && (active.toLowerCase() === "comer" || active.toLowerCase() === "restaurantes")) ||
           (label === "Caja" && active.toLowerCase() === "home") ||
           (label === "Turno" && active.toLowerCase() === "ajustes") ||
           (label === "Ajustes" && active.toLowerCase() === "turno");
@@ -469,13 +473,13 @@ export const NavBar = ({
             replace
             className={`flex flex-col items-center justify-center gap-0.5 rounded-xl py-1 transition-all active:scale-95 ${
               selected
-                ? "text-primary font-black"
+                ? "text-on-primary-container font-black"
                 : "text-muted-foreground hover:text-foreground font-semibold"
             }`}
           >
             <div
               className={`grid place-items-center rounded-xl px-2.5 py-1 transition-all ${
-                selected ? "bg-accent text-primary" : ""
+                selected ? "bg-primary-container text-on-primary-container" : ""
               }`}
             >
               <Icon size={20} strokeWidth={selected ? 2.8 : 2} />
@@ -616,7 +620,7 @@ export const Toggle = ({
       >
         <i
           className={`h-5 w-5 rounded-full shadow-xs transition-all ${
-            on ? "bg-white scale-100" : "bg-muted-foreground/70 scale-90"
+            on ? "bg-surface scale-100" : "bg-muted-foreground/70 scale-90"
           }`}
         />
       </button>
@@ -664,7 +668,7 @@ export const ModalHeader = ({
       <Icon size={19} />
     </div>
     <div className="min-w-0">
-      <p className={`text-xs font-black uppercase tracking-wider ${dark ? "text-lavender" : "text-primary"}`}>
+      <p className={`text-xs font-black uppercase tracking-wider ${dark ? "text-footer-accent" : "text-primary"}`}>
         {eyebrow}
       </p>
       <h3 className="mt-0.5 truncate text-lg font-black leading-tight">{title}</h3>
@@ -673,7 +677,7 @@ export const ModalHeader = ({
       type="button"
       aria-label="Cerrar"
       onClick={onClose}
-      className={`grid h-11 w-11 place-items-center rounded-full active:scale-95 ${dark ? "bg-background/15" : "bg-muted"}`}
+      className={`grid h-11 w-11 place-items-center rounded-full active:scale-95 ${dark ? "bg-image-foreground/15" : "bg-muted"}`}
     >
       <X size={18} />
     </button>
@@ -727,12 +731,12 @@ export const BottomSheet = ({
 
   return (
     <div
-      className="absolute inset-0 z-40 flex flex-col justify-end bg-foreground/35 backdrop-blur-[4px] animate-in fade-in duration-150"
+      className="absolute inset-0 z-40 flex flex-col justify-end items-center bg-foreground/35 backdrop-blur-[4px] p-0 sm:p-4 animate-in fade-in duration-150"
       onClick={handleUserClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="no-scrollbar mt-auto max-h-[calc(100%-48px)] overflow-y-auto rounded-t-[30px] bg-background px-5 pb-8 pt-3 shadow-card animate-in slide-in-from-bottom-10 duration-300"
+        className="no-scrollbar mt-auto w-full max-w-md sm:max-w-lg max-h-[calc(100%-48px)] overflow-y-auto rounded-t-[30px] sm:rounded-[30px] bg-background px-5 pb-8 pt-3 shadow-card animate-in slide-in-from-bottom-10 duration-300"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
         {children}
@@ -774,7 +778,7 @@ export const SecondaryButton = ({
   <button
     type="button"
     onClick={onClick}
-    className={`mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-extrabold ${dark ? "text-card-dark-muted" : "bg-muted text-foreground"}`}
+    className={`mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-xs font-extrabold ${dark ? "text-footer-accent" : "bg-muted text-foreground"}`}
   >
     {children}
   </button>
@@ -783,6 +787,7 @@ export const SecondaryButton = ({
 export const PAYMENT_METHODS: Array<[string, IconType]> = [
   ["Efectivo", Banknote],
   ["Transferencia", Landmark],
+  ["Deuna", Zap],
   ["Tarjeta", CreditCard],
 ];
 
@@ -795,11 +800,11 @@ export const PaymentMethods = ({
   onSelect?: (method: string) => void;
   dark?: boolean;
 }) => (
-  <div className="grid grid-cols-3 gap-2">
+  <div className="grid grid-cols-4 gap-2">
     {PAYMENT_METHODS.map(([label, Icon]) => {
       const on = label === selected;
       const idle = dark
-        ? "border-background/15 text-card-dark-muted"
+        ? "border-background/15 text-footer-accent"
         : "border-border text-muted-foreground";
       return (
         <button

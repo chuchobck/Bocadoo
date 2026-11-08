@@ -218,7 +218,7 @@ export function LoginScreen({
 
       {/* Floating feedback toast */}
       {toastMessage && (
-        <div className="fixed top-12 left-1/2 z-50 -translate-x-1/2 max-w-[320px] rounded-xl bg-card-dark px-4 py-2 text-xs font-bold text-card-dark-foreground shadow-brand animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="fixed top-12 left-1/2 z-50 -translate-x-1/2 max-w-[320px] rounded-xl bg-footer-bg px-4 py-2 text-xs font-bold text-image-foreground shadow-brand animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-2">
             <Sparkles size={14} className="text-primary shrink-0" />
             <span>{toastMessage}</span>
@@ -261,7 +261,7 @@ export function LoginScreen({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-black transition-all ${
               role === "diner"
-                ? "rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-[0_-5px_12px_rgba(0,0,0,0.06)] relative z-20 pb-2.5"
+                ? "rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-sm relative z-20 pb-2.5"
                 : "rounded-t-xl bg-muted/80 text-muted-foreground hover:text-foreground border border-b-0 border-border/50 py-1.5 text-[11px] font-bold"
             }`}
           >
@@ -282,7 +282,7 @@ export function LoginScreen({
             }}
             className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-black transition-all ${
               role === "owner"
-                ? "rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-[0_-5px_12px_rgba(0,0,0,0.06)] relative z-20 pb-2.5"
+                ? "rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-sm relative z-20 pb-2.5"
                 : "rounded-t-xl bg-muted/80 text-muted-foreground hover:text-foreground border border-b-0 border-border/50 py-1.5 text-[11px] font-bold"
             }`}
           >
@@ -296,7 +296,7 @@ export function LoginScreen({
 
         {/* Cuerpo de la tarjeta con textura, bisel de smart-card y sombra multicapa */}
         <div
-          className={`relative bg-gradient-to-b from-card via-card to-card/95 p-4 sm:p-5 shadow-[0_22px_45px_-12px_rgba(75,15,80,0.18),0_6px_20px_-4px_rgba(0,0,0,0.07)] border border-border/80 ring-1 ring-white/90 ring-inset ${
+          className={`relative bg-gradient-to-b from-card via-card to-card/95 p-4 sm:p-5 shadow-md border border-border/80 ring-1 ring-image-foreground/90 ring-inset ${
             role === "diner" ? "rounded-b-[28px] rounded-tr-[28px] rounded-tl-[4px]" : "rounded-b-[28px] rounded-tl-[28px] rounded-tr-[4px]"
           }`}
         >
@@ -306,12 +306,12 @@ export function LoginScreen({
               {/* Chip metálico realista de tarjeta inteligente */}
               <div
                 title="Chip seguro Bocadoo Pass"
-                className="relative h-6 w-8 rounded bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 p-0.5 shadow-xs border border-amber-500/50 flex items-center justify-center shrink-0"
+                className="relative h-6 w-8 rounded bg-gradient-to-br from-primary-container via-footer-accent to-primary p-0.5 shadow-xs border border-primary/50 flex items-center justify-center shrink-0"
               >
-                <div className="h-full w-full rounded-[2px] border border-amber-700/30 grid grid-cols-2 grid-rows-2 gap-[1px]">
-                  <div className="border-r border-b border-amber-700/40" />
-                  <div className="border-b border-amber-700/40" />
-                  <div className="border-r border-amber-700/40" />
+                <div className="h-full w-full rounded-[2px] border border-foreground/30 grid grid-cols-2 grid-rows-2 gap-[1px]">
+                  <div className="border-r border-b border-foreground/40" />
+                  <div className="border-b border-foreground/40" />
+                  <div className="border-r border-foreground/40" />
                   <div />
                 </div>
               </div>
@@ -337,7 +337,7 @@ export function LoginScreen({
             >
               Correo Electrónico
             </label>
-            <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] border border-border/40 focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-background transition-all">
+            <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-none border border-border/40 focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-background transition-all">
               <Mail size={16} className="text-primary shrink-0" />
               <input
                 id="bocadoo-email"
@@ -370,7 +370,7 @@ export function LoginScreen({
             >
               Contraseña
             </label>
-            <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] border border-border/40 focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-background transition-all">
+            <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-none border border-border/40 focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-background transition-all">
               <LockKeyhole size={16} className="text-primary shrink-0" />
               <input
                 id="bocadoo-password"
@@ -445,19 +445,19 @@ export function LoginScreen({
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path
-                fill="#4285F4"
+                className="fill-google-blue"
                 d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"
               />
               <path
-                fill="#34A853"
+                className="fill-google-green"
                 d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"
               />
               <path
-                fill="#FBBC05"
+                className="fill-google-yellow"
                 d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12s.46 3.84 1.26 5.42l4.02-3.15z"
               />
               <path
-                fill="#EA4335"
+                className="fill-google-red"
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
               />
             </svg>
@@ -599,19 +599,19 @@ function GoogleMapQuitoPicker({
         <div className="flex h-10 flex-1 items-center gap-2 rounded-xl bg-muted px-3 text-xs border border-border/60 shadow-xs focus-within:ring-2 focus-within:ring-primary/40 focus-within:bg-background">
           <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
             <path
-              fill="#4285F4"
+              className="fill-google-blue"
               d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"
             />
             <path
-              fill="#34A853"
+              className="fill-google-green"
               d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"
             />
             <path
-              fill="#FBBC05"
+              className="fill-google-yellow"
               d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12s.46 3.84 1.26 5.42l4.02-3.15z"
             />
             <path
-              fill="#EA4335"
+              className="fill-google-red"
               d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
             />
           </svg>
@@ -651,7 +651,7 @@ function GoogleMapQuitoPicker({
       {/* Contenedor del Mapa interactivo de Google Maps */}
       <div
         className={`relative h-44 w-full overflow-hidden rounded-2xl border border-border shadow-inner transition-colors ${
-          mapType === "satellite" ? "bg-[#1f2937]" : "bg-[#f1f3f0]"
+          mapType === "satellite" ? "bg-footer-bg" : "bg-background"
         }`}
       >
         {/* Gráfico vectorial de calles, parques y topografía de Quito */}
@@ -659,45 +659,45 @@ function GoogleMapQuitoPicker({
           {mapType === "roadmap" ? (
             <>
               {/* Bloques de barrios y fondo */}
-              <rect width="100%" height="100%" fill="#f1f3f0" />
+              <rect width="100%" height="100%" className="fill-background" />
               {/* Parque La Carolina */}
-              <rect x="25%" y="15%" width="22%" height="18%" rx="8" fill="#d1ebd1" />
+              <rect x="25%" y="15%" width="22%" height="18%" rx="8" className="fill-success-container" />
               {/* Parque El Ejido & Arbolito */}
-              <rect x="36%" y="58%" width="18%" height="12%" rx="6" fill="#d1ebd1" />
+              <rect x="36%" y="58%" width="18%" height="12%" rx="6" className="fill-success-container" />
               {/* Parque Itchimbía */}
-              <rect x="52%" y="72%" width="15%" height="14%" rx="6" fill="#d6edd6" />
+              <rect x="52%" y="72%" width="15%" height="14%" rx="6" className="fill-success-container" />
 
               {/* Red vial principal de Quito */}
               {/* Av. 10 de Agosto (eje norte-sur) */}
-              <path d="M 42% 0 L 42% 100%" stroke="#ffffff" strokeWidth="6" />
-              <path d="M 42% 0 L 42% 100%" stroke="#f7c852" strokeWidth="2.5" />
+              <path d="M 42% 0 L 42% 100%" className="stroke-surface" strokeWidth="6" />
+              <path d="M 42% 0 L 42% 100%" className="stroke-primary-container" strokeWidth="2.5" />
 
               {/* Av. 6 de Diciembre */}
-              <path d="M 54% 0 L 54% 100%" stroke="#ffffff" strokeWidth="5" />
-              <path d="M 54% 0 L 54% 100%" stroke="#e3be44" strokeWidth="2" />
+              <path d="M 54% 0 L 54% 100%" className="stroke-surface" strokeWidth="5" />
+              <path d="M 54% 0 L 54% 100%" className="stroke-primary-container" strokeWidth="2" />
 
               {/* Av. Francisco de Orellana (transversal) */}
-              <path d="M 10% 36% L 90% 36%" stroke="#ffffff" strokeWidth="5" />
-              <path d="M 10% 36% L 90% 36%" stroke="#cbd5e1" strokeWidth="2" />
+              <path d="M 10% 36% L 90% 36%" className="stroke-surface" strokeWidth="5" />
+              <path d="M 10% 36% L 90% 36%" className="stroke-border" strokeWidth="2" />
 
               {/* Av. Patria */}
-              <path d="M 20% 68% L 75% 68%" stroke="#ffffff" strokeWidth="4" />
-              <path d="M 20% 68% L 75% 68%" stroke="#cbd5e1" strokeWidth="1.5" />
+              <path d="M 20% 68% L 75% 68%" className="stroke-surface" strokeWidth="4" />
+              <path d="M 20% 68% L 75% 68%" className="stroke-border" strokeWidth="1.5" />
 
               {/* Bajada a Cumbayá (Ruta Viva) */}
-              <path d="M 58% 46% Q 72% 38% 90% 38%" stroke="#ffffff" strokeWidth="4.5" fill="none" />
-              <path d="M 58% 46% Q 72% 38% 90% 38%" stroke="#94a3b8" strokeWidth="2" fill="none" />
+              <path d="M 58% 46% Q 72% 38% 90% 38%" className="stroke-surface" strokeWidth="4.5" fill="none" />
+              <path d="M 58% 46% Q 72% 38% 90% 38%" className="stroke-border" strokeWidth="2" fill="none" />
             </>
           ) : (
             <>
               {/* Modo Satélite */}
-              <rect width="100%" height="100%" fill="#1e293b" />
-              <rect x="25%" y="15%" width="22%" height="18%" rx="8" fill="#14532d" opacity="0.6" />
-              <rect x="36%" y="58%" width="18%" height="12%" rx="6" fill="#14532d" opacity="0.6" />
-              <path d="M 42% 0 L 42% 100%" stroke="#64748b" strokeWidth="3" />
-              <path d="M 54% 0 L 54% 100%" stroke="#64748b" strokeWidth="3" />
-              <path d="M 10% 36% L 90% 36%" stroke="#64748b" strokeWidth="2.5" />
-              <path d="M 58% 46% Q 72% 38% 90% 38%" stroke="#475569" strokeWidth="2.5" fill="none" />
+              <rect width="100%" height="100%" className="fill-footer-bg" />
+              <rect x="25%" y="15%" width="22%" height="18%" rx="8" className="fill-success" opacity="0.6" />
+              <rect x="36%" y="58%" width="18%" height="12%" rx="6" className="fill-success" opacity="0.6" />
+              <path d="M 42% 0 L 42% 100%" className="stroke-muted-foreground" strokeWidth="3" />
+              <path d="M 54% 0 L 54% 100%" className="stroke-muted-foreground" strokeWidth="3" />
+              <path d="M 10% 36% L 90% 36%" className="stroke-muted-foreground" strokeWidth="2.5" />
+              <path d="M 58% 46% Q 72% 38% 90% 38%" className="stroke-muted-foreground" strokeWidth="2.5" fill="none" />
             </>
           )}
         </svg>
@@ -763,7 +763,7 @@ function GoogleMapQuitoPicker({
               {isSelected && (
                 <div className="absolute -top-11 left-1/2 -translate-x-1/2 z-40 whitespace-nowrap rounded-xl bg-card px-2.5 py-1 text-[10px] font-extrabold text-foreground shadow-card border border-border animate-in zoom-in-95 duration-150">
                   <div className="flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
                     <span>{spot.name}</span>
                     <span className="text-[9px] font-semibold text-muted-foreground">
                       · {spot.restaurants} locales
@@ -874,8 +874,8 @@ function RegisterDinerScreen({
     if (!pass) return { score: 0, label: "Vacía", color: "bg-muted" };
     if (pass.length < 6) return { score: 1, label: "Débil", color: "bg-destructive" };
     if (pass.length < 9 || !/[0-9]/.test(pass))
-      return { score: 2, label: "Media", color: "bg-amber-500" };
-    return { score: 3, label: "Segura", color: "bg-emerald-500" };
+      return { score: 2, label: "Media", color: "bg-primary" };
+    return { score: 3, label: "Segura", color: "bg-success" };
   };
 
   const strength = getPasswordStrength(password);
@@ -1089,7 +1089,7 @@ function RegisterDinerScreen({
               required
             />
             {confirmPassword && password === confirmPassword && (
-              <Check size={15} className="text-emerald-500 shrink-0" />
+              <Check size={15} className="text-success shrink-0" />
             )}
           </div>
         </div>
@@ -1416,7 +1416,7 @@ function RegisterOwnerScreen({
               required
             />
             {confirmPassword && password === confirmPassword && (
-              <Check size={15} className="text-emerald-500 shrink-0" />
+              <Check size={15} className="text-success shrink-0" />
             )}
           </div>
         </div>
@@ -1829,7 +1829,7 @@ function ForgotPasswordModal({
 
         {sent ? (
           <div className="mt-4 text-center py-2">
-            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+            <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-success-container text-success">
               <CheckCircle2 size={24} />
             </div>
             <h4 className="mt-3 text-base font-black text-foreground">¡Correo enviado!</h4>
@@ -1924,19 +1924,19 @@ function GoogleAccountPickerModal({
           <div className="flex items-center gap-2">
             <svg className="h-5 w-5" viewBox="0 0 24 24">
               <path
-                fill="#4285F4"
+                className="fill-google-blue"
                 d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"
               />
               <path
-                fill="#34A853"
+                className="fill-google-green"
                 d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.26v3.15C3.25 21.36 7.34 24 12 24z"
               />
               <path
-                fill="#FBBC05"
+                className="fill-google-yellow"
                 d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.26C.46 8.16 0 9.94 0 12s.46 3.84 1.26 5.42l4.02-3.15z"
               />
               <path
-                fill="#EA4335"
+                className="fill-google-red"
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.25 2.64 1.26 6.58l4.02 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
               />
             </svg>

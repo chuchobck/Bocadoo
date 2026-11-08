@@ -109,7 +109,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   onRetry,
   state = "exito",
 }) => {
-  const { publishMenu, simulatedTodayKey, menuDays } = useBocadoo();
+  const { publishMenu, toggleSoldOut, simulatedTodayKey, menuDays } = useBocadoo();
 
   const [activeSegment, setActiveSegment] = useState<"hoy" | "catalogo">("hoy");
   const [catalogSubSegment, setCatalogSubSegment] = useState<"almuerzos" | "alacarta">("almuerzos");
@@ -134,7 +134,11 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
     "Higos con queso",
   ]);
 
-  const [exhaustedDishes, setExhaustedDishes] = useState<string[]>([]);
+  const [exhaustedDishes, setExhaustedDishes] = useState<string[]>(() =>
+    Object.values(menuDays[simulatedTodayKey]?.secciones ?? {}).flatMap((dishes) =>
+      dishes.filter((d) => d.agotado).map((d) => d.nombre),
+    ),
+  );
   const [published, setPublished] = useState(false);
   const [undoSeconds, setUndoSeconds] = useState(0);
   const [undoLabel, setUndoLabel] = useState("");
@@ -234,19 +238,23 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
   };
 
   const handleToggleExhausted = (dishName: string) => {
+    const willBeExhausted = !exhaustedDishes.includes(dishName);
     setExhaustedDishes((prev) =>
       prev.includes(dishName) ? prev.filter((d) => d !== dishName) : [...prev, dishName]
     );
+
+    // Sincroniza en vivo con el POS y el comensal: sin editar ni volver a publicar el menú
+    const sections = menuDays[simulatedTodayKey]?.secciones;
+    if (!sections) return;
+    for (const dishes of Object.values(sections)) {
+      const match = dishes.find((d) => d.nombre === dishName);
+      if (match) {
+        if (match.agotado !== willBeExhausted) toggleSoldOut(match.id);
+        break;
+      }
+    }
   };
 
-  const handleRepeatYesterday = () => {
-    // 1 toque: Repite la combinación ganadora de ayer con todas sus opciones (Ley del mínimo esfuerzo)
-    setTodaySoups(["Locro de papa con queso", "Sopa de lenteja"]);
-    setTodayMains(["Pollo a la plancha", "Seco de pollo con maduro", "Bowl de quinoa"]);
-    setTodayBeverages(["Jugo de naranjilla"]);
-    setTodayDesserts(["Higos con queso"]);
-    setExhaustedDishes([]);
-  };
 
   const handlePublish = () => {
     setPublished(true);
@@ -310,9 +318,9 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
     <div
       tabIndex={0}
       aria-label="Menú del día"
-      className="flex h-full flex-col bg-white overflow-y-auto no-scrollbar focus:outline-hidden"
+      className="flex h-full flex-col bg-surface overflow-y-auto no-scrollbar focus:outline-hidden"
     >
-      <header className="px-4 py-3.5 border-b border-[#F0EDF5] bg-white sticky top-0 z-10 space-y-3">
+      <header className="px-4 py-3.5 border-b border-border bg-surface sticky top-0 z-10 space-y-3">
         {activeSegment === "hoy" ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -321,19 +329,19 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   type="button"
                   onClick={onBack}
                   aria-label="Volver a caja"
-                  className="grid h-9 w-9 place-items-center rounded-full bg-[#F5F3FA] text-[#4A0E78] active:scale-95"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-background text-foreground active:scale-95"
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
               )}
               <div>
-                <span className="block text-[13px] font-extrabold uppercase tracking-widest text-[#7B2CBF]">
+                <span className="block text-[13px] font-extrabold uppercase tracking-widest text-primary">
                   MENÚ DEL DÍA
                 </span>
-                <h1 className="text-[24px] font-black tracking-tight text-[#1F1135] leading-tight">
+                <h1 className="text-[24px] font-black tracking-tight text-foreground leading-tight">
                   Miércoles 30
                 </h1>
-                <p className="text-[13px] font-semibold text-[#6B5B7B]">
+                <p className="text-[13px] font-semibold text-muted-foreground">
                   Septiembre · 2026
                 </p>
               </div>
@@ -343,7 +351,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
               <button
                 type="button"
                 aria-label="Calendario del menú"
-                className="grid h-10 w-10 place-items-center rounded-full bg-[#F3E8FF] text-[#7B2CBF] active:scale-95 transition-all"
+                className="grid h-10 w-10 place-items-center rounded-full bg-primary-container text-primary active:scale-95 transition-all"
               >
                 <Calendar className="h-5 w-5" />
               </button>
@@ -351,7 +359,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 type="button"
                 onClick={() => setActiveSegment("catalogo")}
                 aria-label="Agregar menú"
-                className="grid h-10 w-10 place-items-center rounded-full bg-[#7B2CBF] text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
+                className="grid h-10 w-10 place-items-center rounded-full bg-primary text-primary-foreground shadow-md active:scale-95 transition-all hover:bg-primary-hover"
               >
                 <Plus className="h-5 w-5 stroke-[2.5]" />
               </button>
@@ -364,21 +372,21 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 type="button"
                 onClick={() => setActiveSegment("hoy")}
                 aria-label="Volver al menú de hoy"
-                className="grid h-9 w-9 place-items-center rounded-full bg-[#F5F3FA] text-[#4A0E78] active:scale-95"
+                className="grid h-9 w-9 place-items-center rounded-full bg-background text-foreground active:scale-95"
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
               <div>
-                <span className="block text-[13px] font-extrabold uppercase tracking-widest text-[#7B2CBF]">
+                <span className="block text-[13px] font-extrabold uppercase tracking-widest text-primary">
                   LA CUCHARA DE SAN BLAS
                 </span>
-                <h1 className="text-[22px] font-black tracking-tight text-[#1F1135] leading-tight">
+                <h1 className="text-[22px] font-black tracking-tight text-foreground leading-tight">
                   Platos de la casa
                 </h1>
               </div>
             </div>
 
-            <span className="text-[13px] font-black text-[#7B2CBF]">
+            <span className="text-[13px] font-black text-primary">
               {catalog.length} platos
             </span>
           </div>
@@ -388,25 +396,25 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
         <div className="flex items-center justify-between gap-2">
           {/* Estado del menú: Borrador en NEUTRO (no verde); Publicado en VERDE */}
           {published ? (
-            <span className="rounded-full bg-[#E6F6EC] px-3 py-1 text-[13px] font-bold text-[#157A41]">
+            <span className="rounded-full bg-success-container px-3 py-1 text-[13px] font-bold text-success">
               {MENU_COPY.publishedBadge}
             </span>
           ) : (
-            <span className="rounded-full bg-[#F5F3FA] px-3 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2]">
+            <span className="rounded-full bg-background px-3 py-1 text-[13px] font-bold text-muted-foreground border border-border">
               {MENU_COPY.draftBadge}
             </span>
           )}
 
           {/* Dos segmentos: "Hoy" y "Mis platos" */}
-          <div className="flex gap-1 rounded-2xl bg-[#F5F3FA] p-1 border border-[#E7E1F2]">
+          <div className="flex gap-1 rounded-2xl bg-background p-1 border border-border">
             <button
               type="button"
               onClick={() => setActiveSegment("hoy")}
               aria-pressed={activeSegment === "hoy"}
               className={`rounded-xl px-3 py-1 text-center text-[13px] font-bold transition-all ${
                 activeSegment === "hoy"
-                  ? "bg-white text-[#7B2CBF] shadow-xs"
-                  : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                  ? "bg-surface text-primary shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Hoy
@@ -417,8 +425,8 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
               aria-pressed={activeSegment === "catalogo"}
               className={`rounded-xl px-3 py-1 text-center text-[13px] font-bold transition-all ${
                 activeSegment === "catalogo"
-                  ? "bg-white text-[#7B2CBF] shadow-xs"
-                  : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                  ? "bg-surface text-primary shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Mis platos
@@ -430,28 +438,28 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
       <main className="flex-1 p-4 pb-24">
         {state === "cargando" && (
           <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-[#7B2CBF]" />
-            <h2 className="mt-3 text-[17px] font-extrabold text-[#4A0E78]">{MENU_COPY.loadingTitle}</h2>
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <h2 className="mt-3 text-[17px] font-extrabold text-foreground">{MENU_COPY.loadingTitle}</h2>
           </div>
         )}
 
         {state === "vacio" && (
           <div className="py-16 text-center">
-            <Utensils className="mx-auto h-12 w-12 text-[#6B5B7B] mb-2" />
-            <h2 className="text-[17px] font-extrabold text-[#4A0E78]">{MENU_COPY.emptyTitle}</h2>
-            <p className="mt-1 text-[13px] font-semibold text-[#6B5B7B]">{MENU_COPY.emptyDesc}</p>
+            <Utensils className="mx-auto h-12 w-12 text-muted-foreground mb-2" />
+            <h2 className="text-[17px] font-extrabold text-foreground">{MENU_COPY.emptyTitle}</h2>
+            <p className="mt-1 text-[13px] font-semibold text-muted-foreground">{MENU_COPY.emptyDesc}</p>
           </div>
         )}
 
         {state === "error" && (
-          <div className="rounded-[28px] bg-[#FDEBEB] p-6 text-center text-[#C0392B] border border-[#C0392B]">
+          <div className="rounded-[28px] bg-danger-container p-6 text-center text-on-danger-container border border-danger">
             <AlertCircle className="mx-auto h-10 w-10 mb-2" />
             <h2 className="text-[17px] font-extrabold">{MENU_COPY.errorTitle}</h2>
             <p className="mt-1 text-[13px] font-semibold">{MENU_COPY.errorDesc}</p>
             <button
               type="button"
               onClick={onRetry || (() => window.location.reload())}
-              className="mt-4 rounded-full bg-[#C0392B] px-5 py-2 text-[13px] font-bold text-white active:scale-95"
+              className="mt-4 rounded-full bg-danger px-5 py-2 text-[13px] font-bold text-danger-foreground active:scale-95"
             >
               Reintentar
             </button>
@@ -459,7 +467,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
         )}
 
         {state === "offline" && (
-          <div className="mb-4 flex items-center justify-center gap-1.5 rounded-full bg-[#F5F3FA] py-1 text-[13px] font-bold text-[#6B5B7B]">
+          <div className="mb-4 flex items-center justify-center gap-1.5 rounded-full bg-background py-1 text-[13px] font-bold text-muted-foreground">
             <WifiOff className="h-3.5 w-3.5" />
             <span>{MENU_COPY.offlineBadge}</span>
           </div>
@@ -470,17 +478,6 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             {/* SEGMENTO 1: HOY (Estilo exacto Mockup Image 4) */}
             {activeSegment === "hoy" && (
               <div className="space-y-4">
-                {/* Botón rápido "Repetir ayer" (1 toque) */}
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleRepeatYesterday}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#F5F3FA] py-2.5 text-[14px] font-bold text-[#4A0E78] border border-[#E7E1F2] active:scale-95 transition-all shadow-xs hover:border-[#7B2CBF]"
-                  >
-                    <RotateCcw className="h-4 w-4 text-[#7B2CBF]" />
-                    <span>Repetir ayer</span>
-                  </button>
-                </div>
 
                 {/* Franja de preórdenes activas para hoy */}
                 <div
@@ -491,28 +488,33 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   role="button"
                   tabIndex={0}
                   aria-label="Ver 3 pedidos en camino"
-                  className="flex items-center justify-between rounded-2xl bg-[#F3E8FF] px-4 py-3 border border-[#EBD7FC] cursor-pointer hover:bg-[#EBD7FC] transition-all shadow-xs"
+                  className="flex items-center justify-between rounded-2xl bg-primary-container px-4 py-3 border border-primary-container cursor-pointer hover:bg-secondary-container transition-all shadow-xs"
                 >
                   <div className="flex items-center gap-2.5">
-                    <div className="grid h-8 w-8 place-items-center rounded-full bg-[#7B2CBF] text-white">
+                    <div className="grid h-8 w-8 place-items-center rounded-full bg-primary text-primary-foreground">
                       <Clock className="h-4 w-4" />
                     </div>
                     <div>
-                      <span className="block text-[13px] font-black text-[#1F1135]">
+                      <span className="block text-[13px] font-black text-foreground">
                         3 preórdenes en camino
                       </span>
-                      <span className="text-[13px] font-medium text-[#6B5B7B]">
+                      <span className="text-[13px] font-medium text-muted-foreground">
                         2 Seco de pollo · 1 Quinoa
                       </span>
                     </div>
                   </div>
-                  <span className="rounded-full bg-[#7B2CBF] px-3 py-1 text-[13px] font-black text-white">
+                  <span className="rounded-full bg-primary px-3 py-1 text-[13px] font-black text-primary-foreground">
                     Ver
                   </span>
                 </div>
 
+                <p className="flex items-start gap-2 rounded-2xl bg-background px-3 py-2 text-[13px] font-semibold text-muted-foreground">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  <span>{MENU_COPY.soldOutHint}</span>
+                </p>
+
                 {/* Cuadrícula de componentes del almuerzo de hoy (soporta múltiples opciones por sección) */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 items-start">
                   {[
                     {
                       category: "SOPA",
@@ -544,11 +546,11 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                     return (
                       <div
                         key={dish.category}
-                        className="rounded-[24px] border border-[#F0EDF5] bg-white overflow-hidden shadow-xs flex flex-col justify-between"
+                        className="rounded-[24px] border border-border bg-surface overflow-hidden shadow-xs flex flex-col justify-between"
                       >
                         <div>
                           {/* Foto apetitosa con botón Cambiar/Agregar en 1 toque */}
-                          <div className="relative aspect-4/3 w-full overflow-hidden bg-[#F5F3FA]">
+                          <div className="relative aspect-4/3 w-full overflow-hidden bg-background">
                             <img
                               src={dish.image}
                               alt={dish.category}
@@ -558,45 +560,19 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                               type="button"
                               onClick={() => openSelector(dish.section)}
                               aria-label={`Cambiar ${dish.category.toLowerCase()}`}
-                              className="absolute top-2 right-2 rounded-full bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[13px] font-bold text-[#7B2CBF] shadow-xs active:scale-95 transition-all hover:bg-white flex items-center gap-1"
+                              className="absolute top-2 right-2 rounded-full bg-surface/95 backdrop-blur-xs px-2.5 py-1 text-[13px] font-bold text-primary shadow-xs active:scale-95 transition-all hover:bg-surface flex items-center gap-1"
                             >
-                              <RotateCcw className="h-3 w-3 text-[#7B2CBF]" />
+                              <RotateCcw className="h-3 w-3 text-primary" />
                               <span>Opciones ({dish.items.length})</span>
                             </button>
                           </div>
 
                           <div className="p-3">
-                            <span className="block text-[13px] font-black uppercase tracking-wider text-[#7B2CBF] mb-1">
+                            <span className="block text-[13px] font-black uppercase tracking-wider text-primary mb-1.5">
                               {dish.category} ({dish.items.length})
                             </span>
-                            <div className="space-y-1">
-                              {dish.items.map((itemName) => {
-                                const isExhausted = exhaustedDishes.includes(itemName);
-                                return (
-                                  <div key={itemName} className="flex items-center justify-between gap-1">
-                                    <span
-                                      className={`text-[13px] font-extrabold leading-tight line-clamp-1 ${
-                                        isExhausted ? "line-through text-[#6B5B7B] opacity-60" : "text-[#1F1135]"
-                                      }`}
-                                    >
-                                      • {itemName}
-                                    </span>
-                                    {isExhausted && (
-                                      <span className="shrink-0 rounded-full bg-[#FDEBEB] px-2 py-0.5 text-[13px] font-black uppercase text-[#C0392B]">
-                                        Agotado
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Botón de estado por categoría o plato */}
-                        <div className="p-3 pt-0">
-                          {published ? (
-                            <div className="space-y-1">
+                            {/* Cada plato es su propio interruptor: se marca agotado solo ese, no la sección */}
+                            <div className="space-y-1.5">
                               {dish.items.map((itemName) => {
                                 const isExhausted = exhaustedDishes.includes(itemName);
                                 return (
@@ -604,29 +580,42 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                                     key={itemName}
                                     type="button"
                                     onClick={() => handleToggleExhausted(itemName)}
-                                    className={`w-full rounded-full py-1 text-[13px] font-bold transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                                    aria-pressed={isExhausted}
+                                    aria-label={
                                       isExhausted
-                                        ? "bg-[#C0392B] text-white shadow-xs"
-                                        : "bg-[#F5F3FA] text-[#6B5B7B] border border-[#E7E1F2]"
+                                        ? `${itemName}: se acabó. Toca si volvió a haber`
+                                        : `${itemName}: hay. Toca si se acabó`
+                                    }
+                                    className={`w-full rounded-xl border px-2.5 py-1.5 text-left transition-all active:scale-[0.98] ${
+                                      isExhausted
+                                        ? "border-danger bg-danger-container"
+                                        : "border-border bg-background"
                                     }`}
                                   >
-                                    <span>{isExhausted ? "Agotado" : "Se acabó"}</span>
-                                    <span className="text-[13px] opacity-75 line-clamp-1">({itemName.split(" ")[0]})</span>
+                                    <span
+                                      className={`block text-[13px] font-extrabold leading-tight line-clamp-2 ${
+                                        isExhausted ? "line-through text-muted-foreground" : "text-foreground"
+                                      }`}
+                                    >
+                                      {itemName}
+                                    </span>
+                                    <span
+                                      className={`mt-0.5 flex items-center gap-1 text-[13px] font-black ${
+                                        isExhausted ? "text-on-danger-container" : "text-success"
+                                      }`}
+                                    >
+                                      {isExhausted ? (
+                                        <X className="h-3.5 w-3.5 stroke-[3]" />
+                                      ) : (
+                                        <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                      )}
+                                      {isExhausted ? MENU_COPY.dishSoldOut : MENU_COPY.dishAvailable}
+                                    </span>
                                   </button>
                                 );
                               })}
                             </div>
-                          ) : (
-                            <button
-                              type="button"
-                              aria-label={`Disponible: ${dish.items[0] || dish.category}`}
-                              onClick={() => openSelector(dish.section)}
-                              className="w-full rounded-full py-1.5 text-[13px] font-bold transition-all flex items-center justify-center gap-1 bg-[#F3E8FF] text-[#7B2CBF] border border-[#EBD7FC] hover:bg-[#EBD7FC]"
-                            >
-                              <Check className="h-3 w-3 stroke-[3]" />
-                              <span>Disponible hoy ({dish.items.length})</span>
-                            </button>
-                          )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -636,13 +625,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 {/* Sección "Menú de la semana" (Mockup Image 4) */}
                 <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-[15px] font-black text-[#1F1135]">
+                    <h3 className="text-[15px] font-black text-foreground">
                       Menú de la semana
                     </h3>
                     <button
                       type="button"
                       onClick={() => setActiveSegment("catalogo")}
-                      className="text-[13px] font-bold text-[#7B2CBF] hover:underline"
+                      className="text-[13px] font-bold text-primary hover:underline"
                     >
                       Editar
                     </button>
@@ -660,13 +649,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                           key={wd.day}
                           className={`rounded-[20px] p-3 min-w-[105px] border transition-all ${
                             isActive
-                              ? "bg-[#7B2CBF] text-white border-[#7B2CBF] shadow-sm"
-                              : "bg-white text-[#1F1135] border-[#F0EDF5]"
+                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                              : "bg-surface text-foreground border-border"
                           }`}
                         >
                           <span
                             className={`block text-[13px] font-black uppercase ${
-                              isActive ? "text-white/80" : "text-[#6B5B7B]"
+                              isActive ? "text-primary-foreground/80" : "text-muted-foreground"
                             }`}
                           >
                             {wd.day}
@@ -685,7 +674,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   <button
                     type="button"
                     onClick={handlePublish}
-                    className="w-full flex items-center justify-center gap-2 rounded-full bg-[#181126] py-3.5 text-[15px] font-black text-white shadow-md active:scale-95 transition-all hover:bg-[#25183E]"
+                    className="w-full flex items-center justify-center gap-2 rounded-full bg-footer-bg py-3.5 text-[15px] font-black text-image-foreground shadow-md active:scale-95 transition-all hover:bg-footer-bg"
                   >
                     <Eye className="h-4 w-4" />
                     <span>{published ? "Actualizar menú" : "Publicar menú"}</span>
@@ -698,15 +687,15 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             {activeSegment === "catalogo" && (
               <div className="space-y-5">
                 {/* Sub-segmentos modulares: Almuerzos vs A la carta */}
-                <div className="flex gap-1 rounded-2xl bg-[#F5F3FA] p-1 border border-[#E7E1F2]">
+                <div className="flex gap-1 rounded-2xl bg-background p-1 border border-border">
                   <button
                     type="button"
                     onClick={() => setCatalogSubSegment("almuerzos")}
                     aria-pressed={catalogSubSegment === "almuerzos"}
                     className={`flex-1 rounded-xl py-2 text-center text-[13px] font-bold transition-all ${
                       catalogSubSegment === "almuerzos"
-                        ? "bg-white text-[#7B2CBF] shadow-xs"
-                        : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                        ? "bg-surface text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Almuerzos del día
@@ -717,8 +706,8 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                     aria-pressed={catalogSubSegment === "alacarta"}
                     className={`flex-1 rounded-xl py-2 text-center text-[13px] font-bold transition-all ${
                       catalogSubSegment === "alacarta"
-                        ? "bg-white text-[#7B2CBF] shadow-xs"
-                        : "text-[#6B5B7B] hover:text-[#4A0E78]"
+                        ? "bg-surface text-primary shadow-xs"
+                        : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     Platos a la carta
@@ -729,27 +718,27 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 {catalogSubSegment === "almuerzos" && (
                   <div className="space-y-5">
                     {/* Banner educativo: Ley del mínimo esfuerzo y no-destrucción de datos */}
-                    <div className="rounded-[24px] bg-[#F3E8FF] p-4 border border-[#EBD7FC] flex items-start gap-3 shadow-xs">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#7B2CBF] text-white">
+                    <div className="rounded-[24px] bg-primary-container p-4 border border-primary-container flex items-start gap-3 shadow-xs">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground">
                         <Utensils className="h-4.5 w-4.5" />
                       </div>
                       <div>
-                        <h3 className="text-[14px] font-black text-[#1F1135]">
+                        <h3 className="text-[14px] font-black text-foreground">
                           Tus platos nunca se pierden
                         </h3>
-                        <p className="mt-0.5 text-[13px] font-medium text-[#6B5B7B] leading-snug">
+                        <p className="mt-0.5 text-[13px] font-medium text-muted-foreground leading-snug">
                           Conserva siempre el historial de ventas y favoritos. Si dejas de preparar un plato temporalmente, usa <strong>Archivar</strong> para ocultarlo del selector sin borrar su data.
                         </p>
                       </div>
                     </div>
 
                     {/* Configuración rápida: Secciones activas */}
-                    <div className="rounded-[24px] bg-[#F5F3FA] p-3.5 border border-[#E7E1F2] space-y-2">
+                    <div className="rounded-[24px] bg-background p-3.5 border border-border space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[13px] font-extrabold uppercase tracking-wider text-[#6B5B7B]">
+                        <span className="text-[13px] font-extrabold uppercase tracking-wider text-muted-foreground">
                           Secciones activas
                         </span>
-                        <span className="text-[13px] font-bold text-[#7B2CBF]">
+                        <span className="text-[13px] font-bold text-primary">
                           {activeSections.length} activas
                         </span>
                       </div>
@@ -764,8 +753,8 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                               aria-pressed={on}
                               className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
                                 on
-                                  ? "bg-[#7B2CBF] text-white shadow-xs"
-                                  : "bg-white text-[#4A0E78] border border-[#E7E1F2]"
+                                  ? "bg-primary text-primary-foreground shadow-xs"
+                                  : "bg-surface text-foreground border border-border"
                               }`}
                             >
                               {sec}
@@ -787,14 +776,14 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                         return (
                           <div key={sec.label} className="space-y-2">
                             <div className="flex items-center justify-between">
-                              <h3 className="text-[18px] font-black text-[#1F1135]">{sec.label}</h3>
+                              <h3 className="text-[18px] font-black text-foreground">{sec.label}</h3>
                               <button
                                 type="button"
                                 onClick={() => {
                                   setNewDishSection(sec.key);
                                   setShowAddModal(true);
                                 }}
-                                className="flex items-center gap-1 rounded-full bg-[#F3E8FF] px-3.5 py-1 text-[13px] font-bold text-[#7B2CBF] active:scale-95 transition-all hover:bg-[#EBD7FC]"
+                                className="flex items-center gap-1 rounded-full bg-primary-container px-3.5 py-1 text-[13px] font-bold text-primary active:scale-95 transition-all hover:bg-secondary-container"
                               >
                                 <Plus className="h-3.5 w-3.5" />
                                 <span>Agregar</span>
@@ -802,7 +791,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                             </div>
 
                             {items.length === 0 ? (
-                              <p className="py-3 text-center text-[13px] font-medium text-[#6B5B7B]">
+                              <p className="py-3 text-center text-[13px] font-medium text-muted-foreground">
                                 {sec.emptyText}
                               </p>
                             ) : (
@@ -810,22 +799,22 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                                 {items.map((item) => (
                                   <div
                                     key={item.id}
-                                    className={`rounded-2xl p-3 border bg-white flex items-center justify-between ${
-                                      item.archived ? "opacity-50 border-[#E7E1F2]" : "border-[#E7E1F2] shadow-xs"
+                                    className={`rounded-2xl p-3 border bg-surface flex items-center justify-between ${
+                                      item.archived ? "opacity-50 border-border" : "border-border shadow-xs"
                                     }`}
                                   >
                                     <div>
                                       <div className="flex items-center gap-2">
-                                        <span className="text-[14px] font-bold text-[#4A0E78]">
+                                        <span className="text-[14px] font-bold text-foreground">
                                           {item.name}
                                         </span>
                                         {item.id === "c-s1" || item.id === "c-m1" ? (
-                                          <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[13px] font-black text-[#D97706]">
+                                          <span className="rounded-full bg-primary-container px-2 py-0.5 text-[13px] font-black text-on-primary-container">
                                             ⭐ Más pedido
                                           </span>
                                         ) : null}
                                       </div>
-                                      <span className="text-[13px] font-medium text-[#6B5B7B]">
+                                      <span className="text-[13px] font-medium text-muted-foreground">
                                         {item.archived ? "Archivado · Oculto de hoy" : "Activo en opciones de almuerzo"}
                                       </span>
                                     </div>
@@ -834,7 +823,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                                       <button
                                         type="button"
                                         onClick={() => handleArchiveDish(item.id)}
-                                        className="rounded-full bg-[#F5F3FA] px-2.5 py-1 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95"
+                                        className="rounded-full bg-background px-2.5 py-1 text-[13px] font-bold text-muted-foreground border border-border active:scale-95"
                                       >
                                         {item.archived ? "Activar" : "Archivar"}
                                       </button>
@@ -857,7 +846,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                           setUndoLabel("Platos de la casa guardados");
                           setUndoSeconds(10);
                         }}
-                        className="w-full flex items-center justify-center gap-2 rounded-full bg-[#7B2CBF] py-3.5 text-[15px] font-black text-white shadow-md active:scale-95 transition-all hover:bg-[#6A24A6]"
+                        className="w-full flex items-center justify-center gap-2 rounded-full bg-primary py-3.5 text-[15px] font-black text-primary-foreground shadow-md active:scale-95 transition-all hover:bg-primary-hover"
                       >
                         <Check className="h-4 w-4 stroke-[3]" />
                         <span>Guardar platos de la casa</span>
@@ -871,17 +860,17 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-[18px] font-black text-[#1F1135]">
+                        <h3 className="text-[18px] font-black text-foreground">
                           Especialidades de la casa
                         </h3>
-                        <p className="text-[13px] font-medium text-[#6B5B7B]">
+                        <p className="text-[13px] font-medium text-muted-foreground">
                           Platos individuales que se venden a precio libre fuera del combo de almuerzo.
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={() => setShowALaCarteModal(true)}
-                        className="flex items-center gap-1 rounded-full bg-[#7B2CBF] px-3.5 py-1.5 text-[13px] font-black text-white active:scale-95 transition-all shadow-xs shrink-0"
+                        className="flex items-center gap-1 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-black text-primary-foreground active:scale-95 transition-all shadow-xs shrink-0"
                       >
                         <Plus className="h-4 w-4" />
                         <span>Nuevo plato</span>
@@ -892,20 +881,20 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                       {aLaCarteCatalog.map((alc) => (
                         <div
                           key={alc.id}
-                          className={`rounded-2xl p-4 border bg-white flex items-center justify-between ${
-                            alc.archived ? "opacity-50 border-[#E7E1F2]" : "border-[#E7E1F2] shadow-xs"
+                          className={`rounded-2xl p-4 border bg-surface flex items-center justify-between ${
+                            alc.archived ? "opacity-50 border-border" : "border-border shadow-xs"
                           }`}
                         >
                           <div className="space-y-0.5">
                             <div className="flex items-center gap-2">
-                              <h4 className="text-[15px] font-extrabold text-[#1F1135]">
+                              <h4 className="text-[15px] font-extrabold text-foreground">
                                 {alc.name}
                               </h4>
-                              <span className="rounded-full bg-[#E6F6EC] px-2 py-0.5 text-[13px] font-black text-[#157A41]">
+                              <span className="rounded-full bg-success-container px-2 py-0.5 text-[13px] font-black text-success">
                                 ${alc.price.toFixed(2).replace(".", ",")}
                               </span>
                             </div>
-                            <p className="text-[13px] font-medium text-[#6B5B7B]">
+                            <p className="text-[13px] font-medium text-muted-foreground">
                               {alc.description}
                             </p>
                           </div>
@@ -913,7 +902,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                           <button
                             type="button"
                             onClick={() => handleArchiveALaCarte(alc.id)}
-                            className="rounded-full bg-[#F5F3FA] px-3 py-1.5 text-[13px] font-bold text-[#6B5B7B] border border-[#E7E1F2] active:scale-95 shrink-0"
+                            className="rounded-full bg-background px-3 py-1.5 text-[13px] font-bold text-muted-foreground border border-border active:scale-95 shrink-0"
                           >
                             {alc.archived ? "Activar" : "Archivar"}
                           </button>
@@ -934,19 +923,19 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label={`Elegir ${selectingSection} del día`}
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/40 backdrop-blur-[4px] p-4 animate-in fade-in"
           onClick={() => setSelectingSection(null)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-2xl animate-in slide-in-from-bottom space-y-4"
+            className="w-full max-w-sm rounded-[32px] bg-surface p-5 shadow-2xl animate-in slide-in-from-bottom space-y-4"
           >
-            <div className="flex items-center justify-between pb-2 border-b border-[#F0EDF5]">
+            <div className="flex items-center justify-between pb-2 border-b border-border">
               <div>
-                <span className="block text-[13px] font-extrabold uppercase tracking-wider text-[#7B2CBF]">
+                <span className="block text-[13px] font-extrabold uppercase tracking-wider text-primary">
                   Almuerzo de hoy
                 </span>
-                <h3 className="text-[17px] font-black text-[#1F1135]">
+                <h3 className="text-[17px] font-black text-foreground">
                   Elegir {selectingSection.toLowerCase()}s
                 </h3>
               </div>
@@ -954,13 +943,13 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 type="button"
                 onClick={() => setSelectingSection(null)}
                 aria-label="Cerrar selector"
-                className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
+                className="grid h-8 w-8 place-items-center rounded-full bg-background text-muted-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            <p className="text-[13px] font-medium text-[#6B5B7B]">
+            <p className="text-[13px] font-medium text-muted-foreground">
               Selecciona las opciones que ofreces hoy (puedes marcar varias):
             </p>
 
@@ -982,25 +971,25 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                       onClick={() => handleToggleDishInTodayCategory(item.name, selectingSection)}
                       className={`w-full flex items-center justify-between p-3 rounded-2xl border text-left transition-all active:scale-[0.98] ${
                         isCurrent
-                          ? "border-[#7B2CBF] bg-[#F3E8FF] text-[#7B2CBF] shadow-xs"
-                          : "border-[#F0EDF5] bg-[#FAF8FC] text-[#1F1135] hover:bg-white"
+                          ? "border-primary bg-primary-container text-primary shadow-xs"
+                          : "border-border bg-background text-foreground hover:bg-surface"
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-[14px] font-bold">{item.name}</span>
                         {item.id === "c-s1" || item.id === "c-m1" ? (
-                          <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[13px] font-black text-[#D97706]">
+                          <span className="rounded-full bg-primary-container px-2 py-0.5 text-[13px] font-black text-on-primary-container">
                             ⭐ Más pedido
                           </span>
                         ) : null}
                       </div>
                       {isCurrent ? (
-                        <div className="flex items-center gap-1 text-[13px] font-bold text-[#7B2CBF]">
+                        <div className="flex items-center gap-1 text-[13px] font-bold text-primary">
                           <Check className="h-4 w-4 stroke-[3]" />
                           <span>Incluido</span>
                         </div>
                       ) : (
-                        <span className="text-[13px] font-bold text-[#6B5B7B]">
+                        <span className="text-[13px] font-bold text-muted-foreground">
                           + Agregar
                         </span>
                       )}
@@ -1010,8 +999,8 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
             </div>
 
             {/* Input rápido para agregar una nueva receta al vuelo si hoy cocinó algo nuevo */}
-            <div className="pt-2 border-t border-[#F0EDF5] space-y-2">
-              <label htmlFor="quick-dish-input" className="block text-[13px] font-bold text-[#6B5B7B]">
+            <div className="pt-2 border-t border-border space-y-2">
+              <label htmlFor="quick-dish-input" className="block text-[13px] font-bold text-muted-foreground">
                 ¿Preparaste una nueva {selectingSection.toLowerCase()}?
               </label>
               <div className="flex gap-2">
@@ -1021,12 +1010,12 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                   placeholder={`Ej. ${selectingSection === "Sopa" ? "Caldo de bola" : selectingSection === "Bebida" ? "Jugo de maracuyá" : "Chivo al hueco"}`}
                   value={quickDishInput}
                   onChange={(e) => setQuickDishInput(e.target.value)}
-                  className="flex-1 rounded-xl border border-[#E7E1F2] bg-[#F5F3FA] px-3 py-2 text-[14px] font-bold text-[#1F1135] focus:border-[#7B2CBF] focus:outline-hidden"
+                  className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
                 />
                 <button
                   type="button"
                   onClick={handleCreateQuickDish}
-                  className="rounded-xl bg-[#7B2CBF] px-4 py-2 text-[13px] font-black text-white active:scale-95 transition-all shadow-xs"
+                  className="rounded-xl bg-primary px-4 py-2 text-[13px] font-black text-primary-foreground active:scale-95 transition-all shadow-xs"
                 >
                   Agregar
                 </button>
@@ -1049,26 +1038,26 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Nuevo plato para la casa"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/40 backdrop-blur-[4px] p-4 animate-in fade-in"
           onClick={() => setShowAddModal(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-xl animate-in slide-in-from-bottom space-y-4"
+            className="w-full max-w-sm rounded-[32px] bg-surface p-5 shadow-xl animate-in slide-in-from-bottom space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-[17px] font-black text-[#4A0E78]">Nuevo plato</h3>
+              <h3 className="text-[17px] font-black text-foreground">Nuevo plato</h3>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
+                className="grid h-8 w-8 place-items-center rounded-full bg-background text-muted-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div>
-              <label htmlFor="new-dish-name-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="new-dish-name-input" className="block text-[13px] font-bold text-muted-foreground mb-1">
                 Nombre del plato
               </label>
               <input
@@ -1078,12 +1067,12 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 onChange={(e) => setNewDishName(e.target.value)}
                 placeholder="Ej. Seco de carne con arroz"
                 autoFocus
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+                className="w-full rounded-2xl border border-border bg-background p-3 text-[15px] font-bold text-foreground focus:border-primary focus:outline-hidden"
               />
             </div>
 
             <div>
-              <span className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <span className="block text-[13px] font-bold text-muted-foreground mb-1">
                 Sección
               </span>
               <div className="flex gap-2">
@@ -1094,8 +1083,8 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                     onClick={() => setNewDishSection(sec)}
                     className={`flex-1 rounded-xl py-2 text-[13px] font-bold transition-all ${
                       newDishSection === sec
-                        ? "bg-[#7B2CBF] text-white shadow-xs"
-                        : "bg-[#F5F3FA] text-[#4A0E78] border border-[#E7E1F2]"
+                        ? "bg-primary text-primary-foreground shadow-xs"
+                        : "bg-background text-foreground border border-border"
                     }`}
                   >
                     {sec}
@@ -1119,26 +1108,26 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
           role="dialog"
           aria-modal="true"
           aria-label="Nueva especialidad a la carta"
-          className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/40 backdrop-blur-[4px] p-4 animate-in fade-in"
           onClick={() => setShowALaCarteModal(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-[32px] bg-white p-5 shadow-xl animate-in slide-in-from-bottom space-y-4"
+            className="w-full max-w-sm rounded-[32px] bg-surface p-5 shadow-xl animate-in slide-in-from-bottom space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-[17px] font-black text-[#4A0E78]">Plato a la carta</h3>
+              <h3 className="text-[17px] font-black text-foreground">Plato a la carta</h3>
               <button
                 type="button"
                 onClick={() => setShowALaCarteModal(false)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
+                className="grid h-8 w-8 place-items-center rounded-full bg-background text-muted-foreground active:scale-95"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
             <div>
-              <label htmlFor="new-alc-name-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="new-alc-name-input" className="block text-[13px] font-bold text-muted-foreground mb-1">
                 Nombre del plato
               </label>
               <input
@@ -1148,12 +1137,12 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 onChange={(e) => setNewAlcName(e.target.value)}
                 placeholder="Ej. Parrillada mixta"
                 autoFocus
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+                className="w-full rounded-2xl border border-border bg-background p-3 text-[15px] font-bold text-foreground focus:border-primary focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label htmlFor="new-alc-price-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="new-alc-price-input" className="block text-[13px] font-bold text-muted-foreground mb-1">
                 Precio en dólares
               </label>
               <input
@@ -1162,12 +1151,12 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 value={newAlcPrice}
                 onChange={(e) => setNewAlcPrice(e.target.value)}
                 placeholder="Ej. 6.50"
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+                className="w-full rounded-2xl border border-border bg-background p-3 text-[15px] font-bold text-foreground focus:border-primary focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label htmlFor="new-alc-desc-input" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="new-alc-desc-input" className="block text-[13px] font-bold text-muted-foreground mb-1">
                 Descripción
               </label>
               <input
@@ -1176,7 +1165,7 @@ export const MenuDiaScreen: React.FC<MenuDiaScreenProps> = ({
                 value={newAlcDesc}
                 onChange={(e) => setNewAlcDesc(e.target.value)}
                 placeholder="Ej. Con patacones y ensalada"
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] p-3 text-[15px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+                className="w-full rounded-2xl border border-border bg-background p-3 text-[15px] font-bold text-foreground focus:border-primary focus:outline-hidden"
               />
             </div>
 

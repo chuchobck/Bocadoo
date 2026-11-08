@@ -217,7 +217,7 @@ const LoginScreen = () => (
 
       {/* Pestañas salientes tipo carpeta física / Real Card Tabs */}
       <div className="relative mt-5 -mb-px flex items-end px-3 gap-1 z-10">
-        <div className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-[0_-5px_12px_rgba(0,0,0,0.06)] relative z-20 pb-2.5">
+        <div className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-black rounded-t-2xl bg-card border-t-2 border-t-primary border-l border-r border-border/80 text-primary shadow-sm relative z-20 pb-2.5">
           <UserRound size={13} className="text-primary" />
           <span>Comensal</span>
           <span className="h-1.5 w-1.5 rounded-full bg-primary" />
@@ -229,15 +229,15 @@ const LoginScreen = () => (
       </div>
 
       {/* Tarjeta inteligente Bocadoo Pass */}
-      <div className="relative rounded-b-[28px] rounded-tr-[28px] rounded-tl-[4px] bg-gradient-to-b from-card via-card to-card/95 p-4 shadow-[0_22px_45px_-12px_rgba(75,15,80,0.18),0_6px_20px_-4px_rgba(0,0,0,0.07)] border border-border/80 ring-1 ring-white/90 ring-inset">
+      <div className="relative rounded-b-[28px] rounded-tr-[28px] rounded-tl-[4px] bg-gradient-to-b from-card via-card to-card/95 p-4 shadow-md border border-border/80 ring-1 ring-image-foreground/90 ring-inset">
         {/* Chip EMV dorado + Ondas NFC Contactless */}
         <div className="flex items-center justify-between border-b border-border/50 pb-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="relative h-6 w-8 rounded bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 p-0.5 shadow-xs border border-amber-500/50 flex items-center justify-center shrink-0">
-              <div className="h-full w-full rounded-[2px] border border-amber-700/30 grid grid-cols-2 grid-rows-2 gap-[1px]">
-                <div className="border-r border-b border-amber-700/40" />
-                <div className="border-b border-amber-700/40" />
-                <div className="border-r border-amber-700/40" />
+            <div className="relative h-6 w-8 rounded bg-gradient-to-br from-primary-container via-footer-accent to-primary p-0.5 shadow-xs border border-primary/50 flex items-center justify-center shrink-0">
+              <div className="h-full w-full rounded-[2px] border border-foreground/30 grid grid-cols-2 grid-rows-2 gap-[1px]">
+                <div className="border-r border-b border-foreground/40" />
+                <div className="border-b border-foreground/40" />
+                <div className="border-r border-foreground/40" />
                 <div />
               </div>
             </div>
@@ -253,12 +253,12 @@ const LoginScreen = () => (
         <label className="mt-3.5 block text-[10px] font-bold text-muted-foreground">
           CORREO ELECTRÓNICO
         </label>
-        <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] border border-border/40">
+        <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-none border border-border/40">
           <Mail size={16} className="text-primary" /> carlos@email.com
         </div>
 
         <label className="mt-3 block text-[10px] font-bold text-muted-foreground">CONTRASEÑA</label>
-        <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-[inset_0_2px_4px_rgba(0,0,0,0.04)] border border-border/40">
+        <div className="mt-1 flex h-11 items-center gap-2.5 rounded-xl bg-muted/90 px-3 text-xs text-foreground shadow-none border border-border/40">
           <LockKeyhole size={16} className="text-primary" />
           <span className="tracking-[4px]">••••••••</span>
           <Eye size={15} className="ml-auto text-muted-foreground" />
@@ -357,7 +357,7 @@ const RegisterDinerMockup = () => (
         <div>
           <div className="flex items-center justify-between">
             <label className="text-[9px] font-bold text-muted-foreground uppercase">Contraseña</label>
-            <span className="text-[9px] font-bold text-emerald-600">Segura</span>
+            <span className="text-[9px] font-bold text-success">Segura</span>
           </div>
           <div className="mt-1 flex h-10 items-center gap-2 rounded-xl bg-muted px-3 text-xs">
             <LockKeyhole size={15} className="text-primary" />
@@ -365,9 +365,9 @@ const RegisterDinerMockup = () => (
             <Eye size={14} className="ml-auto text-muted-foreground" />
           </div>
           <div className="mt-1 flex gap-1 h-1">
-            <div className="flex-1 rounded-full bg-emerald-500" />
-            <div className="flex-1 rounded-full bg-emerald-500" />
-            <div className="flex-1 rounded-full bg-emerald-500" />
+            <div className="flex-1 rounded-full bg-success" />
+            <div className="flex-1 rounded-full bg-success" />
+            <div className="flex-1 rounded-full bg-success" />
           </div>
         </div>
         <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground">
@@ -447,14 +447,14 @@ const RegisterOwnerMockup = () => (
               <MapPin size={10} /> Centro Histórico
             </span>
           </div>
-          <div className="relative h-22 w-full overflow-hidden rounded-xl border border-border bg-[#f1f3f0]">
+          <div className="relative h-22 w-full overflow-hidden rounded-xl border border-border bg-background">
             <svg className="absolute inset-0 h-full w-full" preserveAspectRatio="none">
-              <rect width="100%" height="100%" fill="#f1f3f0" />
-              <rect x="25%" y="15%" width="25%" height="20%" rx="6" fill="#d1ebd1" />
-              <rect x="36%" y="58%" width="20%" height="15%" rx="6" fill="#d1ebd1" />
-              <path d="M 42% 0 L 42% 100%" stroke="#ffffff" strokeWidth="5" />
-              <path d="M 42% 0 L 42% 100%" stroke="#f7c852" strokeWidth="2" />
-              <path d="M 54% 0 L 54% 100%" stroke="#ffffff" strokeWidth="4" />
+              <rect width="100%" height="100%" className="fill-background" />
+              <rect x="25%" y="15%" width="25%" height="20%" rx="6" className="fill-success-container" />
+              <rect x="36%" y="58%" width="20%" height="15%" rx="6" className="fill-success-container" />
+              <path d="M 42% 0 L 42% 100%" className="stroke-surface" strokeWidth="5" />
+              <path d="M 42% 0 L 42% 100%" className="stroke-primary-container" strokeWidth="2" />
+              <path d="M 54% 0 L 54% 100%" className="stroke-surface" strokeWidth="4" />
             </svg>
             <div className="absolute left-[38%] top-[65%] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center">
               <div className="rounded bg-card px-1.5 py-0.5 text-[8px] font-black text-foreground shadow border border-border">
@@ -668,7 +668,7 @@ const DinerHome = () => (
           <div className="absolute inset-x-3 bottom-0 top-7 rounded-[23px] bg-lavender opacity-70" />
 
           {/* Tarjeta principal negra/dark obsidian, minimalista y con proporciones de tarjeta real */}
-          <div className="relative rounded-[23px] bg-card-dark p-5 text-card-dark-foreground shadow-card border border-white/5 ring-1 ring-white/10">
+          <div className="relative rounded-[23px] bg-footer-bg p-5 text-image-foreground shadow-card border border-image-foreground/5 ring-1 ring-image-foreground/10">
             {/* Fila superior: Logo restaurante + Nombre/Plan + Contactless + Sparkles */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">
@@ -676,56 +676,56 @@ const DinerHome = () => (
                   <Utensils size={18} />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-black text-white">
+                  <p className="truncate text-[13px] font-black text-image-foreground">
                     La Cuchara de San Blas
                   </p>
-                  <p className="text-[9px] font-bold text-card-dark-muted">Plan mensual</p>
+                  <p className="text-[9px] font-bold text-footer-accent">Plan mensual</p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 text-lavender">
+              <div className="flex items-center gap-2 text-footer-accent">
                 <span title="Validación sin contacto QR">
-                  <Wifi size={14} className="rotate-90 text-lavender/60" />
+                  <Wifi size={14} className="rotate-90 text-footer-accent/60" />
                 </span>
-                <Sparkles size={19} className="text-lavender" />
+                <Sparkles size={19} className="text-footer-accent" />
               </div>
             </div>
 
             {/* Saldo de almuerzos y contravalor */}
             <div className="mt-5 flex items-end justify-between">
               <div>
-                <p className="text-[32px] font-black leading-none text-white tracking-tight">
-                  14 <span className="text-[16px] font-bold text-white/85">almuerzos</span>
+                <p className="text-[32px] font-black leading-none text-image-foreground tracking-tight">
+                  14 <span className="text-[16px] font-bold text-image-foreground/85">almuerzos</span>
                 </p>
-                <p className="mt-1.5 text-[10px] font-semibold text-card-dark-muted">
+                <p className="mt-1.5 text-[10px] font-semibold text-footer-accent">
                   Vence el 30/10
                 </p>
               </div>
-              <p className="text-base font-black text-lavender tracking-tight">
+              <p className="text-base font-black text-footer-accent tracking-tight">
                 ≈ $39,20
               </p>
             </div>
 
             {/* Barra de progreso de consumo */}
-            <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-white/15">
+            <div className="mt-5 h-1.5 w-full overflow-hidden rounded-full bg-image-foreground/15">
               <div
                 className="h-full rounded-full bg-primary transition-all duration-500"
                 style={{ width: "70%" }}
               />
             </div>
-            <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-card-dark-muted">
+            <div className="mt-2 flex items-center justify-between text-[10px] font-bold text-footer-accent">
               <span>6 usados de 20</span>
               <span>70% disponible</span>
             </div>
 
             {/* Detalle relieve sutil de tarjeta de crédito real */}
-            <div className="mt-3.5 pt-2 border-t border-white/10 flex items-center justify-between text-[8px] font-mono tracking-widest text-card-dark-muted/70 uppercase">
+            <div className="mt-3.5 pt-2 border-t border-image-foreground/10 flex items-center justify-between text-[8px] font-mono tracking-widest text-footer-accent/70 uppercase">
               <span>•••• 9412</span>
               <span>CARLOS MEJÍA</span>
             </div>
 
             {/* Botón blanco Mostrar QR */}
-            <div className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3 text-xs font-black text-card-dark shadow-sm">
-              <QrCode size={17} className="text-card-dark" />
+            <div className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-surface py-3 text-xs font-black text-foreground shadow-sm">
+              <QrCode size={17} className="text-foreground" />
               <span>Mostrar QR</span>
             </div>
           </div>
@@ -1300,14 +1300,14 @@ const OwnerSettings = () => (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-hidden px-5">
         <h2 className="mt-4 text-[23px] font-black">Ajustes</h2>
-        <div className="mt-4 flex items-center gap-4 rounded-[24px] bg-foreground p-4 text-background">
+        <div className="mt-4 flex items-center gap-4 rounded-[24px] bg-footer-bg p-4 text-image-foreground">
           <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground">
             <Utensils size={24} />
           </div>
           <div className="min-w-0">
-            <p className="text-[8px] font-bold text-lavender">MI RESTAURANTE</p>
+            <p className="text-[8px] font-bold text-footer-accent">MI RESTAURANTE</p>
             <h3 className="mt-1 text-sm font-black leading-tight">La Cuchara de San Blas</h3>
-            <p className="mt-1 text-[8px] text-card-dark-muted">
+            <p className="mt-1 text-[8px] text-footer-accent">
               Editar perfil <Pencil size={8} className="inline" />
             </p>
           </div>
@@ -1351,7 +1351,7 @@ const ModalHeader = ({
       <Icon size={19} />
     </div>
     <div className="min-w-0">
-      <p className={`text-[9px] font-black ${dark ? "text-lavender" : "text-primary"}`}>
+      <p className={`text-[9px] font-black ${dark ? "text-footer-accent" : "text-primary"}`}>
         {eyebrow}
       </p>
       <h3 className="mt-0.5 truncate text-lg font-black leading-tight">{title}</h3>
@@ -1388,7 +1388,7 @@ const PaymentMethods = ({ selected, dark = false }: { selected: string; dark?: b
     ).map(([label, Icon]) => {
       const on = label === selected;
       const idle = dark
-        ? "border-background/15 text-card-dark-muted"
+        ? "border-background/15 text-footer-accent"
         : "border-border text-muted-foreground";
       return (
         <div
@@ -1479,7 +1479,7 @@ const ScanModal = () => (
   <Phone
     title="Dueño · Escanear QR / Descontar"
     overlay={
-      <div className="m-auto w-[336px] rounded-[28px] bg-card-dark p-5 text-card-dark-foreground shadow-card">
+      <div className="m-auto w-[336px] rounded-[28px] bg-footer-bg p-5 text-image-foreground shadow-card">
         <ModalHeader
           icon={ScanLine}
           eyebrow="ESCANEAR QR / DESCONTAR"
@@ -1487,7 +1487,7 @@ const ScanModal = () => (
           dark
         />
         <div className="relative mt-5 grid h-[190px] place-items-center overflow-hidden rounded-2xl bg-phone">
-          <QrCode size={100} strokeWidth={1.2} className="text-card-dark-muted/40" />
+          <QrCode size={100} strokeWidth={1.2} className="text-footer-accent/40" />
           <ScanCorner className="left-5 top-5 rounded-tl-xl border-l-4 border-t-4" />
           <ScanCorner className="right-5 top-5 rounded-tr-xl border-r-4 border-t-4" />
           <ScanCorner className="bottom-5 left-5 rounded-bl-xl border-b-4 border-l-4" />
@@ -1497,17 +1497,17 @@ const ScanModal = () => (
             <Flashlight size={14} />
           </div>
         </div>
-        <p className="mt-3 text-center text-[10px] text-card-dark-muted">
+        <p className="mt-3 text-center text-[10px] text-footer-accent">
           Apunta la cámara al código QR del comensal
         </p>
-        <div className="my-3 flex items-center gap-3 text-[9px] font-bold text-card-dark-muted">
+        <div className="my-3 flex items-center gap-3 text-[9px] font-bold text-footer-accent">
           <i className="h-px flex-1 bg-background/15" />o busca por nombre de usuario
           <i className="h-px flex-1 bg-background/15" />
         </div>
         <div className="flex h-11 items-center gap-3 rounded-xl border border-primary bg-background/10 px-4 text-xs">
-          <AtSign size={15} className="text-lavender" />
+          <AtSign size={15} className="text-footer-accent" />
           <span className="font-semibold">carlos.mejia</span>
-          <Search size={15} className="ml-auto text-card-dark-muted" />
+          <Search size={15} className="ml-auto text-footer-accent" />
         </div>
         <div className="mt-3 rounded-2xl bg-background p-3 text-foreground">
           <div className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-3">
@@ -1725,10 +1725,10 @@ const PosScreen = () => (
           ))}
         </div>
       </div>
-      <div className="mt-auto rounded-t-[26px] bg-card-dark px-5 pb-6 pt-4 text-card-dark-foreground">
+      <div className="mt-auto rounded-t-[26px] bg-footer-bg px-5 pb-6 pt-4 text-image-foreground">
         <div className="flex items-center justify-between">
-          <p className="text-[9px] font-black text-lavender">TICKET #0148</p>
-          <p className="text-[9px] text-card-dark-muted">Mesa 4</p>
+          <p className="text-[9px] font-black text-footer-accent">TICKET #0148</p>
+          <p className="text-[9px] text-footer-accent">Mesa 4</p>
         </div>
         <div className="mt-2 space-y-1.5 text-[10px]">
           {[
@@ -1739,15 +1739,15 @@ const PosScreen = () => (
               key={name}
               className="grid grid-cols-[22px_minmax(0,1fr)_auto_auto] items-center gap-2"
             >
-              <span className="font-black text-lavender">{qty}</span>
+              <span className="font-black text-footer-accent">{qty}</span>
               <span className="truncate">{name}</span>
               <span className="font-bold">{total}</span>
-              <Minus size={12} className="text-card-dark-muted" />
+              <Minus size={12} className="text-footer-accent" />
             </div>
           ))}
         </div>
         <div className="mt-2.5 flex items-end justify-between border-t border-background/15 pt-2.5">
-          <span className="text-[10px] text-card-dark-muted">Total · 3 almuerzos</span>
+          <span className="text-[10px] text-footer-accent">Total · 3 almuerzos</span>
           <span className="text-xl font-black">$9,25</span>
         </div>
         <div className="mt-3">
@@ -1785,21 +1785,21 @@ const NewPlanScreen = () => (
           title="Nuevo plan"
           action={<span className="text-[11px] font-extrabold text-primary">Borrador</span>}
         />
-        <div className="relative mt-4 overflow-hidden rounded-[20px] bg-card-dark p-4 text-card-dark-foreground shadow-card">
+        <div className="relative mt-4 overflow-hidden rounded-[20px] bg-footer-bg p-4 text-image-foreground shadow-card">
           <div className="absolute -right-6 -top-8 h-24 w-24 rounded-full bg-primary/40" />
-          <p className="relative text-[8px] font-black text-lavender">
+          <p className="relative text-[8px] font-black text-footer-accent">
             VISTA PREVIA PARA COMENSALES
           </p>
           <div className="relative mt-2 flex items-end justify-between">
             <div>
               <p className="text-sm font-black">Plan mensual ejecutivo</p>
-              <p className="mt-0.5 text-[9px] text-card-dark-muted">
+              <p className="mt-0.5 text-[9px] text-footer-accent">
                 20 almuerzos · vigencia 35 días
               </p>
             </div>
             <div className="text-right">
               <p className="text-xl font-black">$52,00</p>
-              <p className="text-[8px] text-lavender">$2,60 c/u</p>
+              <p className="text-[8px] text-footer-accent">$2,60 c/u</p>
             </div>
           </div>
         </div>

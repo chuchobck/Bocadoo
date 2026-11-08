@@ -30,17 +30,17 @@ export const BigNumber: React.FC<BigNumberProps> = ({
   }[size];
 
   const toneClasses = {
-    primary: "text-[#4A0E78]",
-    success: "text-[#1F9D55]",
-    neutral: "text-[#6B5B7B]",
-    danger: "text-[#C0392B]",
+    primary: "text-foreground",
+    success: "text-success",
+    neutral: "text-muted-foreground",
+    danger: "text-danger",
   }[tone];
 
   if (state === "cargando") {
     return (
       <div className={`flex flex-col items-center gap-1.5 ${className}`}>
-        <div className="h-10 w-24 animate-pulse rounded-2xl bg-[#E7E1F2]" />
-        <div className="h-4 w-16 animate-pulse rounded-md bg-[#E7E1F2]" />
+        <div className="h-10 w-24 animate-pulse rounded-2xl bg-border" />
+        <div className="h-4 w-16 animate-pulse rounded-md bg-border" />
       </div>
     );
   }
@@ -48,8 +48,8 @@ export const BigNumber: React.FC<BigNumberProps> = ({
   if (state === "vacio") {
     return (
       <div className={`flex flex-col items-center gap-1 text-center ${className}`}>
-        <span className={`${sizeClasses} font-extrabold text-[#6B5B7B] opacity-40`}>--</span>
-        <span className="text-[13px] font-semibold text-[#6B5B7B]">Sin registros</span>
+        <span className={`${sizeClasses} font-extrabold text-muted-foreground opacity-40`}>--</span>
+        <span className="text-[13px] font-semibold text-muted-foreground">Sin registros</span>
       </div>
     );
   }
@@ -57,11 +57,11 @@ export const BigNumber: React.FC<BigNumberProps> = ({
   if (state === "error") {
     return (
       <div className={`flex flex-col items-center gap-1 text-center ${className}`}>
-        <div className="flex items-center gap-1.5 text-[#C0392B]">
+        <div className="flex items-center gap-1.5 text-danger">
           <AlertCircle className="h-6 w-6" />
           <span className="text-[20px] font-bold">Error</span>
         </div>
-        <span className="text-[13px] font-semibold text-[#6B5B7B]">{label || "No disponible"}</span>
+        <span className="text-[13px] font-semibold text-muted-foreground">{label || "No disponible"}</span>
       </div>
     );
   }
@@ -69,11 +69,11 @@ export const BigNumber: React.FC<BigNumberProps> = ({
   if (state === "offline") {
     return (
       <div className={`flex flex-col items-center gap-1 text-center ${className}`}>
-        <div className="flex items-center gap-1.5 text-[#6B5B7B]">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
           <WifiOff className="h-5 w-5" />
           <span className={`${sizeClasses} font-extrabold opacity-60`}>{value}</span>
         </div>
-        <span className="text-[13px] font-semibold text-[#6B5B7B]">Guardado local</span>
+        <span className="text-[13px] font-semibold text-muted-foreground">Guardado local</span>
       </div>
     );
   }
@@ -83,9 +83,9 @@ export const BigNumber: React.FC<BigNumberProps> = ({
       <span className={`${sizeClasses} font-extrabold tracking-tight ${toneClasses}`}>
         {value}
       </span>
-      <span className="mt-1 text-[15px] font-bold text-[#4A0E78]">{label}</span>
+      <span className="mt-1 text-[15px] font-bold text-foreground">{label}</span>
       {sublabel && (
-        <span className="mt-0.5 text-[13px] font-semibold text-[#6B5B7B]">{sublabel}</span>
+        <span className="mt-0.5 text-[13px] font-semibold text-muted-foreground">{sublabel}</span>
       )}
     </div>
   );

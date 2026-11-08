@@ -8,4 +8,5 @@ export const FICHA_LOCAL_COPY = {
   loadingMenu: "Cargando menú del día",
   errorMenu: "Error al cargar menú",
   offlineNotice: "Sin conexión · Menú guardado",
+  soldOut: "Se acabó",
 } as const;

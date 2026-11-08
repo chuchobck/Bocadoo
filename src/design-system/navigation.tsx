@@ -26,11 +26,11 @@ export const NavBar: React.FC<NavBarProps> = ({
 }) => {
   if (state === "cargando") {
     return (
-      <div className={`flex h-[72px] w-full items-center justify-around border-t border-[#E7E1F2] bg-white px-2 animate-pulse ${className}`}>
+      <div className={`flex h-[72px] w-full items-center justify-around border-t border-border bg-surface px-2 animate-pulse ${className}`}>
         {Array.from({ length: items.length || 3 }).map((_, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
-            <div className="h-6 w-6 rounded-full bg-[#E7E1F2]" />
-            <div className="h-3 w-10 rounded bg-[#E7E1F2]" />
+            <div className="h-6 w-6 rounded-full bg-border" />
+            <div className="h-3 w-10 rounded bg-border" />
           </div>
         ))}
       </div>
@@ -39,7 +39,7 @@ export const NavBar: React.FC<NavBarProps> = ({
 
   if (state === "vacio") {
     return (
-      <div className={`flex h-[72px] w-full items-center justify-center border-t border-[#E7E1F2] bg-[#F5F3FA] text-[13px] font-bold text-[#6B5B7B] ${className}`}>
+      <div className={`flex h-[72px] w-full items-center justify-center border-t border-border bg-background text-[13px] font-bold text-muted-foreground ${className}`}>
         Sin pestañas configuradas
       </div>
     );
@@ -47,7 +47,7 @@ export const NavBar: React.FC<NavBarProps> = ({
 
   if (state === "error") {
     return (
-      <div className={`flex h-[72px] w-full items-center justify-center border-t border-[#C0392B] bg-[#FDEBEB] text-[13px] font-bold text-[#C0392B] ${className}`}>
+      <div className={`flex h-[72px] w-full items-center justify-center border-t border-danger bg-danger-container text-[13px] font-bold text-on-danger-container ${className}`}>
         <AlertCircle className="h-4 w-4 mr-1.5" />
         <span>Error en navegación</span>
       </div>
@@ -56,14 +56,14 @@ export const NavBar: React.FC<NavBarProps> = ({
 
   if (state === "offline") {
     return (
-      <div className={`flex h-[72px] w-full flex-col border-t border-[#E7E1F2] bg-white ${className}`}>
-        <div className="flex h-5 items-center justify-center bg-[#F5F3FA] text-[13px] font-bold text-[#6B5B7B]">
+      <div className={`flex h-[72px] w-full flex-col border-t border-border bg-surface ${className}`}>
+        <div className="flex h-5 items-center justify-center bg-background text-[13px] font-bold text-muted-foreground">
           <WifiOff className="h-3.5 w-3.5 mr-1" />
           <span>Sin conexión</span>
         </div>
         <div className="flex flex-1 items-center justify-around">
           {items.map((item) => (
-            <button key={item.id} onClick={() => onSelect(item.id)} className="flex flex-col items-center text-[13px] font-bold text-[#6B5B7B]">
+            <button key={item.id} onClick={() => onSelect(item.id)} className="flex flex-col items-center text-[13px] font-bold text-muted-foreground">
               {item.icon}
               <span>{item.label}</span>
             </button>
@@ -75,7 +75,7 @@ export const NavBar: React.FC<NavBarProps> = ({
 
   return (
     <nav
-      className={`flex h-[72px] w-full items-center justify-around border-t border-[#E7E1F2] bg-white px-2 shadow-[0_-4px_16px_rgba(74,14,120,0.04)] ${className}`}
+      className={`flex h-[72px] w-full items-center justify-around border-t border-border bg-surface-nav px-2 shadow-sm ${className}`}
     >
       {items.map((item) => {
         const isSelected = activeId === item.id;
@@ -85,10 +85,10 @@ export const NavBar: React.FC<NavBarProps> = ({
             type="button"
             onClick={() => onSelect(item.id)}
             className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-3 py-1.5 transition-all duration-150 ${
-              isSelected ? "text-[#7B2CBF]" : "text-[#6B5B7B] hover:text-[#4A0E78]"
+              isSelected ? "text-on-primary-container" : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <div className={`grid place-items-center rounded-xl p-1 ${isSelected ? "bg-[#F3E8FF]" : ""}`}>
+            <div className={`grid place-items-center rounded-xl p-1 ${isSelected ? "bg-primary-container text-on-primary-container" : ""}`}>
               {item.icon}
             </div>
             <span className={`text-[13px] font-bold ${isSelected ? "font-extrabold" : ""}`}>{item.label}</span>
@@ -117,25 +117,25 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   if (state === "cargando") {
     return (
-      <header className={`flex h-14 w-full items-center justify-between px-4 animate-pulse bg-white border-b border-[#E7E1F2] ${className}`}>
-        <div className="h-6 w-6 rounded-full bg-[#E7E1F2]" />
-        <div className="h-6 w-28 rounded-lg bg-[#E7E1F2]" />
-        <div className="h-6 w-6 rounded-full bg-[#E7E1F2]" />
+      <header className={`flex h-14 w-full items-center justify-between px-4 animate-pulse bg-surface border-b border-border ${className}`}>
+        <div className="h-6 w-6 rounded-full bg-border" />
+        <div className="h-6 w-28 rounded-lg bg-border" />
+        <div className="h-6 w-6 rounded-full bg-border" />
       </header>
     );
   }
 
   if (state === "vacio") {
     return (
-      <header className={`flex h-14 w-full items-center justify-center px-4 bg-white border-b border-[#E7E1F2] ${className}`}>
-        <span className="text-[15px] font-bold text-[#6B5B7B]">Bocadoo</span>
+      <header className={`flex h-14 w-full items-center justify-center px-4 bg-surface border-b border-border ${className}`}>
+        <span className="text-[15px] font-bold text-muted-foreground">Bocadoo</span>
       </header>
     );
   }
 
   if (state === "error") {
     return (
-      <header className={`flex h-14 w-full items-center justify-between px-4 bg-[#FDEBEB] border-b border-[#C0392B] text-[#C0392B] ${className}`}>
+      <header className={`flex h-14 w-full items-center justify-between px-4 bg-danger-container border-b border-danger text-on-danger-container ${className}`}>
         <span className="text-[15px] font-bold">Error de conexión</span>
       </header>
     );
@@ -143,34 +143,34 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   if (state === "offline") {
     return (
-      <header className={`flex h-14 w-full items-center justify-between px-4 bg-white border-b border-[#E7E1F2] ${className}`}>
+      <header className={`flex h-14 w-full items-center justify-between px-4 bg-surface border-b border-border ${className}`}>
         <div className="flex items-center gap-2">
           {onBack && (
-            <button onClick={onBack} aria-label="Volver" className="grid h-10 w-10 place-items-center rounded-full text-[#4A0E78]">
+            <button onClick={onBack} aria-label="Volver" className="grid h-10 w-10 place-items-center rounded-full text-foreground">
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <h1 className="text-[17px] font-extrabold text-[#4A0E78] truncate">{title}</h1>
+          <h1 className="text-[17px] font-extrabold text-foreground truncate">{title}</h1>
         </div>
-        <WifiOff className="h-4 w-4 text-[#6B5B7B]" />
+        <WifiOff className="h-4 w-4 text-muted-foreground" />
       </header>
     );
   }
 
   return (
-    <header className={`flex h-14 w-full items-center justify-between px-4 bg-white border-b border-[#E7E1F2] ${className}`}>
+    <header className={`flex h-14 w-full items-center justify-between px-4 bg-surface border-b border-border ${className}`}>
       <div className="flex items-center gap-2 min-w-0">
         {onBack && (
           <button
             type="button"
             onClick={onBack}
             aria-label="Volver"
-            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#4A0E78] hover:bg-[#F3E8FF] active:scale-95 transition-all"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-foreground hover:bg-primary-container active:scale-95 transition-all"
           >
             <ArrowLeft className="h-5 w-5 stroke-[2.5]" />
           </button>
         )}
-        <h1 className="text-[17px] font-extrabold text-[#4A0E78] truncate max-w-[240px]">{title}</h1>
+        <h1 className="text-[17px] font-extrabold text-foreground truncate max-w-[240px]">{title}</h1>
       </div>
       {rightAction && <div className="shrink-0">{rightAction}</div>}
     </header>
@@ -190,12 +190,12 @@ export const OccupancyChip: React.FC<OccupancyChipProps> = ({
   className = "",
 }) => {
   if (state === "cargando") {
-    return <div className={`h-8 w-24 rounded-full bg-[#E7E1F2] animate-pulse ${className}`} />;
+    return <div className={`h-8 w-24 rounded-full bg-border animate-pulse ${className}`} />;
   }
 
   if (state === "vacio") {
     return (
-      <span className={`inline-flex items-center rounded-full bg-[#F5F3FA] px-3 py-1 text-[13px] font-semibold text-[#6B5B7B] ${className}`}>
+      <span className={`inline-flex items-center rounded-full bg-background px-3 py-1 text-[13px] font-semibold text-muted-foreground ${className}`}>
         Sin estimar
       </span>
     );
@@ -203,7 +203,7 @@ export const OccupancyChip: React.FC<OccupancyChipProps> = ({
 
   if (state === "error") {
     return (
-      <span className={`inline-flex items-center gap-1 rounded-full bg-[#FDEBEB] px-3 py-1 text-[13px] font-bold text-[#C0392B] ${className}`}>
+      <span className={`inline-flex items-center gap-1 rounded-full bg-danger-container px-3 py-1 text-[13px] font-bold text-on-danger-container ${className}`}>
         <AlertCircle className="h-3.5 w-3.5" />
         <span>No disponible</span>
       </span>
@@ -212,7 +212,7 @@ export const OccupancyChip: React.FC<OccupancyChipProps> = ({
 
   if (state === "offline") {
     return (
-      <span className={`inline-flex items-center gap-1 rounded-full bg-[#F5F3FA] px-3 py-1 text-[13px] font-bold text-[#6B5B7B] ${className}`}>
+      <span className={`inline-flex items-center gap-1 rounded-full bg-background px-3 py-1 text-[13px] font-bold text-muted-foreground ${className}`}>
         <WifiOff className="h-3.5 w-3.5" />
         <span>Ocupación previa</span>
       </span>
@@ -221,20 +221,20 @@ export const OccupancyChip: React.FC<OccupancyChipProps> = ({
 
   const configs = {
     LIBRE: {
-      bg: "bg-[#E6F6EC]",
-      text: "text-[#157A41]",
+      bg: "bg-success-container",
+      text: "text-success",
       label: "Libre",
       Icon: CheckCircle2,
     },
     MOVIDO: {
-      bg: "bg-[#F3E8FF]",
-      text: "text-[#7B2CBF]",
+      bg: "bg-primary-container",
+      text: "text-primary",
       label: "Movido",
       Icon: Users,
     },
     LLENO: {
-      bg: "bg-[#FDEBEB]",
-      text: "text-[#C0392B]",
+      bg: "bg-danger-container",
+      text: "text-on-danger-container",
       label: "Lleno",
       Icon: AlertTriangle,
     },
@@ -272,16 +272,16 @@ export const QuickPayBar: React.FC<QuickPayBarProps> = ({
 }) => {
   if (state === "cargando") {
     return (
-      <div className={`flex h-20 w-full items-center justify-between border-t border-[#E7E1F2] bg-white p-4 animate-pulse ${className}`}>
-        <div className="h-8 w-24 rounded-lg bg-[#E7E1F2]" />
-        <div className="h-12 w-32 rounded-full bg-[#E7E1F2]" />
+      <div className={`flex h-20 w-full items-center justify-between border-t border-border bg-surface p-4 animate-pulse ${className}`}>
+        <div className="h-8 w-24 rounded-lg bg-border" />
+        <div className="h-12 w-32 rounded-full bg-border" />
       </div>
     );
   }
 
   if (state === "vacio") {
     return (
-      <div className={`flex h-20 w-full items-center justify-center border-t border-[#E7E1F2] bg-[#F5F3FA] text-[15px] font-bold text-[#6B5B7B] ${className}`}>
+      <div className={`flex h-20 w-full items-center justify-center border-t border-border bg-background text-[15px] font-bold text-muted-foreground ${className}`}>
         Toca un plato para cobrar
       </div>
     );
@@ -289,7 +289,7 @@ export const QuickPayBar: React.FC<QuickPayBarProps> = ({
 
   if (state === "error") {
     return (
-      <div className={`flex h-20 w-full items-center justify-center border-t border-[#C0392B] bg-[#FDEBEB] text-[15px] font-bold text-[#C0392B] ${className}`}>
+      <div className={`flex h-20 w-full items-center justify-center border-t border-danger bg-danger-container text-[15px] font-bold text-on-danger-container ${className}`}>
         <AlertCircle className="h-5 w-5 mr-1.5" />
         <span>Error en cálculo de venta</span>
       </div>
@@ -298,14 +298,14 @@ export const QuickPayBar: React.FC<QuickPayBarProps> = ({
 
   if (state === "offline") {
     return (
-      <div className={`flex h-20 w-full items-center justify-between border-t border-[#E7E1F2] bg-white p-4 ${className}`}>
+      <div className={`flex h-20 w-full items-center justify-between border-t border-border bg-surface p-4 ${className}`}>
         <div>
-          <span className="text-[13px] font-bold text-[#6B5B7B]">Solo efectivo (offline)</span>
-          <div className="text-[28px] font-extrabold text-[#4A0E78]">{totalFormatted}</div>
+          <span className="text-[13px] font-bold text-muted-foreground">Solo efectivo (offline)</span>
+          <div className="text-[28px] font-extrabold text-foreground">{totalFormatted}</div>
         </div>
         <button
           onClick={onPayCash}
-          className="rounded-full bg-[#7B2CBF] px-6 py-3 text-[15px] font-bold text-white shadow-md"
+          className="rounded-full bg-primary px-6 py-3 text-[15px] font-bold text-primary-foreground shadow-md"
         >
           Efectivo
         </button>
@@ -315,12 +315,12 @@ export const QuickPayBar: React.FC<QuickPayBarProps> = ({
 
   return (
     <div
-      className={`flex h-24 w-full flex-col justify-between border-t border-[#E7E1F2] bg-white px-5 py-3 shadow-[0_-6px_20px_rgba(74,14,120,0.06)] ${className}`}
+      className={`flex h-24 w-full flex-col justify-between border-t border-border bg-surface px-5 py-3 shadow-md ${className}`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-baseline gap-2">
-          <span className="text-[13px] font-bold text-[#6B5B7B]">Total:</span>
-          <span className="text-[32px] font-extrabold leading-none text-[#4A0E78]">{totalFormatted}</span>
+          <span className="text-[13px] font-bold text-muted-foreground">Total:</span>
+          <span className="text-[32px] font-extrabold leading-none text-foreground">{totalFormatted}</span>
         </div>
 
         {onToggleTakeaway && (
@@ -328,7 +328,7 @@ export const QuickPayBar: React.FC<QuickPayBarProps> = ({
             type="button"
             onClick={() => onToggleTakeaway(!isTakeaway)}
             className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
-              isTakeaway ? "bg-[#7B2CBF] text-white" : "bg-[#F3E8FF] text-[#4A0E78]"
+              isTakeaway ? "bg-primary text-primary-foreground" : "bg-primary-container text-foreground"
             }`}
           >
             {isTakeaway ? "Para llevar" : "Comer aquí"}
@@ -340,14 +340,14 @@ export const QuickPayBar: React.FC<QuickPayBarProps> = ({
         <button
           type="button"
           onClick={onPayCash}
-          className="h-12 rounded-full bg-[#7B2CBF] text-[17px] font-bold text-white shadow-md active:scale-95 transition-all"
+          className="h-12 rounded-full bg-primary text-[17px] font-bold text-primary-foreground shadow-md active:scale-95 transition-all"
         >
           Efectivo
         </button>
         <button
           type="button"
           onClick={onPayTransfer}
-          className="h-12 rounded-full bg-[#F3E8FF] text-[17px] font-bold text-[#4A0E78] border border-[#E7E1F2] active:scale-95 transition-all"
+          className="h-12 rounded-full bg-primary-container text-[17px] font-bold text-foreground border border-border active:scale-95 transition-all"
         >
           Transferencia
         </button>

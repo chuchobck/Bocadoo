@@ -37,7 +37,7 @@ export const CalificarScreen: React.FC<CalificarScreenProps> = ({
 
   if (submitted) {
     return (
-      <div className="rounded-[28px] bg-[#E6F6EC] p-6 text-center text-[#157A41]">
+      <div className="rounded-[28px] bg-success-container p-6 text-center text-success">
         <Check className="mx-auto h-8 w-8 mb-2" />
         <h3 className="text-[17px] font-black">{CALIFICAR_COPY.sentFeedback}</h3>
       </div>
@@ -48,21 +48,38 @@ export const CalificarScreen: React.FC<CalificarScreenProps> = ({
     <div
       tabIndex={0}
       aria-label="Calificar almuerzo"
-      className="rounded-[28px] bg-[#FAF8FC] p-4 border border-[#E7E1F2] space-y-3"
+      className="rounded-[28px] bg-background p-4 border border-border space-y-3"
     >
-      <h3 className="text-[17px] font-black text-[#4A0E78]">{CALIFICAR_COPY.title}</h3>
+      <h3 className="text-[17px] font-black text-foreground">{CALIFICAR_COPY.title}</h3>
       {/* Línea guía justificada (máximo 8 palabras) */}
-      <p className="text-[13px] font-semibold text-[#6B5B7B]">{CALIFICAR_COPY.guideLine}</p>
+      <p className="text-[13px] font-semibold text-muted-foreground">{CALIFICAR_COPY.guideLine}</p>
 
       {state === "cargando" && (
-        <div className="py-6 text-center">
-          <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#7B2CBF]" />
-          <span className="mt-2 block text-[13px] font-bold text-[#4A0E78]">{CALIFICAR_COPY.loadingTitle}</span>
+        <div role="status" className="space-y-3 py-1 animate-pulse">
+          <span className="sr-only">Cargando tarjeta de calificación...</span>
+          <div className="space-y-1.5">
+            <div className="h-4 w-40 rounded-full bg-secondary-container" />
+            <div className="h-3 w-56 rounded-full bg-secondary-container/70" />
+          </div>
+
+          {/* Grilla de tags de 1 toque */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="h-9 w-24 rounded-full border border-border bg-surface"
+              />
+            ))}
+          </div>
+
+          {/* Campo de nota opcional y botón */}
+          <div className="h-11 w-full rounded-2xl border border-border bg-surface mt-2" />
+          <div className="h-12 w-full rounded-full bg-primary/20 mt-1" />
         </div>
       )}
 
       {state === "error" && (
-        <div className="rounded-2xl bg-[#FDEBEB] p-4 text-center text-[#C0392B]">
+        <div className="rounded-2xl bg-danger-container p-4 text-center text-on-danger-container">
           <AlertCircle className="mx-auto h-6 w-6 mb-1" />
           <span className="text-[13px] font-bold">{CALIFICAR_COPY.errorTitle}</span>
           <button
@@ -76,7 +93,7 @@ export const CalificarScreen: React.FC<CalificarScreenProps> = ({
       )}
 
       {state === "offline" && (
-        <div className="flex items-center justify-center gap-1.5 rounded-full bg-[#F5F3FA] py-1 text-[13px] font-bold text-[#6B5B7B]">
+        <div className="flex items-center justify-center gap-1.5 rounded-full bg-background py-1 text-[13px] font-bold text-muted-foreground">
           <WifiOff className="h-3.5 w-3.5" />
           <span>{CALIFICAR_COPY.offlineBadge}</span>
         </div>
@@ -102,7 +119,7 @@ export const CalificarScreen: React.FC<CalificarScreenProps> = ({
             onChange={(e) => setNote(e.target.value)}
             placeholder={CALIFICAR_COPY.commentPlaceholder}
             rows={2}
-            className="w-full rounded-2xl border border-[#E7E1F2] bg-white p-3 text-[13px] font-medium text-[#4A0E78] placeholder-[#6B5B7B] focus:border-[#7B2CBF] focus:outline-hidden"
+            className="w-full rounded-2xl border border-border bg-surface p-3 text-[13px] font-medium text-foreground placeholder-muted-foreground focus:border-primary focus:outline-hidden"
           />
 
           <ButtonPrimary onClick={handleSend} disabled={!selectedTag}>

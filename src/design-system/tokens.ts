@@ -1,37 +1,38 @@
 /**
  * Design Tokens — Bocadoo
- * Única fuente de verdad de valores visuales, dimensiones y reglas de diseño.
- * Basado en docs/IDENTIDAD_BOCADOO.md y las 3 Reglas de Oro.
+ * Los colores y sombras son REFERENCIAS a las variables CSS de src/styles.css, que es la única
+ * fuente de verdad (claro/oscuro). Aquí no se escriben hex: usa `var(--token)` o la utilidad
+ * de Tailwind equivalente. Reglas de uso en docs/IDENTIDAD_BOCADOO.md y las 3 Reglas de Oro.
  */
 
 export const TOKENS = {
   colors: {
     // Morados de marca
-    primary: "#7B2CBF",
-    primaryHover: "#6A22A9",
-    textPrimary: "#4A0E78",
-    textSecondary: "#6B5B7B",
-    lavender: "#E0AAFF",
-    lilacSoft: "#F3E8FF",
+    primary: "var(--primary)",
+    primaryHover: "var(--primary-hover)",
+    textPrimary: "var(--foreground)",
+    textSecondary: "var(--muted-foreground)",
+    lavender: "var(--primary-container)",
+    lilacSoft: "var(--primary-container)",
 
     // Superficies y neutros
-    appBackground: "#F5F3FA",
-    card: "#FFFFFF",
-    border: "#E7E1F2",
+    appBackground: "var(--background)",
+    card: "var(--surface)",
+    border: "var(--border)",
 
     // Estados funcionales (Solo Verde, Rojo y Morado Medio)
-    success: "#1F9D55",
-    successBg: "#E6F6EC",
-    successText: "#157A41",
+    success: "var(--success)",
+    successBg: "var(--success-container)",
+    successText: "var(--success)",
 
-    error: "#C0392B",
-    errorBg: "#FDEBEB",
-    errorText: "#C0392B",
+    error: "var(--danger)",
+    errorBg: "var(--danger-container)",
+    errorText: "var(--on-danger-container)",
 
-    // Advertencia funcional en gama morada (#9D4EDD)
-    warning: "#9D4EDD",
-    warningBg: "#F3E8FF",
-    warningText: "#4A0E78",
+    // Advertencia funcional en gama morada
+    warning: "var(--primary)",
+    warningBg: "var(--primary-container)",
+    warningText: "var(--on-primary-container)",
   },
 
   typography: {
@@ -70,10 +71,10 @@ export const TOKENS = {
   },
 
   shadows: {
-    soft: "0 4px 16px rgba(74, 14, 120, 0.06)",
-    card: "0 10px 28px rgba(74, 14, 120, 0.08)",
-    brand: "0 12px 30px rgba(123, 44, 191, 0.22)",
-    pressed: "0 2px 8px rgba(74, 14, 120, 0.12)",
+    soft: "var(--shadow-sm)",
+    card: "var(--shadow)",
+    brand: "var(--shadow-brand)",
+    pressed: "var(--shadow-sm)",
   },
 
   transitions: {

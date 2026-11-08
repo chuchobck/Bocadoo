@@ -1,36 +1,37 @@
 /**
- * Variables CSS del Design System de Bocadoo
- * Derivado directamente de src/design-system/tokens.ts
+ * Variables CSS del Design System de Bocadoo.
+ * Alias de los tokens de src/styles.css (única fuente de verdad, claro y oscuro).
+ * Aquí no se escriben hex.
  */
 
 :root {
-  --boc-primary: #7B2CBF;
-  --boc-primary-hover: #6A22A9;
-  --boc-text-primary: #4A0E78;
-  --boc-text-secondary: #6B5B7B;
-  --boc-lavender: #E0AAFF;
-  --boc-lilac-soft: #F3E8FF;
-  --boc-app-bg: #F5F3FA;
-  --boc-card: #FFFFFF;
-  --boc-border: #E7E1F2;
+  --boc-primary: var(--primary);
+  --boc-primary-hover: var(--primary-hover);
+  --boc-text-primary: var(--foreground);
+  --boc-text-secondary: var(--muted-foreground);
+  --boc-lavender: var(--primary);
+  --boc-lilac-soft: var(--primary-container);
+  --boc-app-bg: var(--background);
+  --boc-card: var(--surface);
+  --boc-border: var(--border);
 
-  --boc-success: #1F9D55;
-  --boc-success-bg: #E6F6EC;
-  --boc-success-text: #157A41;
+  --boc-success: var(--success);
+  --boc-success-bg: var(--success-container);
+  --boc-success-text: var(--success);
 
-  --boc-error: #C0392B;
-  --boc-error-bg: #FDEBEB;
-  --boc-error-text: #C0392B;
+  --boc-error: var(--danger);
+  --boc-error-bg: var(--danger-container);
+  --boc-error-text: var(--on-danger-container);
 
-  --boc-warning: #9D4EDD;
-  --boc-warning-bg: #F3E8FF;
-  --boc-warning-text: #4A0E78;
+  --boc-warning: var(--primary);
+  --boc-warning-bg: var(--primary-container);
+  --boc-warning-text: var(--on-primary-container);
 
   --boc-font-sans: "Plus Jakarta Sans", sans-serif;
 
-  --boc-shadow-soft: 0 4px 16px rgba(74, 14, 120, 0.06);
-  --boc-shadow-card: 0 10px 28px rgba(74, 14, 120, 0.08);
-  --boc-shadow-brand: 0 12px 30px rgba(123, 44, 191, 0.22);
+  --boc-shadow-soft: var(--shadow-sm);
+  --boc-shadow-card: var(--shadow);
+  --boc-shadow-brand: var(--shadow-brand);
 
   --boc-safe-top: env(safe-area-inset-top, 0px);
   --boc-safe-bottom: env(safe-area-inset-bottom, 34px);
@@ -44,7 +45,7 @@ html {
   text-size-adjust: 100%;
 }
 
-/* Indicador de foco accesible WCAG 2.2 AA */
+/* Indicador de foco accesible WCAG 2.2 AA (contraste ≥ 3:1 en claro y oscuro) */
 :focus-visible {
   outline: 3px solid var(--boc-lavender);
   outline-offset: 2px;
@@ -60,7 +61,7 @@ html {
 
 .boc-btn-primary {
   background-color: var(--boc-primary);
-  color: #FFFFFF;
+  color: var(--primary-foreground);
   min-height: 56px;
   border-radius: 9999px;
   font-size: 17px;
@@ -75,7 +76,7 @@ html {
 }
 
 .boc-btn-secondary {
-  background-color: #FFFFFF;
+  background-color: var(--boc-card);
   color: var(--boc-text-primary);
   border: 1.5px solid var(--boc-border);
   min-height: 56px;

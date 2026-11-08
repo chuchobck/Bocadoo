@@ -40,32 +40,32 @@ export const PasarCartulinaScreen: React.FC<PasarCartulinaScreenProps> = ({
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#4A0E78]/40 backdrop-blur-[4px] p-4 animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-scrim/40 backdrop-blur-[4px] p-4 animate-in fade-in"
       onClick={onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-[32px] bg-white p-6 shadow-xl animate-in slide-in-from-bottom relative"
+        className="w-full max-w-sm rounded-[32px] bg-surface p-6 shadow-xl animate-in slide-in-from-bottom relative"
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Cerrar modal"
-          className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-[#F5F3FA] text-[#6B5B7B] active:scale-95"
+          className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-background text-muted-foreground active:scale-95"
         >
           <X className="h-4 w-4" />
         </button>
 
-        <h2 className="text-[20px] font-black text-[#4A0E78]">{CARTULINA_COPY.title}</h2>
+        <h2 className="text-[20px] font-black text-foreground">{CARTULINA_COPY.title}</h2>
         {/* Línea guía justificada (máximo 8 palabras) */}
-        <p className="mt-0.5 text-[13px] font-semibold text-[#6B5B7B]">
+        <p className="mt-0.5 text-[13px] font-semibold text-muted-foreground">
           {CARTULINA_COPY.guideLine}
         </p>
 
         {state === "cargando" && (
           <div className="py-8 text-center">
-            <Loader2 className="mx-auto h-10 w-10 animate-spin text-[#7B2CBF]" />
-            <span className="mt-3 block text-[13px] font-bold text-[#4A0E78]">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" />
+            <span className="mt-3 block text-[13px] font-bold text-foreground">
               {CARTULINA_COPY.loadingTitle}
             </span>
           </div>
@@ -73,23 +73,23 @@ export const PasarCartulinaScreen: React.FC<PasarCartulinaScreenProps> = ({
 
         {state === "vacio" && (
           <div className="py-8 text-center">
-            <Sparkles className="mx-auto h-10 w-10 text-[#6B5B7B] mb-2" />
-            <h3 className="text-[17px] font-bold text-[#4A0E78]">{CARTULINA_COPY.emptyTitle}</h3>
-            <p className="mt-1 text-[13px] font-semibold text-[#6B5B7B]">
+            <Sparkles className="mx-auto h-10 w-10 text-muted-foreground mb-2" />
+            <h3 className="text-[17px] font-bold text-foreground">{CARTULINA_COPY.emptyTitle}</h3>
+            <p className="mt-1 text-[13px] font-semibold text-muted-foreground">
               {CARTULINA_COPY.emptyDesc}
             </p>
           </div>
         )}
 
         {state === "error" && (
-          <div className="my-4 rounded-[24px] bg-[#FDEBEB] p-5 text-center text-[#C0392B]">
+          <div className="my-4 rounded-[24px] bg-danger-container p-5 text-center text-on-danger-container">
             <AlertCircle className="mx-auto h-8 w-8 mb-2" />
             <h3 className="text-[17px] font-extrabold">{CARTULINA_COPY.errorTitle}</h3>
             <p className="mt-1 text-[13px] font-semibold">{CARTULINA_COPY.errorDesc}</p>
             <button
               type="button"
               onClick={onRetry || onClose}
-              className="mt-4 rounded-full bg-[#C0392B] px-5 py-2 text-[13px] font-bold text-white active:scale-95"
+              className="mt-4 rounded-full bg-danger px-5 py-2 text-[13px] font-bold text-danger-foreground active:scale-95"
             >
               Reintentar
             </button>
@@ -97,7 +97,7 @@ export const PasarCartulinaScreen: React.FC<PasarCartulinaScreenProps> = ({
         )}
 
         {state === "offline" && (
-          <div className="my-3 flex items-center justify-center gap-1.5 rounded-full bg-[#F5F3FA] py-1 text-[13px] font-bold text-[#6B5B7B]">
+          <div className="my-3 flex items-center justify-center gap-1.5 rounded-full bg-background py-1 text-[13px] font-bold text-muted-foreground">
             <WifiOff className="h-3.5 w-3.5" />
             <span>{CARTULINA_COPY.offlineBadge}</span>
           </div>
@@ -106,7 +106,7 @@ export const PasarCartulinaScreen: React.FC<PasarCartulinaScreenProps> = ({
         {(state === "exito" || state === "offline") && (
           <div className="mt-4 space-y-3">
             <div>
-              <label htmlFor="cartulina-name" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="cartulina-name" className="block text-[13px] font-bold text-muted-foreground mb-1">
                 {CARTULINA_COPY.nameLabel}
               </label>
               <input
@@ -115,12 +115,12 @@ export const PasarCartulinaScreen: React.FC<PasarCartulinaScreenProps> = ({
                 value={dinerName}
                 onChange={(e) => setDinerName(e.target.value)}
                 aria-label={CARTULINA_COPY.nameLabel}
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] px-4 py-2.5 text-[14px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+                className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label htmlFor="cartulina-phone" className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label htmlFor="cartulina-phone" className="block text-[13px] font-bold text-muted-foreground mb-1">
                 {CARTULINA_COPY.phoneLabel}
               </label>
               <input
@@ -129,29 +129,29 @@ export const PasarCartulinaScreen: React.FC<PasarCartulinaScreenProps> = ({
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 aria-label={CARTULINA_COPY.phoneLabel}
-                className="w-full rounded-2xl border border-[#E7E1F2] bg-[#F5F3FA] px-4 py-2.5 text-[14px] font-bold text-[#4A0E78] focus:border-[#7B2CBF] focus:outline-hidden"
+                className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-[14px] font-bold text-foreground focus:border-primary focus:outline-hidden"
               />
             </div>
 
             <div>
-              <label className="block text-[13px] font-bold text-[#6B5B7B] mb-1">
+              <label className="block text-[13px] font-bold text-muted-foreground mb-1">
                 {CARTULINA_COPY.lunchesLabel}
               </label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setRemainingLunches((prev) => Math.max(1, prev - 1))}
-                  className="grid h-10 w-10 place-items-center rounded-xl bg-[#F5F3FA] text-[#4A0E78] font-bold active:scale-95"
+                  className="grid h-10 w-10 place-items-center rounded-xl bg-background text-foreground font-bold active:scale-95"
                 >
                   -
                 </button>
-                <span className="flex-1 text-center text-[17px] font-black text-[#4A0E78]">
+                <span className="flex-1 text-center text-[17px] font-black text-foreground">
                   {remainingLunches} almuerzos
                 </span>
                 <button
                   type="button"
                   onClick={() => setRemainingLunches((prev) => prev + 1)}
-                  className="grid h-10 w-10 place-items-center rounded-xl bg-[#F3E8FF] text-[#7B2CBF] font-bold active:scale-95"
+                  className="grid h-10 w-10 place-items-center rounded-xl bg-primary-container text-primary font-bold active:scale-95"
                 >
                   +
                 </button>

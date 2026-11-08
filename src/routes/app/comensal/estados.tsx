@@ -43,7 +43,7 @@ function RouteComponent() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#F5F3FA] text-[15px] font-bold text-[#4A0E78]">
+        <div className="flex min-h-screen items-center justify-center bg-background text-[15px] font-bold text-foreground">
           Cargando visor dev...
         </div>
       }

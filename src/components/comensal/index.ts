@@ -2,7 +2,6 @@ export * from "./types";
 export * from "./MiPaseView";
 export * from "./DondeComerView";
 export * from "./FichaLocalModal";
-export * from "./SellosModal";
 export * from "./MesaAmigosModal";
 export * from "./UnirmeMesaView";
 export * from "./EstadoPedidoModal";

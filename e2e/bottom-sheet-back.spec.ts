@@ -81,7 +81,7 @@ test.describe("Comportamiento del botón Atrás de Android (BottomSheet real)", 
     await expect(heading).toBeVisible({ timeout: 5000 });
 
     // 1. Comprobar que el clic en una pestaña queda bloqueado porque la hoja modal cubre la barra
-    const comerTab = page.getByRole("link", { name: /Comer/i });
+    const comerTab = page.getByRole("link", { name: /Restaurantes|Comer/i });
     let clickBlocked = false;
     try {
       // Intentar clic con timeout corto: Playwright esperará a que sea clickeable y fallará por intercepción del backdrop

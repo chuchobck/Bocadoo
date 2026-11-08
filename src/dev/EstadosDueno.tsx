@@ -69,13 +69,13 @@ export default function EstadosDueno({
       data-testid="estados-dueno-ready"
       className={
         showChrome
-          ? "min-h-screen bg-[#F5F3FA] p-4 font-sans"
-          : "h-screen w-screen overflow-hidden bg-white"
+          ? "min-h-screen bg-background p-4 font-sans"
+          : "h-screen w-screen overflow-hidden bg-surface"
       }
     >
       {showChrome && (
-        <div className="mx-auto max-w-xl mb-6 rounded-2xl bg-white p-4 shadow-xs border border-[#E7E1F2]">
-          <h2 className="text-[17px] font-black text-[#4A0E78] mb-2">
+        <div className="mx-auto max-w-xl mb-6 rounded-2xl bg-surface p-4 shadow-xs border border-border">
+          <h2 className="text-[17px] font-black text-foreground mb-2">
             Visor de Estados Etapa 3 (Dueño / Cajero)
           </h2>
 
@@ -88,8 +88,8 @@ export default function EstadosDueno({
                 onClick={() => setSelectedScreen(sc.id)}
                 className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
                   selectedScreen === sc.id
-                    ? "bg-[#7B2CBF] text-white"
-                    : "bg-[#F3E8FF] text-[#4A0E78]"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-primary-container text-foreground"
                 }`}
               >
                 {sc.name}
@@ -106,8 +106,8 @@ export default function EstadosDueno({
                 onClick={() => setSelectedState(st)}
                 className={`rounded-full px-3 py-1 text-[13px] font-bold transition-all ${
                   selectedState === st
-                    ? "bg-[#4A0E78] text-white"
-                    : "bg-[#F5F3FA] text-[#6B5B7B] border border-[#E7E1F2]"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground border border-border"
                 }`}
               >
                 {st}
@@ -120,7 +120,7 @@ export default function EstadosDueno({
       {/* Marco de teléfono */}
       <div className={showChrome ? "mx-auto flex justify-center" : "h-full w-full"}>
         <AppShell>
-          <div className="flex h-full flex-col bg-white">
+          <div className="flex h-full flex-col bg-surface">
             {selectedScreen === "caja" && <CajaView role={paramRole} state={selectedState} />}
 
             {/* 2. Cobrar pase abierto en contexto sobre Caja */}

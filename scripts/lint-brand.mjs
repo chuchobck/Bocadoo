@@ -19,6 +19,11 @@ export const FORBIDDEN_TOKENS = [
   // Tipografía no autorizada
   { name: "Outfit font", regex: /\bOutfit\b/g },
 
+  // Colores sueltos: todo color sale de los tokens de src/styles.css (claro y oscuro).
+  // Se exceptúan los archivos de COLOR_ALLOWED_FILES (ver abajo).
+  { name: "hex suelto (#rgb / #rrggbb)", regex: /#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g, color: true },
+  { name: "rgb()/rgba()/hsl()/oklch() suelto", regex: /\b(?:rgba?|hsla?|oklch)\(/g, color: true },
+
   // Colores fuera de la paleta oficial (sin ámbar, naranja ni amarillo)
   { name: "amber-*", regex: /\bamber-/g },
   { name: "orange-*", regex: /\borange-/g },
@@ -88,6 +93,18 @@ export const FORBIDDEN_TOKENS = [
 ];
 
 /**
+ * Únicos archivos donde se permiten colores literales:
+ * - styles.css: fuente única de verdad de los tokens (claro/oscuro).
+ * - qr-colors.ts: colores del QR (siempre #2D0050 sobre #FFFFFF, también en oscuro).
+ * - ui/chart.tsx: selectores CSS que apuntan a los atributos por defecto de recharts (no pintan nada).
+ */
+export const COLOR_ALLOWED_FILES = new Set([
+  "src/styles.css",
+  "src/lib/qr-colors.ts",
+  "src/components/ui/chart.tsx",
+]);
+
+/**
  * Piezas base ya corregidas y 100% libres de infracciones de marca (0 infracciones).
  * Se mantienen vigiladas; cualquier infracción aquí falla inmediatamente.
  */
@@ -111,6 +128,16 @@ export const LEGACY_SCREEN_FILES = {
   "src/components/bocadoo/ui.tsx": 5, // Primitivas legadas a sustituir por src/design-system
   "src/components/landing/LandingPage.tsx": 5, // Landing
   "src/routes/app/galeria.tsx": 216, // Etapa 5: Galería nueva
+  "src/features/comensal/donde-comer/Screen.tsx": 16,
+  "src/features/comensal/ficha-local/Screen.tsx": 9,
+  "src/features/comensal/mesa-amigos/Screen.tsx": 7,
+  "src/features/comensal/pase/Screen.tsx": 9,
+  "src/features/comensal/pedido/Screen.tsx": 6,
+  "src/features/comensal/unirme-mesa/Screen.tsx": 13,
+  "src/features/dueno/caja/Screen.tsx": 6,
+  "src/features/dueno/planes/Screen.tsx": 17,
+  "src/features/dueno/registrar-consumo/Screen.tsx": 31,
+  "src/routes/app/comensal/planes.tsx": 13,
 };
 
 export const LEGACY_FILES = new Set(Object.keys(LEGACY_SCREEN_FILES));
@@ -151,6 +178,8 @@ for (const filePath of allFiles) {
   const issues = [];
 
   for (const token of FORBIDDEN_TOKENS) {
+    if (token.color && COLOR_ALLOWED_FILES.has(normalizedPath)) continue;
+    if (token.name === "card-dark" && normalizedPath === "src/styles.css") continue;
     // Resetear regex global
     token.regex.lastIndex = 0;
     const matches = content.match(token.regex);

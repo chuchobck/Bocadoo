@@ -20,7 +20,12 @@ function RouteComponent() {
           <CajaView
             onScanPass={() => navigate({ to: "/app/dueno/descontar" })}
             onViewOrders={() => navigate({ to: "/app/dueno/pedidos" })}
-            onSellPlan={() => navigate({ to: "/app/dueno/cobrar" })}
+            onSellPlan={() =>
+              navigate({
+                to: "/app/dueno/cobrar" as any,
+                search: { segment: "clientes" } as any,
+              }).catch(() => {})
+            }
           />
         </div>
         <NavBar active="Ofertas" owner />

@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Ajustes de Producto — Dueño (B1, B2, B3)", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
-  test("B1: Menú de hoy editable con catálogo, Repetir ayer + Publicar = 2 toques", async ({ page }) => {
+  test("B1: Menú de hoy editable con catálogo, Publicar = 1 toque", async ({ page }) => {
     await page.goto("/app/dueno/menu");
     await page.waitForLoadState("networkidle");
 
@@ -16,18 +16,13 @@ test.describe("Ajustes de Producto — Dueño (B1, B2, B3)", () => {
 
     let touches = 0;
 
-    // Toque 1: Repetir ayer
-    const repetirBtn = page.getByRole("button", { name: "Repetir ayer" });
-    await repetirBtn.click();
-    touches++;
-
-    // Toque 2: Publicar menú
+    // Toque 1: Publicar menú
     const publicarBtn = page.getByRole("button", { name: /Publicar menú/i });
     await publicarBtn.click();
     touches++;
 
-    // Verificación de presupuesto: 2 toques
-    expect(touches).toBe(2);
+    // Verificación de presupuesto: 1 toque
+    expect(touches).toBe(1);
 
     // Estado pasa a Publicado en verde
     await expect(page.getByText("Publicado", { exact: true })).toBeVisible();

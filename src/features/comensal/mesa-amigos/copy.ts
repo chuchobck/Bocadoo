@@ -6,5 +6,10 @@ export const MESA_AMIGOS_COPY = {
   emptyDesc: "Invita a almorzar a tus compañeros.",
   loadingTitle: "Preparando tu mesa",
   errorTitle: "Error al crear mesa",
+  cashierHint: "Muestra este único QR en caja: se valida el almuerzo de todos en 1 segundo. Invita a tus amigos con WhatsApp.",
+  modeEach: "Cada quien lo suyo",
+  modeEachHint: "Cada amigo con plan descuenta el suyo.",
+  modeHost: "Yo invito la mesa",
+  modeHostHint: "Se descuentan de mi plan y gano un sello por cada uno.",
   offlineBadge: "Sin conexión · Se compartirá al conectar",
 } as const;
